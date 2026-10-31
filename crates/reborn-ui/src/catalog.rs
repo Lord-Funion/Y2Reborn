@@ -788,6 +788,11 @@ fn shown_artist<'a>(album_artist: &'a str, t: &'a Track) -> &'a str {
         album_artist
     }
 }
+/// The artist an album row names for `t`, one of its songs, without the year (Cover Flow shows
+/// the year in its own line, Y2Reborn #73).
+pub(crate) fn album_artist(t: &Track) -> std::borrow::Cow<'_, str> {
+    crate::names_or_unknown(shown_artist(&t.album_artist, t))
+}
 /// An album row: its artist, and its year when known (Y2Reborn #66).
 fn album_item(album: &str, artist: &str, index: usize, t: &Track, year: u16) -> Item {
     let artist = crate::names_or_unknown(shown_artist(artist, t));

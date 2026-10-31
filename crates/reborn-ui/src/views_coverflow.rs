@@ -150,10 +150,15 @@ pub fn albums(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interacti
             Face::S20,
             fade(color::TEXT, shown),
         );
+        // An album's artist alone: its year is in the line below (#73).
+        let artist = match row.art.and_then(|i| tracks.get(i)) {
+            Some(t) if row.key.starts_with("album:") => crate::catalog::album_artist(t),
+            _ => row.secondary.as_str().into(),
+        };
         c.text_center(
             x,
             298. + Face::R15.mid_offset(),
-            &text::fit(Face::R15, &row.secondary, 440.),
+            &text::fit(Face::R15, &artist, 440.),
             Face::R15,
             fade(color::MUTED, shown),
         );

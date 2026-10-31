@@ -3142,6 +3142,26 @@ fn cover_flow_glides_opens_with_a_flight_and_asks_for_the_sharp_cover_at_rest() 
 }
 
 #[test]
+fn cover_flow_names_the_artist_without_the_year_its_detail_line_shows() {
+    // Y2Reborn #73: "corook · 2023" over "2023 · 1 song · 3 min" showed the year twice.
+    let mut ui = radios();
+    ui.motion_fixed = true;
+    let mut m = app(Screen::Albums);
+    for t in &mut m.library.tracks {
+        t.year = 1979;
+    }
+    let tracks = m.library.tracks.clone();
+    let row = ui.row_at(&m, &tracks, 0).unwrap();
+    assert!(
+        row.secondary.ends_with(" · 1979"),
+        "the album list keeps it: {}",
+        row.secondary
+    );
+    let text = drawn_text(&ui.draw(&m, &tracks, false));
+    assert_eq!(text.matches("1979").count(), 1, "{text}");
+}
+
+#[test]
 fn cover_flow_text_rides_under_its_cover_while_the_row_glides() {
     // Y2Reborn #71: the album's text moves with its cover instead of standing still.
     let title_x = |quads: &[reborn_graphics::Quad]| {
