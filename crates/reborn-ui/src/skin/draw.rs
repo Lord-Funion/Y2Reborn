@@ -995,6 +995,8 @@ pub(crate) fn draw_layout(c: &mut Canvas, s: &Scene, layout: &[Node]) {
 /// Recolour Reborn's own drawing from `start` with the skin's palette: each
 /// colour of Reborn's design keeps its role (and its opacity) in the skin.
 /// Pictures (artwork, thumbnails, skin images) keep their colours.
+/// The greys come from the theme, so a new value there stays recoloured
+/// (9.2.3's brighter greys were not, and stayed light on light skins, Y2Reborn #76).
 pub(crate) fn remap(c: &mut Canvas, start: usize, p: &Palette, accent: u32) {
     let table: [(u32, u32); 16] = [
         (0x06070A, p.bg),
@@ -1002,9 +1004,9 @@ pub(crate) fn remap(c: &mut Canvas, start: usize, p: &Palette, accent: u32) {
         (0xF6F6F8, p.text),
         (0xDEE1E8, p.text),
         (0xF2F3F5, p.text),
-        (0xA0A4AE, p.muted),
+        (color::MUTED >> 8, p.muted),
         (0xAAAEBA, p.muted),
-        (0x848894, p.dim),
+        (color::DIM >> 8, p.dim),
         (0xFFFFFF, p.glass),
         (0x0E1014, p.sheet),
         (0x14161C, p.sheet),

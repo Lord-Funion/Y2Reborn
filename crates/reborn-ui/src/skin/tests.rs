@@ -445,6 +445,27 @@ fn cover_flow_shelf_fades_into_a_light_skin_background() {
 }
 
 #[test]
+fn every_theme_grey_takes_the_skins_colour() {
+    // Y2Reborn #76: 9.2.3 brightened MUTED and DIM, the table kept the old
+    // values, and the greys stayed light on light skins such as Bunny Bow.
+    let p = &super::Palette {
+        bg: 0xFFE4_EFFF,
+        text: 0x6B24_50FF,
+        muted: 0x8E3D_6BFF,
+        dim: 0xA0_5A84FF,
+        ..super::Palette::default()
+    };
+    let mut c = crate::canvas::Canvas::default();
+    for colour in [theme::color::TEXT, theme::color::MUTED, theme::color::DIM] {
+        c.draw
+            .push(reborn_graphics::Quad::rect(0., 0., 1., 1., colour));
+    }
+    remap(&mut c, 0, p, 0x2A69_D2FF);
+    let got: Vec<u32> = c.draw.iter().map(|q| q.color).collect();
+    assert_eq!(got, [p.text, p.muted, p.dim]);
+}
+
+#[test]
 fn without_a_skin_nothing_changes() {
     let ui = Ui::default();
     let tracks = library(5);
