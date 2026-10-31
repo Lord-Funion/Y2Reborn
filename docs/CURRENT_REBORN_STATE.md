@@ -1,6 +1,12 @@
 # Current Reborn state on the Y2
 
-## 1.0.0-beta.9.2.10 — Y2Linux 1.0 Beta 9.2.10 (Baseline 201), 2026-10-31 (latest): settings tree, list scrolling
+## 1.0.0-beta.9.2.11 — Y2Linux 1.0 Beta 9.2.11 (Baseline 202), 2026-10-31 (latest): radio icons only while connected
+
+Published as `baseline-202` (Reborn `9cd6368`; sequence 12700). Y2Linux #73 follow-up: the status bar
+(`components/status.rs`) and skins' `indicators` show Wi-Fi and Bluetooth only while connected; `Flag::WifiConnected`
+needs the radio on; the indicators' `dim` colour is accepted and checked, unused.
+
+## 1.0.0-beta.9.2.10 — Y2Linux 1.0 Beta 9.2.10 (Baseline 201), 2026-10-31: settings tree, list scrolling
 
 Published as `baseline-201` (Reborn `530f3ae`; sequence 12600; includes test build 200 = 9.2.9). Settings: eight
 places (Bluetooth, Wi-Fi, Sound, Display, Skin, Customize, Library, System); `customize.rs` (Customize's pages
