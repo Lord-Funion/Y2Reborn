@@ -226,7 +226,8 @@ pub fn menu_entry(
     selected: bool,
 ) {
     if selected {
-        focus_row(c, 12., y + 2., WIDTH - 24., h - 4.);
+        // Clear of the scroll rail.
+        focus_row(c, 12., y + 2., WIDTH - 28., h - 4.);
     }
     let tile = 34.;
     icon_tile(c, 22., y + (h - tile) / 2., tile, 10., tint, icon, 20.);

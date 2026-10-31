@@ -6848,3 +6848,55 @@ fn a_playlist_moves_to_another_place_in_the_playlists_list() {
     m.settings.playlist_order = order;
     assert_eq!(names(&ui, &m), ["Favorites", "Road Trip", "another"]);
 }
+
+/// Y2Reborn #74: with Playlists and Search off Home, Music has seven lists; turning down reaches
+/// the last, which scrolls into view as in every list (it stayed below the screen).
+#[test]
+fn music_scrolls_its_lists_into_view() {
+    let mut ui = radios();
+    ui.motion_fixed = true;
+    let mut m = app(Screen::Music);
+    m.settings.show_on_home("playlists", false);
+    m.settings.show_on_home("search", false);
+    let tracks = m.library.tracks.clone();
+    assert_eq!(ui.rows(&m, &tracks).len(), 7);
+    for _ in 0..6 {
+        ui.model_action(&mut m, Action::WheelClockwise(1));
+    }
+    assert_eq!(m.navigation.focus, 6);
+    let quads = ui.draw(&m, &tracks, false);
+    let text = drawn_text(&quads);
+    assert!(
+        text.contains("Search") && !text.contains("Artists"),
+        "{text}"
+    );
+    let focus = quads
+        .iter()
+        .position(|q| q.color == components::FOCUS_FILL)
+        .unwrap();
+    assert!(
+        quads[focus].y + quads[focus].h <= 360.,
+        "the focus row is on the screen"
+    );
+}
+
+/// #74: a long settings list scrolls on the screen as the Skin list does: six rows down to the
+/// bottom edge, the last reached by the wheel.
+#[test]
+fn a_long_settings_list_scrolls_on_the_screen() {
+    let mut ui = radios();
+    ui.motion_fixed = true;
+    let mut m = app(Screen::Customize);
+    let tracks = m.library.tracks.clone();
+    let text = drawn_text(&ui.draw(&m, &tracks, false));
+    assert!(text.contains("Wrap Around"), "six rows fit: {text}");
+    let rows = ui.rows(&m, &tracks).len();
+    for _ in 1..rows {
+        ui.model_action(&mut m, Action::WheelClockwise(1));
+    }
+    let text = drawn_text(&ui.draw(&m, &tracks, false));
+    assert!(
+        text.contains("Wheel Click") && !text.contains("Home Menu"),
+        "{text}"
+    );
+}

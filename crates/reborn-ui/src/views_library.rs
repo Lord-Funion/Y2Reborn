@@ -137,11 +137,17 @@ pub fn home(
 const MUSIC_H: f32 = 56.;
 
 /// Music: the library's lists as menu entries, each with what it holds.
+/// The Music lists that fit at once; more (Playlists and Search off Home) scroll in as every list
+/// does (Y2Reborn #74: they stayed below the screen).
+pub(crate) const MUSIC_ROWS: usize = 5;
+
 pub fn music(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interactive: bool) {
     components::status_bar(c, ui, m, "Music", true);
     let rows = ui.rows(m, tracks);
     let focus = m.navigation.focus.min(rows.len().saturating_sub(1));
-    for (i, row) in rows.iter().enumerate() {
+    let first = components::list_window(m, focus, MUSIC_ROWS);
+    let rows_at = c.draw.len();
+    for (i, row) in rows.iter().enumerate().skip(first).take(MUSIC_ROWS) {
         let (tint, icon) = match row.key.as_str() {
             "artists" => (0x6EA0FFFF, Icon::Person),
             "albums" => (0xFF7A59FF, Icon::Vinyl),
@@ -149,9 +155,19 @@ pub fn music(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interactiv
             "genres" => (0xA07BFFFF, Icon::Note),
             _ => (0x5CCB7AFF, Icon::Folder),
         };
-        let y = 42. + i as f32 * MUSIC_H;
+        let y = 42. + (i - first) as f32 * MUSIC_H;
         components::menu_entry(c, row, y, MUSIC_H, tint, icon, interactive && i == focus);
     }
+    c.mark_moving(Moving::List {
+        start: rows_at,
+        end: c.draw.len(),
+        top: 42.,
+        bottom: 42. + MUSIC_ROWS as f32 * MUSIC_H,
+        row_h: MUSIC_H,
+        first,
+    });
+    let height = MUSIC_ROWS as f32 * MUSIC_H - 8.;
+    components::scroll_rail(c, 46., height, first, rows.len(), MUSIC_ROWS, ui.accent());
 }
 
 fn recently_added(c: &mut Canvas, ui: &Ui, tracks: &[Track]) {

@@ -141,13 +141,13 @@ fn root(c: &mut Canvas, ui: &Ui, page: &Page, focus: usize, interactive: bool) {
         "lastfm" => (0xD51007FF, Icon::Note),
         _ => (0x828CA0FF, Icon::Info),
     };
-    components::card(c, 10., 38., WIDTH - 20., rows as f32 * row_h + 4.);
+    // Straight on the screen, as every list (#74).
     for (i, row) in page.rows.iter().enumerate().take(rows) {
         let y = 40. + i as f32 * row_h;
         let mid = y + row_h / 2.;
         let selected = interactive && i == focus;
         if selected {
-            components::focus_row(c, 14., y + 3., WIDTH - 28., row_h - 6.);
+            components::focus_row(c, 10., y + 2., WIDTH - 26., row_h - 4.);
         } else if i > 0 && !(interactive && i - 1 == focus) {
             c.rect(64., y + 1., WIDTH - 88., 1., color::RULE);
         }
@@ -169,8 +169,9 @@ fn root(c: &mut Canvas, ui: &Ui, page: &Page, focus: usize, interactive: bool) {
 
 // ----------------------------------------------------------- grouped rows
 
-/// Draw `rows` as one grouped card starting at `top`; returns its bottom edge.
-/// `first` is the index of the first row in the page, for focus.
+/// Draw `rows` straight on the screen from `top`, as every list (Y2Reborn #74: rows in a card
+/// slid inside it while the card stood still); returns their bottom edge. `first` is the index of
+/// the first row in the page, for focus.
 fn group(
     c: &mut Canvas,
     ui: &Ui,
@@ -182,12 +183,11 @@ fn group(
 ) -> f32 {
     let accent = ui.accent();
     let h = 50.;
-    components::card(c, 10., top, WIDTH - 20., rows.len() as f32 * h + 4.);
     for (i, row) in rows.iter().enumerate() {
         let y = top + 2. + i as f32 * h;
         let selected = interactive && first + i == focus && row.enabled;
         if selected {
-            components::focus_row(c, 14., y + 2., WIDTH - 28., h - 4.);
+            components::focus_row(c, 10., y + 1., WIDTH - 26., h - 2.);
         } else if i + 1 < rows.len() && !(interactive && first + i + 1 == focus) {
             c.rect(28., y + h - 1., WIDTH - 52., 1., color::RULE);
         }
@@ -229,6 +229,13 @@ fn group(
         }
     }
     top + rows.len() as f32 * h + 4.
+}
+
+/// The room a page's hint takes at the bottom of the screen.
+fn hint_height(page: &Page) -> f32 {
+    page.status.as_ref().map_or(0., |status| {
+        12. + 15. * wrap_lines(status, 420., Face::R11, 2).len() as f32
+    })
 }
 
 fn hint(c: &mut Canvas, page: &Page) {
@@ -276,7 +283,9 @@ pub(crate) fn group_page(
     if !page.rows.is_empty() {
         // As every list (8.37): the rows keep their place until the focus
         // reaches an edge, then glide one row (it moved on every step back).
-        let visible = (((HEIGHT - 40. - y) / 50.).floor() as usize).max(1);
+        // They reach down to the hint under them, or the screen's edge.
+        let bottom = HEIGHT - 6. - hint_height(page);
+        let visible = (((bottom - y) / 50.).floor() as usize).max(1);
         let start = ui.group_window(m, focus, visible, page.rows.len());
         let end = (start + visible).min(page.rows.len());
         let rows_at = c.draw.len();
@@ -289,6 +298,16 @@ pub(crate) fn group_page(
             row_h: 50.,
             first: start,
         });
+        let count = page.rows.len();
+        components::scroll_rail(
+            c,
+            y + 4.,
+            visible as f32 * 50. - 4.,
+            start,
+            count,
+            visible,
+            ui.accent(),
+        );
     }
     hint(c, page);
 }
@@ -414,21 +433,21 @@ fn radio(
             color::MUTED,
         );
     }
+    // Devices and networks scroll as every list (#74): down to the hint, the window gliding.
     let rest: Vec<(usize, &Item)> = page.rows.iter().enumerate().skip(1).collect();
-    let visible = if busy.is_some() { 3usize } else { 4usize };
-    let start = focus
-        .saturating_sub(visible)
-        .min(rest.len().saturating_sub(visible));
-    // Devices and networks are a settings list: one grouped card.
-    let shown = rest.len().saturating_sub(start).min(visible);
-    if shown > 0 {
-        components::card(c, 10., top - 2., WIDTH - 20., shown as f32 * 56.);
-    }
+    let bottom = if page.status.is_some() {
+        324.
+    } else {
+        HEIGHT - 6.
+    };
+    let visible = (((bottom - top) / 56.).floor() as usize).max(1);
+    let start = ui.group_window(m, focus.saturating_sub(1), visible, rest.len());
+    let rows_at = c.draw.len();
     for (slot, (index, row)) in rest.iter().skip(start).take(visible).enumerate() {
         let y = top + slot as f32 * 56.;
         let selected = interactive && *index == focus && row.enabled;
         if selected {
-            components::focus_row(c, 14., y + 1., WIDTH - 28., 50.);
+            components::focus_row(c, 10., y + 1., WIDTH - 26., 50.);
         } else if slot > 0 && !(interactive && *index == focus + 1) {
             c.rect(28., y - 2., WIDTH - 56., 1., color::RULE);
         }
@@ -471,7 +490,25 @@ fn radio(
             c.icon(Icon::Check, WIDTH - 34., y + 26., 18., accent);
         }
     }
-    let _ = (m, WifiStatus::Disconnected);
+    c.mark_moving(Moving::List {
+        start: rows_at,
+        end: c.draw.len(),
+        top: top - 2.,
+        bottom: top + visible as f32 * 56.,
+        row_h: 56.,
+        first: start,
+    });
+    let count = rest.len();
+    components::scroll_rail(
+        c,
+        top,
+        visible as f32 * 56. - 6.,
+        start,
+        count,
+        visible,
+        accent,
+    );
+    let _ = WifiStatus::Disconnected;
     if let Some(status) = &page.status {
         let lines = wrap_lines(status, 430., Face::R11, 2);
         for (i, line) in lines.iter().enumerate() {
@@ -491,18 +528,20 @@ fn radio(
 fn sound(c: &mut Canvas, ui: &Ui, m: &AppModel, page: &Page, focus: usize, interactive: bool) {
     // Rows 0–4 playback and balance, 5 the output card (its page holds the
     // jack's level and DAC filter). One row taller than the screen: as on
-    // Display, the first row scrolls away once the focus reaches Balance.
+    // Display, the first row scrolls away once the focus reaches Balance, the
+    // whole page gliding up as a list does (#74: it jumped).
     let card = page.rows.len().saturating_sub(1);
     let fits = 38. + card as f32 * 50. + 4. + 38. + 56. + 4. <= HEIGHT;
-    let first = usize::from(!fits && focus + 2 > card);
+    let shift = if !fits && focus + 2 > card { 50. } else { 0. };
+    let page_at = c.draw.len();
     let bottom = group(
         c,
         ui,
-        &page.rows[first..card],
-        first,
+        &page.rows[..card],
+        0,
         focus,
         interactive,
-        38.,
+        38. - shift,
     );
     components::section_label(c, 28., bottom + 24., "Output");
     if let Some(row) = page.rows.get(card) {
@@ -527,6 +566,14 @@ fn sound(c: &mut Canvas, ui: &Ui, m: &AppModel, page: &Page, focus: usize, inter
         c.text_mid(28., y + 40., 340., &detail, Face::R11, color::MUTED);
         components::chevron(c, WIDTH - 22., y + 28.);
     }
+    c.mark_moving(Moving::Scroll {
+        start: page_at,
+        end: c.draw.len(),
+        top: 38.,
+        bottom: HEIGHT,
+        offset: shift,
+        row_h: 50.,
+    });
 }
 
 /// The Output page: the outputs (current one checked), then the headphone
@@ -855,12 +902,12 @@ fn storage(c: &mut Canvas, m: &AppModel, page: &Page, focus: usize, interactive:
             }
         }
     }
+    // The actions under the two volumes, straight on the screen as every list (#74).
     let top = 40. + 2. * 84.;
-    components::card(c, 10., top, WIDTH - 20., 44. * page.rows.len() as f32 + 4.);
     for (i, row) in page.rows.iter().enumerate() {
         let y = top + 2. + i as f32 * 44.;
         if interactive && i == focus && row.enabled {
-            components::focus_row(c, 14., y + 1., WIDTH - 28., 42.);
+            components::focus_row(c, 10., y + 1., WIDTH - 26., 42.);
         }
         let face = if interactive && i == focus {
             Face::S15

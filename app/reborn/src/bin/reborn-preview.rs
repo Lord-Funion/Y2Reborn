@@ -1856,6 +1856,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             m.navigation.focus = 1;
         }
     );
+    // The last rows of a long settings page: the list scrolls as Artists does.
+    case!("51e-customize-last", at(Screen::Customize, ""), |_, m| {
+        m.navigation.focus = 9;
+        m.navigation.scroll = 4;
+    });
     // Home and Music (UI v4 phase 2)
     case!("53-home-menu", at(Screen::HomeMenu, ""), |_, m| {
         m.settings.pin_home("albums", true);
@@ -1864,6 +1869,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     case!("75-music", at(Screen::Music, ""), |_, m| m
         .navigation
         .focus = 1);
+    // #74: the Music list's last rows, scrolled into view as every list is.
+    case!("75b-music-last", at(Screen::Music, ""), |_, m| {
+        m.settings.show_on_home("playlists", false);
+        m.settings.show_on_home("search", false);
+        m.navigation.focus = 6;
+        m.navigation.scroll = 2;
+    });
     case!("76-home-pinned", at(Screen::Home, ""), |ui, m| {
         m.settings.pin_home("albums", true);
         m.settings.pin_home("tracks", true);
