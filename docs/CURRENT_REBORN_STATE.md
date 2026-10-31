@@ -1,6 +1,11 @@
 # Current Reborn state on the Y2
 
-## 1.0.0-beta.9.2.7 — Y2Linux 1.0 Beta 9.2.7 (Baseline 198), 2026-10-31 (latest): wheel clicks whenever no music plays
+## 1.0.0-beta.9.2.8 — Y2Linux 1.0 Beta 9.2.8 (Baseline 199), 2026-10-31 (latest): platform Wi-Fi diagnostics only
+
+Published as `baseline-199` (Reborn `a39176e`; sequence 12400). No Reborn change besides the version and the
+re-recorded platform contract: network.json `supplicant_events` gains `rejects` (Y2Linux #83).
+
+## 1.0.0-beta.9.2.7 — Y2Linux 1.0 Beta 9.2.7 (Baseline 198), 2026-10-31: wheel clicks whenever no music plays
 
 Published as `baseline-198` (Reborn `38946ea`; sequence 12300). `Runtime::wheel_click` sends the wired plan
 (`click_spec`, planned once) unless a pause holds the output on the right route (a hold on the other route is
