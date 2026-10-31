@@ -645,18 +645,24 @@ fn indicators_show_charging_and_the_radios_right_to_left_and_close_up() {
         connected: true,
         ..Default::default()
     }];
+    // #73: Wi-Fi on but not connected shows nothing (it was dim, and read as connected).
     ui.wifi.powered = true;
     ui.wifi.status = crate::WifiStatus::Disconnected;
-    let (bolt, bluetooth, wifi) = (
+    assert_eq!(centre(&ui, &m, dim), None, "no dim radios");
+    let (bolt, bluetooth) = (
         centre(&ui, &m, charge).unwrap(),
         centre(&ui, &m, on).unwrap(),
-        centre(&ui, &m, dim).unwrap(),
     );
     assert!((bolt - 432.).abs() < 2., "{bolt}");
     assert!((bluetooth - 412.).abs() < 2., "{bluetooth}");
-    assert!((wifi - 392.).abs() < 2., "{wifi}");
-    // Not charging: Bluetooth moves into the bolt's place.
+    // Connected: Wi-Fi left of Bluetooth (both in `color`: their middle is 402).
+    ui.wifi.status = crate::WifiStatus::Connected("Home".into());
+    assert!((centre(&ui, &m, on).unwrap() - 402.).abs() < 2.);
+    // Not charging: the radios move into the bolt's place.
     m.platform.battery.charging = reborn_core::platform::ChargingState::OnBattery;
+    assert!((centre(&ui, &m, on).unwrap() - 422.).abs() < 2.);
+    // Bluetooth on without a device: only Wi-Fi.
+    ui.bluetooth.devices.clear();
     assert!((centre(&ui, &m, on).unwrap() - 432.).abs() < 2.);
     for json in SHIPPED {
         assert!(

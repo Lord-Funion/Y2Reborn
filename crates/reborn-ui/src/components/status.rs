@@ -112,26 +112,20 @@ pub(crate) fn status_cluster(c: &mut Canvas, ui: &Ui, m: &AppModel, tint: u32, r
         c.icon(Icon::Usb, right - step / 2. + 3., 18., icon, tint);
         right -= step;
     }
-    if ui.bluetooth.powered {
-        let connected = ui.bluetooth.devices.iter().any(|d| d.connected);
+    // The radios only while connected, as on a phone (Y2Linux #73: dim while only on read as
+    // connected); Settings shows whether they are on.
+    if ui.bluetooth.powered && ui.bluetooth.devices.iter().any(|d| d.connected) {
         c.icon(
             Icon::Bluetooth,
             right - step / 2. + 3.,
             18.,
             radio,
-            if connected { color::TEXT } else { color::DIM },
+            color::TEXT,
         );
         right -= step;
     }
-    if ui.wifi.powered {
-        let connected = matches!(ui.wifi.status, crate::WifiStatus::Connected(_));
-        c.icon(
-            Icon::Wifi,
-            right - step / 2. + 3.,
-            18.,
-            radio,
-            if connected { color::TEXT } else { color::DIM },
-        );
+    if ui.wifi.powered && matches!(ui.wifi.status, crate::WifiStatus::Connected(_)) {
+        c.icon(Icon::Wifi, right - step / 2. + 3., 18., radio, color::TEXT);
         right -= step;
     }
     if let Some(time) = ui.clock(m) {

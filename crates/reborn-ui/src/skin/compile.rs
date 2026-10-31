@@ -747,17 +747,21 @@ impl Compiler<'_> {
                     children,
                 }
             }
-            "indicators" => El::Indicators {
-                x: num(e.x, "x", Some(0.))?,
-                y: num(e.y, "y", Some(0.))?,
-                look: IndicatorLook {
-                    size: num(e.size, "size", Some(16.))?.clamp(1., 64.),
-                    gap: num(e.gap, "gap", Some(4.))?.clamp(0., 64.),
-                    on: self.paint(e.color.as_deref().unwrap_or("text"), &at)?,
-                    dim: self.paint(e.dim.as_deref().unwrap_or("dim"), &at)?,
-                    charge: self.paint(e.charge.as_deref().unwrap_or("success"), &at)?,
-                },
-            },
+            "indicators" => {
+                // `dim` coloured the radios while only on (9.2.2-9.2.10); still checked so a skin
+                // with it loads as before, unused since the radios show once connected (#73).
+                self.paint(e.dim.as_deref().unwrap_or("dim"), &at)?;
+                El::Indicators {
+                    x: num(e.x, "x", Some(0.))?,
+                    y: num(e.y, "y", Some(0.))?,
+                    look: IndicatorLook {
+                        size: num(e.size, "size", Some(16.))?.clamp(1., 64.),
+                        gap: num(e.gap, "gap", Some(4.))?.clamp(0., 64.),
+                        on: self.paint(e.color.as_deref().unwrap_or("text"), &at)?,
+                        charge: self.paint(e.charge.as_deref().unwrap_or("success"), &at)?,
+                    },
+                }
+            }
             "native" => {
                 if row {
                     return Err(format!("{at}: native parts cannot be inside a list row"));

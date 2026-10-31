@@ -552,7 +552,6 @@ pub(crate) struct IndicatorLook {
     pub size: f32,
     pub gap: f32,
     pub on: Paint,
-    pub dim: Paint,
     pub charge: Paint,
 }
 

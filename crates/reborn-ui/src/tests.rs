@@ -6946,3 +6946,32 @@ fn a_long_settings_list_scrolls_on_the_screen() {
         "{text}"
     );
 }
+
+/// Y2Linux #73: the status bar shows Wi-Fi and Bluetooth only while connected; a radio that is only
+/// on draws nothing there (it was dim, and read as connected).
+#[test]
+fn the_status_bar_shows_the_radios_only_while_connected() {
+    let mut ui = radios();
+    let m = app(Screen::Settings);
+    // The icons drawn in the status bar: mask quads in its band, left of the battery.
+    let icons = |ui: &Ui| {
+        ui.draw(&m, &m.library.tracks, false)
+            .iter()
+            .filter(|q| q.tex == reborn_graphics::Tex::Mask && q.y < 34. && q.x > 300.)
+            .count()
+    };
+    // Off, with the last Wi-Fi status still "connected": no icon either.
+    ui.wifi.powered = false;
+    ui.wifi.status = WifiStatus::Connected("Home Wi-Fi".into());
+    ui.bluetooth.powered = false;
+    let off = icons(&ui);
+    ui.wifi.powered = true;
+    ui.wifi.status = WifiStatus::Disconnected;
+    ui.bluetooth.powered = true;
+    for d in &mut ui.bluetooth.devices {
+        d.connected = false;
+    }
+    assert_eq!(icons(&ui), off, "on but not connected: as if off");
+    ui.wifi.status = WifiStatus::Connected("Home Wi-Fi".into());
+    assert!(icons(&ui) > off, "connected Wi-Fi shows");
+}

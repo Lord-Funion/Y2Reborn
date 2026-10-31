@@ -100,7 +100,11 @@ impl Scene<'_> {
                 self.ui.bluetooth.powered && self.ui.bluetooth.devices.iter().any(|d| d.connected)
             }
             Flag::Wifi => self.ui.wifi.powered,
-            Flag::WifiConnected => matches!(self.ui.wifi.status, crate::WifiStatus::Connected(_)),
+            // Off is never connected, whatever status was last read (as Bluetooth).
+            Flag::WifiConnected => {
+                self.ui.wifi.powered
+                    && matches!(self.ui.wifi.status, crate::WifiStatus::Connected(_))
+            }
             Flag::Back => m.screen != Screen::Home,
             Flag::Empty => self.row_count() == 0,
             Flag::Error => self.message.is_some_and(|(_, e)| e),
@@ -943,7 +947,6 @@ fn element(c: &mut Canvas, s: &Scene, el: &El, ox: f32, oy: f32, row: Option<&Ro
 /// The status icons right to left from `right` (Y2Linux #70, #73: skins
 /// showed only the battery and the clock).
 fn indicators(c: &mut Canvas, s: &Scene, right: f32, top: f32, look: IndicatorLook) {
-    let radio = |connected: bool| if connected { look.on } else { look.dim };
     let usb = s.m.platform.snapshot.usb;
     let shown = [
         (s.flag(Flag::Charging, None), Icon::Bolt, look.charge),
@@ -956,16 +959,13 @@ fn indicators(c: &mut Canvas, s: &Scene, right: f32, top: f32, look: IndicatorLo
                 look.on
             },
         ),
+        // The radios only while connected (Y2Linux #73).
         (
-            s.flag(Flag::Bluetooth, None),
+            s.flag(Flag::BluetoothConnected, None),
             Icon::Bluetooth,
-            radio(s.flag(Flag::BluetoothConnected, None)),
+            look.on,
         ),
-        (
-            s.flag(Flag::Wifi, None),
-            Icon::Wifi,
-            radio(s.flag(Flag::WifiConnected, None)),
-        ),
+        (s.flag(Flag::WifiConnected, None), Icon::Wifi, look.on),
     ];
     let mut x = right;
     for (_, icon, paint) in shown.into_iter().filter(|(on, _, _)| *on) {
