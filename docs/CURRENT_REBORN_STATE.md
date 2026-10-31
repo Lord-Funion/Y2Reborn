@@ -1,6 +1,12 @@
 # Current Reborn state on the Y2
 
-## 1.0.0-beta.9.2.11 — Y2Linux 1.0 Beta 9.2.11 (Baseline 202), 2026-10-31 (latest): radio icons only while connected
+## 1.0.0-beta.9.2.12 — Y2Linux 1.0 Beta 9.2.12 (Baseline 203), 2026-11-01 (latest): light skins' greys
+
+Published as `baseline-203` (Reborn `4a052b3`; sequence 12800). #76: `skin::remap`'s table still had the pre-9.2.3
+greys (#A0A4AE, #848894), so the brighter MUTED/DIM stayed unmapped and pale on light skins; it now takes
+`color::MUTED` and `color::DIM` from the theme. The platform's Bluetooth-off fix needs nothing from Reborn.
+
+## 1.0.0-beta.9.2.11 — Y2Linux 1.0 Beta 9.2.11 (Baseline 202), 2026-10-31: radio icons only while connected
 
 Published as `baseline-202` (Reborn `9cd6368`; sequence 12700). Y2Linux #73 follow-up: the status bar
 (`components/status.rs`) and skins' `indicators` show Wi-Fi and Bluetooth only while connected; `Flag::WifiConnected`
