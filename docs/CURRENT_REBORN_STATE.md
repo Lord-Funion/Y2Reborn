@@ -1,6 +1,15 @@
 # Current Reborn state on the Y2
 
-## 1.0.0-beta.9.2.8 — Y2Linux 1.0 Beta 9.2.8 (Baseline 199), 2026-10-31 (latest): platform Wi-Fi diagnostics only
+## 1.0.0-beta.9.2.10 — Y2Linux 1.0 Beta 9.2.10 (Baseline 201), 2026-10-31 (latest): settings tree, list scrolling
+
+Published as `baseline-201` (Reborn `530f3ae`; sequence 12600; includes test build 200 = 9.2.9). Settings: eight
+places (Bluetooth, Wi-Fi, Sound, Display, Skin, Customize, Library, System); `customize.rs` (Customize's pages
+`browsing`/`wheel`, pickers `choose:<setting>`, hints), `pages::sub_page`, `system_menu` (`Screen::Update`; Software
+Update = filter `software`), `library` (`Screen::SettingsLibrary`), Playback under Sound; the map and the placement
+rule: [REBORN-SETTINGS-MAP.md](ui/REBORN-SETTINGS-MAP.md). Lists: settings rows on the screen with `group_window`,
+glide and rail (#74), Music `MUSIC_ROWS` window, Sound glides; Cover Flow's artist without the year (#73).
+
+## 1.0.0-beta.9.2.8 — Y2Linux 1.0 Beta 9.2.8 (Baseline 199), 2026-10-31: platform Wi-Fi diagnostics only
 
 Published as `baseline-199` (Reborn `a39176e`; sequence 12400). No Reborn change besides the version and the
 re-recorded platform contract: network.json `supplicant_events` gains `rejects` (Y2Linux #83).
