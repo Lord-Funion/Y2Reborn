@@ -36,7 +36,9 @@ pub fn screen(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interacti
         Screen::Theme => themes(c, ui, m, &page, focus, interactive),
         Screen::SettingsDisplay => display(c, ui, m, &page, focus, interactive),
         Screen::Storage => storage(c, m, &page, focus, interactive),
-        Screen::Update => update(c, ui, m, &page, focus, interactive),
+        Screen::Update if m.navigation.filter == pages::SOFTWARE_UPDATE => {
+            update(c, ui, m, &page, focus, interactive)
+        }
         Screen::ErrorReports if pages::report_preparing(m).is_some() => report_progress(c, ui, m),
         Screen::LastFm if ui.lastfm.approval.is_some() => {
             sign_in_code(c, ui, &page, focus, interactive)
@@ -137,8 +139,7 @@ fn root(c: &mut Canvas, ui: &Ui, page: &Page, focus: usize, interactive: bool) {
         "display" => (0xFFBE3CFF, Icon::Sun),
         "theme" => (0xEE6AB4FF, Icon::Palette),
         "customize" => (0x2EB8C8FF, Icon::Sliders),
-        "storage" => (0x9678FFFF, Icon::Drive),
-        "lastfm" => (0xD51007FF, Icon::Note),
+        "library" => (0xFF7A59FF, Icon::Vinyl),
         _ => (0x828CA0FF, Icon::Info),
     };
     // Straight on the screen, as every list (#74).

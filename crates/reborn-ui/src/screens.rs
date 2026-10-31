@@ -718,14 +718,17 @@ pub fn screen_title(m: &AppModel) -> String {
         Screen::HomeMenu => "Home Menu".into(),
         Screen::SettingsLibrary => "Library".into(),
         Screen::SettingsDisplay => "Display".into(),
-        Screen::Customize => "Customize".into(),
+        Screen::Customize => crate::customize::title(&m.navigation.filter).into(),
         Screen::Audiobooks => "Audiobooks".into(),
         Screen::Book => "Audiobook".into(),
         Screen::SettingsSystem => "Service".into(),
         Screen::Battery => "Battery".into(),
         Screen::Sleep => "Sleep".into(),
         Screen::Storage => "Storage".into(),
-        Screen::Update => "About & Updates".into(),
+        Screen::Update if m.navigation.filter == crate::pages::SOFTWARE_UPDATE => {
+            "Software Update".into()
+        }
+        Screen::Update => "System".into(),
         Screen::About => "About".into(),
         Screen::Maintenance => "Reset & Maintenance".into(),
         Screen::Diagnostics => "Diagnostics".into(),

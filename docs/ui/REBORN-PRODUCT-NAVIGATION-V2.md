@@ -31,7 +31,7 @@ Home
 │   └── Folders ─ Internal Storage / SD Card ─ folders ─ songs
 ├── Now Playing ─ options: Show Queue, Shuffle, Repeat, Go to Album, Go to Artist, Song Info
 ├── Queue ─ options: Play Now, Remove, Move Up, Move Down, Clear Upcoming
-└── Settings
+└── Settings (since 9.2.10 see REBORN-SETTINGS-MAP.md: the places, the tree and the rules for adding a setting)
     ├── Wi-Fi ─ network options: Connect/Disconnect, Forget Network; password entry
     ├── Bluetooth ─ device options: Pair/Connect/Disconnect, Use for Audio, Codec, Forget Device
     ├── PC Transfer

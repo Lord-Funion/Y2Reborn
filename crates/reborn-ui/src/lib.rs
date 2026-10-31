@@ -6,6 +6,7 @@ mod canvas;
 mod catalog;
 pub mod charge;
 mod components;
+mod customize;
 mod date_time;
 pub mod diagnostics;
 mod flow;

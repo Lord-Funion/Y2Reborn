@@ -1856,10 +1856,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             m.navigation.focus = 1;
         }
     );
+    // 9.2.10: Customize's pages, a picker with its meaning, System and Library.
+    case!(
+        "51f-customize-browsing",
+        at(Screen::Customize, "browsing"),
+        |_, m| {
+            m.navigation.focus = 1;
+        }
+    );
+    case!("51g-customize-wheel", at(Screen::Customize, "wheel"));
+    case!(
+        "51h-customize-picker",
+        at(Screen::Customize, "choose:screen_off_buttons"),
+        |_, m| {
+            m.navigation.focus = 1;
+        }
+    );
+    case!("51i-system", at(Screen::Update, ""));
+    case!("51j-library", at(Screen::SettingsLibrary, ""));
     // The last rows of a long settings page: the list scrolls as Artists does.
-    case!("51e-customize-last", at(Screen::Customize, ""), |_, m| {
-        m.navigation.focus = 9;
-        m.navigation.scroll = 4;
+    case!("51e-balance-last", at(Screen::Balance, ""), |_, m| {
+        m.navigation.focus = 20;
     });
     // Home and Music (UI v4 phase 2)
     case!("53-home-menu", at(Screen::HomeMenu, ""), |_, m| {

@@ -96,6 +96,7 @@ Indexed pages: **66**. Explicit historical/contract scope notices:
 | [Reborn Product UI v4 plan](ui/REBORN-PRODUCT-UI-V4.md) | Planned design contract |
 | [Reborn Product UI v3](ui/REBORN-PRODUCT-UI-V3.md) | Source contract |
 | [Reborn Product UI v2](ui/REBORN-PRODUCT-UI-V2.md) | Superseded source contract |
+| [Reborn settings map](ui/REBORN-SETTINGS-MAP.md) | Source contract: where every setting lives and how to add one (check the place first) |
 | [Reborn Product UI v2 navigation and focus map](ui/REBORN-PRODUCT-NAVIGATION-V2.md) | Source contract |
 | [Product v2 feature-completion controls](ui/REBORN-FEATURE-COMPLETION.md) | Source contract |
 | [Reborn UI v1](ui/REBORN-UI-V1.md) | UI design / scoped candidate |

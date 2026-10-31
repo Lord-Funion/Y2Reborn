@@ -29,7 +29,7 @@ pub struct Page {
     pub status: Option<String>,
 }
 impl Page {
-    fn rows(rows: Vec<Item>) -> Self {
+    pub(crate) fn rows(rows: Vec<Item>) -> Self {
         Self {
             rows,
             ..Default::default()
@@ -128,7 +128,7 @@ fn music(ui: &Ui, m: &AppModel, tracks: &[Track]) -> Vec<Item> {
 
 /// Customize's Home Menu value: "Standard", the pinned lists, what is
 /// hidden, or how many of each.
-fn home_summary(m: &AppModel) -> String {
+pub(crate) fn home_summary(m: &AppModel) -> String {
     let pinned: Vec<&str> = HOME_PINNABLE
         .iter()
         .filter(|(key, _)| m.settings.home_pins.iter().any(|p| p == key))
@@ -152,7 +152,7 @@ fn home_summary(m: &AppModel) -> String {
     }
 }
 
-fn row(label: &str, key: &str, secondary: impl Into<String>) -> Item {
+pub(crate) fn row(label: &str, key: &str, secondary: impl Into<String>) -> Item {
     Item::new(label, key).with_secondary(secondary)
 }
 fn on_off(on: bool) -> &'static str {
@@ -198,13 +198,14 @@ pub fn page(ui: &Ui, m: &AppModel, tracks: &[Track]) -> Page {
         Screen::DacFilter => dac_filter(m),
         Screen::ErrorReports => error_reports(m),
         Screen::Theme => theme(ui, m),
+        // Sound > Playback: how one song leads to the next (Shuffle and Repeat are on Now Playing).
         Screen::SettingsPlayback => Page::rows(vec![
-            row("Shuffle", "shuffle", m.settings.shuffle_mode().label()),
-            row("Repeat", "repeat", crate::repeat_label(m.settings.repeat)),
-            row("Gapless Playback", "gapless", on_off(m.settings.gapless_enabled)),
-            row("Crossfade", "crossfade", crate::crossfade_label(m.settings.crossfade_ms)),
+            row("Gapless Playback", "gapless", "")
+                .with_kind(RowKind::Toggle(m.settings.gapless_enabled)),
+            row("Crossfade", "crossfade", crate::crossfade_label(m.settings.crossfade_ms))
+                .with_kind(RowKind::Chevron),
         ]),
-        Screen::SettingsLibrary => library(m, tracks),
+        Screen::SettingsLibrary => library(ui, m),
         Screen::SettingsDisplay => {
             let mut rows = vec![];
             if m.platform.brightness_available {
@@ -222,39 +223,9 @@ pub fn page(ui: &Ui, m: &AppModel, tracks: &[Track]) -> Page {
                 )
                 .with_kind(RowKind::Chevron),
             );
-            rows.push(
-                row("Time Zone", "time_zone", crate::time_zone::summary(m))
-                    .with_kind(RowKind::Chevron),
-            );
-            // #53: a player without Wi-Fi keeps the time set here.
-            rows.push(
-                row("Date & Time", "date_time", crate::date_time::summary(ui, m))
-                    .with_kind(RowKind::Chevron),
-            );
             Page::rows(rows)
         }
-        // Beta 8.18: how Reborn behaves, apart from how the screen looks.
-        // Each row names what it changes; Select steps its value (8.36).
-        Screen::Customize => Page::rows(vec![
-            row("Home Menu", "home_menu", home_summary(m)).with_kind(RowKind::Chevron),
-            row("Cover Flow", "album_view", m.settings.album_view.label()),
-            // #56: by title (as before) or by artist, Cover Flow too.
-            row("Album Order", "album_order", m.settings.album_order.label()),
-            row("Artists", "artists_list", m.settings.artists_list.label()),
-            row(
-                "Now Playing Wheel",
-                "now_playing_wheel",
-                m.settings.now_playing_wheel.label(),
-            ),
-            row("Wrap Around", "wrap_around", m.settings.wrap_around.label()),
-            row(
-                "When Screen Off",
-                "screen_off_buttons",
-                m.settings.screen_off_buttons.label(),
-            ),
-            row("Haptics", "haptics", m.settings.haptics.label()),
-            row("Wheel Click", "wheel_click", m.settings.wheel_click.label()),
-        ]),
+        Screen::Customize => crate::customize::page(m),
         Screen::TimeZone => Page::rows(crate::time_zone::rows(ui, m)),
         Screen::DateTime => {
             let mut page = Page::rows(crate::date_time::rows(ui, m));
@@ -264,10 +235,10 @@ pub fn page(ui: &Ui, m: &AppModel, tracks: &[Track]) -> Page {
         Screen::SettingsSystem => system(ui, m),
         Screen::Battery => battery(m),
         Screen::Sleep => sleep(m),
-        Screen::Storage => storage(ui, m),
-        Screen::Update => update(m),
+        Screen::Storage => storage(m),
+        Screen::Update if m.navigation.filter == SOFTWARE_UPDATE => update_status(m),
+        Screen::Update => system_menu(ui, m),
         Screen::About => Page::default()
-            .fact("Reborn", reborn_core::VERSION)
             .fact(
                 "System",
                 m.platform
@@ -279,7 +250,7 @@ pub fn page(ui: &Ui, m: &AppModel, tracks: &[Track]) -> Page {
                     .unwrap_or_else(|| "Y2Linux".into()),
             )
             .fact("Device", "Innioasis Y2")
-            .with_rows(vec![Item::new("Licenses", "value:Licenses\u{1f}Reborn is free software under the MIT license. The system includes open-source components under their own licenses; their texts are installed with the system software.")]),
+            .with_rows(vec![row("Version", "version", short_version(reborn_core::VERSION)), Item::new("Licenses", "value:Licenses\u{1f}Reborn is free software under the MIT license. The system includes open-source components under their own licenses; their texts are installed with the system software.")]),
         Screen::Maintenance => Page::rows(vec![
             row("Reset Reborn Settings", "confirm:reset_settings", "Music and playlists stay"),
             row("Forget Wi-Fi Networks", "confirm:forget_wifi", "Saved passwords are removed"),
@@ -305,19 +276,27 @@ pub fn output_name(ui: &Ui, m: &AppModel) -> String {
     }
 }
 
+/// Settings: eight places that fit on one screen, each answering one question (owner, 9.2.10):
+/// the radios, the sound, the screen, the look (Skin), how Reborn behaves (Customize), your music
+/// (Library) and the player itself (System). A new setting goes where its question is
+/// (docs/ui/REBORN-SETTINGS-MAP.md: find the place first, then add the setting).
 fn settings(ui: &Ui, m: &AppModel) -> Page {
     let eq = if m.settings.eq_enabled || m.settings.eq_profile_on {
         eq_summary(m)
     } else {
         "Equalizer off".to_owned()
     };
-    let storage = free_text(&m.platform.snapshot.storage.internal)
-        .map(|t| t.split(" free").next().unwrap_or("").to_owned() + " free")
-        .unwrap_or_default();
     let brightness = if m.platform.brightness_available {
         format!("Brightness {}%", m.settings.brightness)
     } else {
         String::new()
+    };
+    let songs = ui.library_counts(m, &m.library.tracks)[2];
+    let update = match update_summary(m) {
+        summary if summary.is_empty() || summary == "Up to date" => {
+            short_version(reborn_core::VERSION)
+        }
+        summary => summary,
     };
     Page::rows(vec![
         row("Bluetooth", "bluetooth", ui.bluetooth_summary()).with_kind(RowKind::Chevron),
@@ -331,24 +310,14 @@ fn settings(ui: &Ui, m: &AppModel) -> Page {
             ui.skin.as_deref().map_or("Reborn", |s| s.name.as_str()),
         )
         .with_kind(RowKind::Chevron),
+        row("Customize", "customize", "").with_kind(RowKind::Chevron),
         row(
-            "Customize",
-            "customize",
-            format!("Wrap: {}", m.settings.wrap_around.label()),
+            "Library",
+            "library",
+            crate::components::count(songs, "song", "songs"),
         )
         .with_kind(RowKind::Chevron),
-        row("Storage", "storage", storage).with_kind(RowKind::Chevron),
-        row(
-            "Last.fm",
-            "lastfm",
-            match &ui.lastfm.user {
-                Some(user) => user.clone(),
-                None if m.settings.scrobble_log => "Log file".to_owned(),
-                None => "Off".to_owned(),
-            },
-        )
-        .with_kind(RowKind::Chevron),
-        row("About & Updates", "update", reborn_core::VERSION).with_kind(RowKind::Chevron),
+        row("System", "update", update).with_kind(RowKind::Chevron),
     ])
 }
 
@@ -454,17 +423,19 @@ fn sound(ui: &Ui, m: &AppModel) -> Page {
     Page::rows(vec![
         row("Equalizer", "equalizer", eq_summary(m)).with_kind(RowKind::Chevron),
         row("Normalize Volume", "replay_gain", "").with_kind(RowKind::Toggle(normalise)),
-        row("Gapless Playback", "gapless", "")
-            .with_kind(RowKind::Toggle(m.settings.gapless_enabled)),
-        row(
-            "Crossfade",
-            "crossfade",
-            crate::crossfade_label(m.settings.crossfade_ms),
-        )
-        .with_kind(RowKind::Chevron),
         row("Balance", "balance", balance_label(m.settings.balance)).with_kind(RowKind::Chevron),
+        row("Playback", "playback", playback_summary(m)).with_kind(RowKind::Chevron),
         row("Output", "output_page", output_name(ui, m)).with_kind(RowKind::Chevron),
     ])
+}
+
+/// Sound > Playback's value: how one song leads to the next.
+fn playback_summary(m: &AppModel) -> String {
+    match m.settings.crossfade_ms {
+        0 if m.settings.gapless_enabled => "Gapless".into(),
+        0 => String::new(),
+        ms => format!("Crossfade {}", crate::crossfade_label(ms)),
+    }
 }
 
 /// The Output card's second line for the headphone jack.
@@ -1056,65 +1027,37 @@ fn pc_transfer(m: &AppModel) -> Page {
     .with_rows(vec![Item::new("Scan for Music", "scan_library")])
 }
 
-fn library(m: &AppModel, tracks: &[Track]) -> Page {
-    let count = |internal: bool| {
-        tracks
-            .iter()
-            .filter(|t| t.online)
-            .filter(|t| {
-                m.sources
-                    .iter()
-                    .find(|s| s.id == t.source_id)
-                    .is_some_and(|s| matches!(s.kind, MediaSource::Internal) == internal)
-            })
-            .count()
-    };
-    let songs = |n: usize| crate::components::count(n, "song", "songs");
-    let sd_online = m
-        .sources
-        .iter()
-        .any(|s| matches!(s.kind, MediaSource::SdCard(_)) && s.online);
-    let sd = if sd_online {
-        songs(count(false))
-    } else {
-        match m.platform.snapshot.storage.sd {
-            SdCard::Error => "Card can't be read".into(),
-            SdCard::NeedsRepair => "Card needs repair".into(),
-            SdCard::CheckTimedOut => "Card check took too long".into(),
-            _ => "No SD card".into(),
-        }
-    };
+/// Settings > Library: your music, where it is kept, and where your listening goes (owner,
+/// 9.2.10: Scan for Music sat in Storage, Last.fm at the top).
+fn library(ui: &Ui, m: &AppModel) -> Page {
+    // Short enough for the value column; the root row counts the songs too.
     let scan = if m.library.scanning {
-        "Scanning… Your music stays available".into()
+        "Scanning…".to_owned()
     } else if m.library.error.is_some() {
-        "Last scan was interrupted. Existing music was kept".into()
-    } else if let Some(scan) = &m.library.last_scan {
-        match scan.unreadable {
-            0 => format!("Last scan: {}", songs(scan.discovered as usize)),
-            n => format!(
-                "Last scan: {} · {n} can't be read",
-                songs(scan.discovered.saturating_sub(n) as usize)
-            ),
-        }
+        "Last scan interrupted".to_owned()
     } else {
-        "Find music added from a computer".into()
+        crate::components::count(ui.library_counts(m, &m.library.tracks)[2], "song", "songs")
     };
+    let storage = free_text(&m.platform.snapshot.storage.internal)
+        .map(|t| t.split(" free").next().unwrap_or("").to_owned() + " free")
+        .unwrap_or_default();
     Page::rows(vec![
-        row("Internal Storage", "storage", songs(count(true))),
-        row("SD Card", "storage", sd),
         disabled(
             row("Scan for Music", "scan_library", scan),
             !m.library.scanning,
         ),
-        disabled(
-            row(
-                "Rebuild Library",
-                "confirm:rebuild_library",
-                "Re-read every file from scratch",
-            ),
-            !m.library.scanning,
-        ),
+        row("Storage", "storage", storage).with_kind(RowKind::Chevron),
+        row("Last.fm", "lastfm", lastfm_summary(ui, m)).with_kind(RowKind::Chevron),
     ])
+}
+
+/// Last.fm's row: the account, the log file, or Off.
+fn lastfm_summary(ui: &Ui, m: &AppModel) -> String {
+    match &ui.lastfm.user {
+        Some(user) => user.clone(),
+        None if m.settings.scrobble_log => "Log file".to_owned(),
+        None => "Off".to_owned(),
+    }
 }
 
 /// The hidden service menu: everything an owner or developer needs that a
@@ -1397,7 +1340,7 @@ fn usb_summary(m: &AppModel) -> &'static str {
     }
 }
 
-fn storage(ui: &Ui, m: &AppModel) -> Page {
+fn storage(m: &AppModel) -> Page {
     let s = &m.platform.snapshot;
     if !s.observed {
         return Page::hero("Checking Storage…", "This takes a moment.");
@@ -1418,21 +1361,7 @@ fn storage(ui: &Ui, m: &AppModel) -> Page {
         ),
         _ => Page::default(),
     };
-    // How much music there is (Beta 7.5: no longer a row of About & Updates
-    // that led here).
-    let songs = ui.library_counts(m, &m.library.tracks)[2];
-    page = page.with_rows(vec![disabled(
-        row(
-            "Scan for Music",
-            "scan_library",
-            if m.library.scanning {
-                "Scanning…".into()
-            } else {
-                crate::components::count(songs, "song", "songs")
-            },
-        ),
-        !m.library.scanning,
-    )]);
+    // Scan for Music is Library's (9.2.10).
     // The computer page opens by itself when a cable is connected; Storage
     // leads back to it only while one is (UI v4: no idle "From a Computer").
     if !usb_summary(m).is_empty() {
@@ -1559,11 +1488,30 @@ pub fn short_version(version: &str) -> String {
     }
 }
 
-/// About & Updates: the update status first, then the facts an owner may want.
-fn update(m: &AppModel) -> Page {
-    let mut page = update_status(m);
+/// Software Update is System's page of that name (`Screen::Update` with this filter).
+pub(crate) const SOFTWARE_UPDATE: &str = "software";
+
+/// A settings page that is another page's sub-page (its screen and filter, so a session saved on
+/// it reads in older versions): Customize's pages and pickers, System's Software Update.
+pub(crate) fn sub_page(key: &str) -> Option<(Screen, String)> {
+    match key {
+        "software_update" => Some((Screen::Update, SOFTWARE_UPDATE.into())),
+        _ => crate::customize::opens(key).map(|filter| (Screen::Customize, filter)),
+    }
+}
+
+/// Settings > System: the player itself (owner, 9.2.10: About & Updates grew Error Reports, the
+/// version and a reset; the clock sat in Display).
+fn system_menu(ui: &Ui, m: &AppModel) -> Page {
+    let mut rows = vec![
+        row("Software Update", "software_update", update_summary(m)).with_kind(RowKind::Chevron),
+        row("Time Zone", "time_zone", crate::time_zone::summary(m)).with_kind(RowKind::Chevron),
+        // #53: a player without Wi-Fi keeps the time set here.
+        row("Date & Time", "date_time", crate::date_time::summary(ui, m))
+            .with_kind(RowKind::Chevron),
+    ];
     if let Some(reports) = &m.platform.snapshot.reports {
-        page.rows.push(
+        rows.push(
             row(
                 "Error Reports",
                 "error_reports",
@@ -1577,14 +1525,11 @@ fn update(m: &AppModel) -> Page {
             .with_kind(RowKind::Chevron),
         );
     }
-    page.rows.push(row(
-        "Version",
-        "version",
-        short_version(reborn_core::VERSION),
-    ));
-    page.rows
-        .push(row("Reset Settings", "confirm:reset_settings", "").with_kind(RowKind::Chevron));
-    page
+    rows.push(row("Reset & Maintenance", "maintenance", "").with_kind(RowKind::Chevron));
+    rows.push(
+        row("About", "about", short_version(reborn_core::VERSION)).with_kind(RowKind::Chevron),
+    );
+    Page::rows(rows)
 }
 
 /// While a report is made: no rows (nothing to press); the view draws the

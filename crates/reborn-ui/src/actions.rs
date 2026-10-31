@@ -657,6 +657,11 @@ impl Ui {
         if key == catalog::SEARCH_PLAY_ALL {
             return self.play_filtered(m, tracks, ShuffleMode::Off);
         }
+        if let Some((screen, filter)) = pages::sub_page(key) {
+            Self::go(m, screen, filter);
+            m.navigation.focus = crate::customize::picker_focus(m, key);
+            return Effect::None;
+        }
         if let Some(screen) = route(key) {
             Self::go(m, screen, "");
             if screen == Screen::Balance {

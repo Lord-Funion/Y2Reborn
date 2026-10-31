@@ -247,6 +247,7 @@ impl Ui {
                 self.keyboard = Some(keyboard::Keyboard::new(keyboard::Purpose::LastFmUser, ""));
                 Effect::None
             }
+            k if k.starts_with("set:") => crate::customize::chosen(m, k)?,
             "wrap_around" => Effect::SetWrapAround(m.settings.wrap_around.next()),
             "home_audiobooks" => Effect::SetAudiobooksOnHome(!m.settings.audiobooks_on_home),
             "screen_off_buttons" => {

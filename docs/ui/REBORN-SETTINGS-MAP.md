@@ -1,0 +1,67 @@
+# Reborn settings map
+
+<!-- knowledge-base-scope: source-contract -->
+> **Source-contract scope.** Where every setting lives (since 1.0 Beta 9.2.10) and the rules for adding
+> one. Code: `crates/reborn-ui/src/pages.rs` (`settings`, `system_menu`, `library`, Sound, Display),
+> `crates/reborn-ui/src/customize.rs` (Customize's pages, pickers and hints).
+
+## Before you add a setting
+
+**First find the right place, then add the setting.** A new setting never goes "somewhere for now". Ask:
+
+1. **Is it needed at all?** Prefer a good default to a setting (the project keeps Reborn free of feature
+   creep; requests that only some people want belong to plugins later).
+2. **Which question does it answer?** Pick the place below whose question it answers. If two seem to fit,
+   take the one a listener would open first when looking for it.
+3. **Does the page still fit one screen?** At most six rows on a page (the root holds eight). If a page
+   would get a seventh, group related rows into a sub-page of their own with a name that says what is
+   inside, rather than letting the page scroll.
+4. **Name it by what it does, show its value.** The row's label says what changes ("Buttons While Screen
+   Off", not "When Screen Off"); its value on the right says what it is now ("Play Buttons", not "On").
+5. **Use the matching control.** On/off: a switch. Two named choices: Select steps them, the value shows
+   which. Three or more: a picker page with a check mark on the current choice. A level or a time: a picker
+   or a card with a slider.
+6. **Give it a hint.** Customize's settings carry one line at the bottom saying what the setting in focus
+   does (`customize::hint`); pickers say what each choice means.
+7. **Update this map** and the previews (`app/reborn/src/bin/reborn-preview.rs`) in the same change.
+
+A session is saved with its screen: a new page is a sub-page (an existing screen plus a navigation filter,
+as `Screen::Customize` with "browsing") unless older versions can read a new `Screen` value, so that
+Restore Previous System does not throw the session away.
+
+## The places
+
+| Place | The question it answers |
+| --- | --- |
+| Bluetooth | Which headphones or speakers play? |
+| Wi-Fi | Which network is the player on? |
+| Sound | How does the music sound, and where does it go? |
+| Display | How bright is the screen, and when does it turn off? |
+| Skin | How does Reborn look? |
+| Customize | How does Reborn behave: Home, the lists, the wheel and the buttons? |
+| Library | Where is my music, and where does my listening go? |
+| System | The player itself: updates, the clock, reports, resets, about. |
+
+## The tree
+
+```
+Settings
+├ Bluetooth                  devices, Search for Devices
+├ Wi-Fi                      networks, Other Network…
+├ Sound                      Equalizer › · Normalize Volume · Balance › · Playback › · Output card ›
+│  ├ Playback                Gapless Playback · Crossfade ›
+│  └ Output                  Headphone Jack / Bluetooth devices · Speaker · Headphone Level › · DAC Filter ›
+├ Display                    Brightness card · Screen Off After ›
+├ Skin                       the skins
+├ Customize                  Home Menu › · Browsing › · Wheel & Buttons ›
+│  ├ Home Menu               the places on Home and their order
+│  ├ Browsing                Cover Flow · Sort Albums · Artists List · Lists Wrap Around ›
+│  └ Wheel & Buttons         Wheel on Now Playing · Wheel Click · Haptics › · Buttons While Screen Off ›
+├ Library                    Scan for Music · Storage › · Last.fm ›
+└ System                     Software Update › · Time Zone › · Date & Time › · Error Reports ›
+                             · Reset & Maintenance › · About ›
+   (About › Version, tapped seven times: the service menu — codecs, Battery, Sleep, Diagnostics)
+```
+
+Shuffle and Repeat are on Now Playing's menu, the sleep timer on Now Playing too: things you change while
+listening stay where you listen.

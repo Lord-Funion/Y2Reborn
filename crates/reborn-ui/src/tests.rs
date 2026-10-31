@@ -148,6 +148,13 @@ fn select_key(ui: &mut Ui, m: &mut AppModel, key: &str) -> Effect {
     ui.model_action(m, Action::Select)
 }
 
+/// Settings > System > Software Update.
+fn software_update() -> AppModel {
+    let mut m = app(Screen::Update);
+    m.navigation.filter = pages::SOFTWARE_UPDATE.into();
+    m
+}
+
 /// The characters a frame draws, recovered from the glyph cells it samples.
 pub(crate) fn drawn_text(quads: &[reborn_graphics::Quad]) -> String {
     use reborn_graphics::Tex;
@@ -861,10 +868,10 @@ fn normal_screens_never_show_engineering_terms_or_generic_unavailable() {
     let mut starting = Ui::default();
     starting.wifi.available = false;
     cases.push((Screen::Wifi, starting, app(Screen::Wifi)));
-    let mut stale = app(Screen::Update);
+    let mut stale = software_update();
     stale.platform.snapshot = PlatformSnapshot::default();
     cases.push((Screen::Update, radios(), stale));
-    let mut problem = app(Screen::Update);
+    let mut problem = software_update();
     problem.platform.snapshot.update.phase = UpdatePhase::Failed(UpdateProblem::NoUpdateSource);
     cases.push((Screen::Update, radios(), problem));
     let mut confirm = app(Screen::Home);
@@ -924,12 +931,15 @@ fn empty_library_states_name_the_problem_without_generic_unavailable() {
 fn diagnostics_is_the_only_technical_subtree_and_lives_under_system() {
     let mut ui = radios();
     let mut m = app(Screen::Settings);
+    // Settings > System > About (9.2.10: the version left About & Updates).
     select_key(&mut ui, &mut m, "update");
     assert_eq!(m.screen, Screen::Update);
+    select_key(&mut ui, &mut m, "about");
+    assert_eq!(m.screen, Screen::About);
     // Only a deliberate run of taps on the version opens the service menu.
     for _ in 0..6 {
         select_key(&mut ui, &mut m, "version");
-        assert_eq!(m.screen, Screen::Update);
+        assert_eq!(m.screen, Screen::About);
     }
     select_key(&mut ui, &mut m, "version");
     assert_eq!(m.screen, Screen::SettingsSystem);
@@ -1045,7 +1055,8 @@ fn album_back_returns_to_the_same_album_offset_and_focus() {
 #[test]
 fn every_interactive_screen_draws_exactly_one_focus() {
     let ui = radios();
-    let static_pages = [Screen::TrackInfo, Screen::Battery];
+    // Storage holds rows only with a cable in or its setup waiting (9.2.10).
+    let static_pages = [Screen::TrackInfo, Screen::Battery, Screen::Storage];
     for screen in NORMAL_SCREENS.into_iter().chain([
         Screen::Maintenance,
         Screen::Diagnostics,
@@ -1130,11 +1141,13 @@ fn settings_switches_toggle_in_place() {
         select_key(&mut ui, &mut m, "bt_power"),
         Effect::BluetoothPower
     );
-    let mut m = app(Screen::SettingsAudio);
+    // Sound > Playback (9.2.10).
+    let mut m = app(Screen::SettingsPlayback);
     assert_eq!(
         select_key(&mut ui, &mut m, "gapless"),
         Effect::SetGapless(false)
     );
+    let mut m = app(Screen::SettingsAudio);
     assert_eq!(
         select_key(&mut ui, &mut m, "replay_gain"),
         Effect::SetReplayGain(reborn_core::ReplayGainMode::Track)
@@ -1152,7 +1165,8 @@ fn time_zone_opens_at_the_chosen_zone_and_the_status_bar_shows_its_time() {
     let mut ui = radios();
     // 2026-10-12 09:41 UTC.
     ui.clock_fixed = Some(1_791_798_060);
-    let mut m = app(Screen::SettingsDisplay);
+    // Settings > System (9.2.10: the clock left Display).
+    let mut m = app(Screen::Update);
     let row = |ui: &Ui, m: &AppModel| {
         ui.rows(m, &m.library.tracks)
             .into_iter()
@@ -1202,16 +1216,16 @@ fn time_zone_opens_at_the_chosen_zone_and_the_status_bar_shows_its_time() {
     assert_eq!(m.screen, Screen::TimeZone);
     assert!(m.navigation.filter.is_empty(), "back to the countries");
     ui.model_action(&mut m, Action::Back);
-    assert_eq!(m.screen, Screen::SettingsDisplay);
+    assert_eq!(m.screen, Screen::Update);
 }
 
 #[test]
-fn date_and_time_are_set_by_hand_from_display() {
+fn date_and_time_are_set_by_hand_from_system() {
     // #53: a player that never had Wi-Fi.
     let mut ui = radios();
     // 2026-10-12 09:41 UTC, 11:41 in Berlin.
     ui.clock_fixed = Some(1_791_798_060);
-    let mut m = app(Screen::SettingsDisplay);
+    let mut m = app(Screen::Update);
     m.settings.time_zone = "Europe/Berlin".into();
     m.settings.time_zone_auto = Some(false);
     m.platform.snapshot.info.build_epoch = Some(1_791_000_000);
@@ -1261,12 +1275,12 @@ fn date_and_time_are_set_by_hand_from_display() {
     assert_eq!(select_key(&mut ui, &mut m, "date_set"), Effect::None);
     assert_eq!(m.screen, Screen::DateTime);
     m.platform.busy = None;
-    // 14:40 in Berlin (summer time) is 12:40 UTC; back on Display.
+    // 14:40 in Berlin (summer time) is 12:40 UTC; back on System.
     assert_eq!(
         select_key(&mut ui, &mut m, "date_set"),
         Effect::Platform(PlatformTask::SetClock(1_791_763_200 + 12 * 3600 + 40 * 60))
     );
-    assert_eq!(m.screen, Screen::SettingsDisplay);
+    assert_eq!(m.screen, Screen::Update);
     // Before the build date: refused here already.
     select_key(&mut ui, &mut m, "date_time");
     select_key(&mut ui, &mut m, "date_field:month");
@@ -1322,7 +1336,7 @@ fn headphone_level_and_dac_filter_pickers_show_and_set_the_choice() {
     // Sound fits about one screen: the jack's settings sit on the Output page.
     let mut m = app(Screen::SettingsAudio);
     let rows = ui.rows(&m, &m.library.tracks);
-    assert_eq!(rows.len(), 6);
+    assert_eq!(rows.len(), 5);
     assert_eq!(pages::jack_summary(&m), "Level Low · Filter Fast");
     assert_eq!(select_key(&mut ui, &mut m, "output_page"), Effect::None);
     assert_eq!(m.screen, Screen::Output);
@@ -1462,115 +1476,141 @@ fn wheel_one_detent_is_one_step_outside_long_library_lists() {
 }
 
 #[test]
-fn customize_holds_how_reborn_behaves() {
+fn settings_has_eight_places_and_customize_three_pages_with_pickers() {
+    // Owner, 9.2.10: Customize was nine loose settings; now Home Menu, Browsing and Wheel &
+    // Buttons, a picker for three or more choices, and a line on the setting in focus.
     let mut ui = radios();
     let mut m = app(Screen::Settings);
     let tracks = m.library.tracks.clone();
-    let row =
-        |ui: &Ui, m: &AppModel, key: &str| ui.rows(m, &tracks).into_iter().find(|r| r.key == key);
-    assert_eq!(row(&ui, &m, "customize").unwrap().secondary, "Wrap: Menus");
+    let keys = |ui: &Ui, m: &AppModel| -> Vec<String> {
+        ui.rows(m, &tracks).into_iter().map(|r| r.key).collect()
+    };
+    let labels = |ui: &Ui, m: &AppModel| -> Vec<String> {
+        ui.rows(m, &tracks).into_iter().map(|r| r.label).collect()
+    };
+    let row = |ui: &Ui, m: &AppModel, key: &str| {
+        ui.rows(m, &tracks)
+            .into_iter()
+            .find(|r| r.key == key)
+            .unwrap()
+    };
+    let hint = |ui: &Ui, m: &AppModel| pages::page(ui, m, &tracks).status.unwrap_or_default();
+    assert_eq!(
+        keys(&ui, &m),
+        [
+            "bluetooth",
+            "wifi",
+            "audio",
+            "display",
+            "theme",
+            "customize",
+            "library",
+            "update"
+        ]
+    );
+    m.navigation.focus = 7;
+    let text = visible_text(&ui, &m);
+    assert!(
+        text.contains("Bluetooth") && text.contains("System"),
+        "all on one screen: {text}"
+    );
     select_key(&mut ui, &mut m, "customize");
-    assert_eq!(m.screen, Screen::Customize);
-    let keys: Vec<String> = ui.rows(&m, &tracks).into_iter().map(|r| r.key).collect();
     assert_eq!(
-        keys,
-        [
-            "home_menu",
-            "album_view",
-            "album_order",
-            "artists_list",
-            "now_playing_wheel",
-            "wrap_around",
-            "screen_off_buttons",
-            "haptics",
-            "wheel_click"
-        ]
+        keys(&ui, &m),
+        ["home_menu", "customize:browsing", "customize:wheel"]
     );
-    let labels: Vec<String> = ui.rows(&m, &tracks).into_iter().map(|r| r.label).collect();
+    assert!(hint(&ui, &m).starts_with("Which places Home shows"));
+
+    select_key(&mut ui, &mut m, "customize:browsing");
     assert_eq!(
-        labels,
+        (m.screen, m.navigation.filter.as_str()),
+        (Screen::Customize, "browsing")
+    );
+    assert_eq!(
+        labels(&ui, &m),
         [
-            "Home Menu",
             "Cover Flow",
-            "Album Order",
-            "Artists",
-            "Now Playing Wheel",
-            "Wrap Around",
-            "When Screen Off",
-            "Haptics",
-            "Wheel Click"
+            "Sort Albums",
+            "Artists List",
+            "Lists Wrap Around"
         ]
     );
-    // #28: Off by default, Select steps Light, Strong, Off.
-    assert_eq!(row(&ui, &m, "haptics").unwrap().secondary, "Off");
+    assert_eq!(row(&ui, &m, "album_view").kind, RowKind::Toggle(true));
     assert_eq!(
-        select_key(&mut ui, &mut m, "haptics"),
-        Effect::SetHaptics(reborn_core::Haptics::Light)
+        select_key(&mut ui, &mut m, "album_view"),
+        Effect::SetAlbumView(reborn_core::AlbumView::Grid)
     );
-    m.settings.haptics = reborn_core::Haptics::Strong;
+    assert_eq!(row(&ui, &m, "album_order").secondary, "By Title");
     assert_eq!(
-        select_key(&mut ui, &mut m, "haptics"),
-        Effect::SetHaptics(reborn_core::Haptics::Off)
+        select_key(&mut ui, &mut m, "album_order"),
+        Effect::SetAlbumOrder(reborn_core::AlbumOrder::Artist)
     );
-    m.settings.haptics = reborn_core::Haptics::Off;
-    // #67, #77: Off by default, Select switches On and Off.
-    assert_eq!(row(&ui, &m, "wheel_click").unwrap().secondary, "Off");
-    assert_eq!(
-        select_key(&mut ui, &mut m, "wheel_click"),
-        Effect::SetWheelClick(reborn_core::WheelClick::On)
-    );
-    m.settings.wheel_click = reborn_core::WheelClick::On;
-    assert_eq!(row(&ui, &m, "wheel_click").unwrap().secondary, "On");
-    assert_eq!(
-        select_key(&mut ui, &mut m, "wheel_click"),
-        Effect::SetWheelClick(reborn_core::WheelClick::Off)
-    );
-    assert_eq!(row(&ui, &m, "artists_list").unwrap().secondary, "All");
+    assert!(hint(&ui, &m).contains("each artist's albums together"));
+    assert_eq!(row(&ui, &m, "artists_list").secondary, "All Artists");
     assert_eq!(
         select_key(&mut ui, &mut m, "artists_list"),
         Effect::SetArtistsList(reborn_core::ArtistsList::AlbumArtists)
     );
+    // Three choices: a picker that opens on the current one and explains it.
+    assert_eq!(row(&ui, &m, "choose:wrap_around").secondary, "Menus Only");
+    select_key(&mut ui, &mut m, "choose:wrap_around");
+    assert_eq!(m.navigation.filter, "choose:wrap_around");
+    assert_eq!(m.navigation.focus, 1);
+    assert_eq!(labels(&ui, &m), ["Off", "Menus Only", "Everywhere"]);
+    assert_eq!(row(&ui, &m, "set:wrap_around:1").kind, RowKind::Check(true));
+    assert!(hint(&ui, &m).contains("library stops at its ends"));
     assert_eq!(
-        row(&ui, &m, "now_playing_wheel").unwrap().secondary,
-        "Volume"
+        select_key(&mut ui, &mut m, "set:wrap_around:2"),
+        Effect::SetWrapAround(WrapAround::Everywhere)
+    );
+    let drawn = drawn_text(&ui.draw(&m, &tracks, false));
+    assert!(drawn.contains("Lists Wrap Around"), "its title: {drawn}");
+    ui.model_action(&mut m, Action::Back);
+    assert_eq!(m.navigation.filter, "browsing");
+    ui.model_action(&mut m, Action::Back);
+    assert_eq!(
+        (m.screen, m.navigation.filter.as_str()),
+        (Screen::Customize, "")
+    );
+
+    select_key(&mut ui, &mut m, "customize:wheel");
+    assert_eq!(
+        labels(&ui, &m),
+        [
+            "Wheel on Now Playing",
+            "Wheel Click",
+            "Haptics",
+            "Buttons While Screen Off"
+        ]
     );
     assert_eq!(
         select_key(&mut ui, &mut m, "now_playing_wheel"),
         Effect::SetNowPlayingWheel(reborn_core::NowPlayingWheel::Seek)
     );
+    // #67, #77: a switch, Off by default.
+    assert_eq!(row(&ui, &m, "wheel_click").kind, RowKind::Toggle(false));
     assert_eq!(
-        row(&ui, &m, "screen_off_buttons").unwrap().secondary,
-        "Buttons"
+        select_key(&mut ui, &mut m, "wheel_click"),
+        Effect::SetWheelClick(reborn_core::WheelClick::On)
     );
+    // #28: Off by default.
+    assert_eq!(row(&ui, &m, "choose:haptics").secondary, "Off");
+    select_key(&mut ui, &mut m, "choose:haptics");
     assert_eq!(
-        select_key(&mut ui, &mut m, "screen_off_buttons"),
-        Effect::SetScreenOffButtons(reborn_core::ScreenOffButtons::WheelAndButtons)
+        select_key(&mut ui, &mut m, "set:haptics:1"),
+        Effect::SetHaptics(reborn_core::Haptics::Light)
     );
-    m.settings.screen_off_buttons = reborn_core::ScreenOffButtons::WheelAndButtons;
+    ui.model_action(&mut m, Action::Back);
     assert_eq!(
-        select_key(&mut ui, &mut m, "screen_off_buttons"),
+        row(&ui, &m, "choose:screen_off_buttons").secondary,
+        "Play Buttons"
+    );
+    select_key(&mut ui, &mut m, "choose:screen_off_buttons");
+    assert_eq!(m.navigation.focus, 1);
+    assert_eq!(
+        select_key(&mut ui, &mut m, "set:screen_off_buttons:0"),
         Effect::SetScreenOffButtons(reborn_core::ScreenOffButtons::Locked)
     );
-    assert_eq!(row(&ui, &m, "wrap_around").unwrap().secondary, "Menus");
-    assert_eq!(
-        select_key(&mut ui, &mut m, "wrap_around"),
-        Effect::SetWrapAround(WrapAround::Everywhere)
-    );
-    m.settings.wrap_around = WrapAround::Everywhere;
-    assert_eq!(
-        select_key(&mut ui, &mut m, "wrap_around"),
-        Effect::SetWrapAround(WrapAround::Off)
-    );
-    // Display keeps how the screen looks; the behaviour moved here.
-    m.screen = Screen::SettingsDisplay;
-    for key in ["home_menu", "album_view"] {
-        assert!(row(&ui, &m, key).is_none(), "{key} left Display");
-    }
-    // Settings draws every place, Customize included, without scrolling.
-    m.screen = Screen::Settings;
-    m.navigation.focus = ui.rows(&m, &tracks).len() - 1;
-    assert!(visible_text(&ui, &m).contains("About & Updates"));
-    assert!(visible_text(&ui, &m).contains("Customize"));
 }
 
 #[test]
@@ -1989,7 +2029,7 @@ fn maintenance_actions_are_confirmed_and_explain_consequences() {
 #[test]
 fn update_page_follows_typed_state_and_capability() {
     let mut ui = radios();
-    let mut m = app(Screen::Update);
+    let mut m = software_update();
     assert_eq!(
         select_key(&mut ui, &mut m, "task:update_check"),
         Effect::Platform(PlatformTask::UpdateCheck)
@@ -2054,7 +2094,7 @@ fn update_page_follows_typed_state_and_capability() {
     assert_eq!(ui.model_action(&mut m, Action::Back), Effect::None);
     assert_eq!(m.screen, Screen::Update);
     // Without the capability there is no dead check button.
-    let mut m = app(Screen::Update);
+    let mut m = software_update();
     m.platform.snapshot.enabled.clear();
     let page = pages::page(&ui, &m, &m.library.tracks);
     assert!(!page
@@ -2067,7 +2107,7 @@ fn update_page_follows_typed_state_and_capability() {
 #[test]
 fn full_system_update_wording_and_versions() {
     let ui = radios();
-    let mut m = app(Screen::Update);
+    let mut m = software_update();
     m.platform.snapshot.update = UpdateState {
         phase: UpdatePhase::ReadyToInstall,
         can_install: true,
@@ -2919,7 +2959,7 @@ fn bluetooth_pairing_shows_progress_and_a_failure_offers_try_again() {
 fn update_download_and_scanning_show_a_sweeping_ring_without_a_made_up_percentage() {
     let mut ui = radios();
     ui.spin_fixed = Some(0.3);
-    let mut m = app(Screen::Update);
+    let mut m = software_update();
     m.platform.snapshot.update.phase = UpdatePhase::Downloading;
     ui.observe(&m);
     assert!(ui.animating());
@@ -3077,12 +3117,13 @@ fn albums_use_cover_flow_by_default_and_the_grid_by_setting() {
     m.settings.album_view = reborn_core::AlbumView::Grid;
     let grid = ui.draw(&m, &tracks, false);
     assert!(grid.iter().all(|q| q.warp.is_none()));
-    // The setting toggles from Settings > Customize.
+    // The setting is a switch in Settings > Customize > Browsing.
     let mut m = app(Screen::Customize);
+    m.navigation.filter = crate::customize::BROWSING.into();
     let rows = ui.rows(&m, &tracks);
     m.navigation.focus = rows.iter().position(|r| r.key == "album_view").unwrap();
     assert_eq!(rows[m.navigation.focus].label, "Cover Flow");
-    assert_eq!(rows[m.navigation.focus].secondary, "On");
+    assert_eq!(rows[m.navigation.focus].kind, RowKind::Toggle(true));
     assert_eq!(
         ui.action(&mut m, &tracks, Action::Select),
         Effect::SetAlbumView(reborn_core::AlbumView::Grid)
@@ -4315,7 +4356,7 @@ fn the_download_percentage_counts_with_the_bar() {
         ui_motion: true,
         ..radios()
     };
-    let mut m = app(Screen::Update);
+    let mut m = software_update();
     m.platform.busy = Some(reborn_core::PlatformTask::UpdateStage);
     let live = |done| reborn_core::platform::DownloadLive {
         verifying: false,
@@ -4342,7 +4383,8 @@ fn lastfm_settings_follow_the_account_and_the_sign_in() {
     use crate::LastFmView;
     use reborn_core::LastFmRequest;
     let mut ui = radios();
-    let mut m = app(Screen::Settings);
+    // Settings > Library (9.2.10).
+    let mut m = app(Screen::SettingsLibrary);
     let row = |ui: &Ui, m: &AppModel| {
         ui.rows(m, &m.library.tracks)
             .into_iter()
@@ -4352,8 +4394,8 @@ fn lastfm_settings_follow_the_account_and_the_sign_in() {
     assert_eq!(row(&ui, &m).secondary, "Off");
     m.settings.scrobble_log = true;
     assert_eq!(row(&ui, &m).secondary, "Log file");
-    // Nine places fit on the Settings root (Beta 8.18: Customize).
-    assert_eq!(ui.rows(&m, &m.library.tracks).len(), 9);
+    // Library: Scan for Music, Storage and Last.fm.
+    assert_eq!(ui.rows(&m, &m.library.tracks).len(), 3);
     assert_eq!(select_key(&mut ui, &mut m, "lastfm"), Effect::None);
     assert_eq!(m.screen, Screen::LastFm);
     // A build without the app key: the log still works.
@@ -4438,7 +4480,7 @@ fn lastfm_settings_follow_the_account_and_the_sign_in() {
         select_key(&mut ui, &mut m, "lastfm_disconnect"),
         Effect::LastFm(LastFmRequest::Disconnect)
     );
-    m.screen = Screen::Settings;
+    m.screen = Screen::SettingsLibrary;
     assert_eq!(row(&ui, &m).secondary, "luca");
 }
 
@@ -6457,9 +6499,10 @@ fn an_album_with_and_without_album_artist_is_listed_once() {
 
 #[test]
 fn albums_order_by_title_or_by_artist_and_the_letter_follows() {
-    // Y2Reborn #56: Customize > Album Order; Cover Flow shows the same rows.
+    // Y2Reborn #56: Customize > Browsing > Sort Albums; Cover Flow shows the same rows.
     let mut ui = radios();
     let mut m = app(Screen::Customize);
+    m.navigation.filter = crate::customize::BROWSING.into();
     let tracks = m.library.tracks.clone();
     let row = ui
         .rows(&m, &tracks)
@@ -6468,7 +6511,7 @@ fn albums_order_by_title_or_by_artist_and_the_letter_follows() {
         .unwrap();
     assert_eq!(
         (row.label.as_str(), row.secondary.as_str()),
-        ("Album Order", "Title")
+        ("Sort Albums", "By Title")
     );
     assert_eq!(
         select_key(&mut ui, &mut m, "album_order"),
@@ -6880,23 +6923,26 @@ fn music_scrolls_its_lists_into_view() {
     );
 }
 
-/// #74: a long settings list scrolls on the screen as the Skin list does: six rows down to the
-/// bottom edge, the last reached by the wheel.
+/// #74: a long settings list (Balance, 21 rows) scrolls on the screen as the Skin list does: six
+/// rows down to the bottom edge, the last reached by the wheel.
 #[test]
 fn a_long_settings_list_scrolls_on_the_screen() {
     let mut ui = radios();
     ui.motion_fixed = true;
-    let mut m = app(Screen::Customize);
+    let mut m = app(Screen::Balance);
     let tracks = m.library.tracks.clone();
     let text = drawn_text(&ui.draw(&m, &tracks, false));
-    assert!(text.contains("Wrap Around"), "six rows fit: {text}");
+    assert!(
+        text.contains("Left +5 dB") && !text.contains("Left +4 dB"),
+        "six rows fit: {text}"
+    );
     let rows = ui.rows(&m, &tracks).len();
     for _ in 1..rows {
         ui.model_action(&mut m, Action::WheelClockwise(1));
     }
     let text = drawn_text(&ui.draw(&m, &tracks, false));
     assert!(
-        text.contains("Wheel Click") && !text.contains("Home Menu"),
+        text.contains("Right +10 dB") && !text.contains("Left +10 dB"),
         "{text}"
     );
 }
