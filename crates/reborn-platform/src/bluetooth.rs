@@ -48,6 +48,13 @@ pub struct Device {
     #[serde(default)]
     pub transport: Option<String>,
 }
+/// A codec choice for `address` that playback refused; `seq` grows with each
+/// refusal, so one refusal re-arms the app's attempt once.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct CodecDeferred {
+    pub address: String,
+    pub seq: u32,
+}
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct Status {
     pub available: bool,
@@ -66,6 +73,10 @@ pub struct Status {
     /// owner to finish its own attempt.
     #[serde(default)]
     pub waiting: Option<String>,
+    /// The last codec choice refused because playback held the Bluetooth
+    /// output (Y2Reborn #87): the app asks again at the next pause.
+    #[serde(default)]
+    pub codec_deferred: Option<CodecDeferred>,
     #[serde(skip)]
     bluez_owner: Option<String>,
     #[serde(skip)]
@@ -421,6 +432,14 @@ fn codec_not_ready(error: &str) -> bool {
     ]
     .iter()
     .any(|reason| error.contains(reason))
+}
+
+/// Refusals because playback holds the Bluetooth output: retrying in the
+/// worker cannot help while music plays, the app retries at the next pause.
+fn codec_pcm_held(error: &str) -> bool {
+    ["Release the Bluetooth PCM", "Bluetooth PCM still open"]
+        .iter()
+        .any(|reason| error.contains(reason))
 }
 
 const BUSY_RETRY_DELAY: Duration = Duration::from_secs(2);
@@ -2408,7 +2427,21 @@ mod pcm_lease_tests {
 
 #[cfg(test)]
 mod codec_retry_tests {
-    use super::codec_not_ready;
+    use super::{codec_not_ready, codec_pcm_held};
+
+    #[test]
+    fn a_held_output_defers_the_choice_to_the_app() {
+        assert!(codec_pcm_held(
+            "Release the Bluetooth PCM before codec selection"
+        ));
+        assert!(codec_pcm_held(
+            "Bluetooth PCM still open; stop playback and retry"
+        ));
+        assert!(!codec_pcm_held(
+            "Platform Bluetooth operation in progress; retry after it completes"
+        ));
+        assert!(!codec_pcm_held("codec unsupported by peer"));
+    }
 
     #[test]
     fn only_refusals_that_settle_are_retried() {

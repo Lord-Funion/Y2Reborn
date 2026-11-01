@@ -639,6 +639,7 @@ impl<C: Fn() -> Result<Connection, dbus::Error> + Send + 'static> BluetoothWorke
                             )
                         });
                     s.scan = st.current.scan.clone();
+                    s.codec_deferred = st.current.codec_deferred.take();
                     s.error = st.operation_error.clone();
                     st.current = s
                 }
@@ -1046,15 +1047,8 @@ impl<C: Fn() -> Result<Connection, dbus::Error> + Send + 'static> BluetoothWorke
                 }
             }
         };
-        if let (Err(e), Some((address, preference))) = (&result, codec_args) {
-            if codec_not_ready(e) && codec_attempt < CODEC_RETRIES {
-                st.codec_retry = Some(CodecRetry {
-                    address,
-                    preference,
-                    attempt: codec_attempt + 1,
-                    due: Instant::now() + CODEC_RETRY_DELAY,
-                });
-            }
+        if let (Err(e), Some(args)) = (&result, codec_args) {
+            codec_refused(st, e, args, codec_attempt);
         }
         let result = match (result, busy_command) {
             (Err(e), Some(command)) if lock_busy(&e) => {
@@ -1186,6 +1180,28 @@ impl<C: Fn() -> Result<Connection, dbus::Error> + Send + 'static> BluetoothWorke
 }
 
 /// One D-Bus connection's state, from `open` to the end of its event loop.
+/// A refused codec choice: retried here while the connection settles,
+/// handed to the app (`Status::codec_deferred`) while playback holds the PCM.
+fn codec_refused(
+    st: &mut Session,
+    error: &str,
+    (address, preference): (String, CodecPreference),
+    attempt: u8,
+) {
+    if codec_not_ready(error) && attempt < CODEC_RETRIES {
+        st.codec_retry = Some(CodecRetry {
+            address,
+            preference,
+            attempt: attempt + 1,
+            due: Instant::now() + CODEC_RETRY_DELAY,
+        });
+    } else if codec_pcm_held(error) {
+        let seq = st.current.codec_deferred.as_ref().map_or(0, |d| d.seq) + 1;
+        st.current.codec_deferred = Some(CodecDeferred { address, seq });
+        st.changed = true;
+    }
+}
+
 pub(super) struct Session {
     c: Connection,
     observation_dirty: Arc<AtomicBool>,

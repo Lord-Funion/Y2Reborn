@@ -1,5 +1,6 @@
 //! Choosing and keeping the audio output: codec changes, automatic output, a lost Bluetooth peer.
 use crate::*;
+use std::collections::HashMap;
 
 pub(crate) fn codec_change_allowed(playback: PlaybackState, reconfiguring: bool) -> bool {
     // Pause releases the sink; the platform's PCM lease still authoritatively
@@ -9,10 +10,18 @@ pub(crate) fn codec_change_allowed(playback: PlaybackState, reconfiguring: bool)
 
 /// A codec change can replace its PCM object. Remember the connected peer,
 /// not that object generation, to avoid starting a new Auto policy repeatedly.
+/// A choice the platform refused because playback held the output is not an
+/// attempt: it is asked again at the next pause, a few times per connection
+/// (Y2Reborn #87: saved LDAC never applied, the link stayed on AAC 320k).
 #[derive(Default)]
 pub(crate) struct CodecReconnect {
     pub(crate) attempted: HashSet<String>,
+    deferred_seen: u32,
+    rearmed: HashMap<String, u8>,
 }
+
+/// Refusals per connection after which the saved choice waits for a reconnect.
+const CODEC_REARMS: u8 = 3;
 
 impl CodecReconnect {
     pub(crate) fn next(
@@ -24,13 +33,26 @@ impl CodecReconnect {
         if !status.available {
             return None; // A failed observation is not a disconnection.
         }
-        self.attempted.retain(|address| {
+        let connected = |address: &String| {
             status.powered
                 && status
                     .devices
                     .iter()
                     .any(|d| d.connected && d.address.eq_ignore_ascii_case(address))
-        });
+        };
+        self.attempted.retain(connected);
+        self.rearmed.retain(|address, _| connected(address));
+        match &status.codec_deferred {
+            None => self.deferred_seen = 0, // a restarted worker counts from 1
+            Some(deferred) if deferred.seq != self.deferred_seen => {
+                self.deferred_seen = deferred.seq;
+                let rearms = self.rearmed.entry(deferred.address.clone()).or_default();
+                if *rearms < CODEC_REARMS && self.attempted.remove(&deferred.address) {
+                    *rearms += 1;
+                }
+            }
+            Some(_) => {}
+        }
         if !status.powered || !status.bluealsa || !codec_change_allowed(playback, reconfiguring) {
             return None;
         }
