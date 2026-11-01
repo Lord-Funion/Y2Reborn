@@ -1,6 +1,16 @@
 # Current Reborn state on the Y2
 
-## 1.0.0-beta.9.2.12 — Y2Linux 1.0 Beta 9.2.12 (Baseline 203), 2026-11-01 (latest): light skins' greys
+## 1.0.0-beta.9.2.13 — Y2Linux 1.0 Beta 9.2.13 (Baseline 204), 2026-11-01 (latest): search song, resume, letters
+
+Published as `baseline-204` (Reborn `69d8e37`; sequence 12900). #79 (`76edbe8`): a song picked in search plays alone
+(one-member `PlayCollection`, source kept); Play All plays every song found. #80 (`9d2c2ae`): `native/seek_index.c`
+keeps a closing decoder's sparse generic index (4 files, ≤2048 points, spans ≥120 s, keyed by dev/inode/size/mtime)
+and restores it before the next decoder's first seek, so MP3 (no fast seek) and ADTS AAC no longer read from the start
+on each resume; memory only. `56405af`: the Bluetooth worker logs BlueZ's `Device1.Disconnected` as
+`peer_disconnected` {address, reason, bluez_reason, message} (seen on the owner's player). Y2Linux #64 (`141a9ff`):
+`LETTER_SCROLL_STEPS` 4 → 3. Owed on a player: resume time after sleep, letter-scroll feel.
+
+## 1.0.0-beta.9.2.12 — Y2Linux 1.0 Beta 9.2.12 (Baseline 203), 2026-11-01: light skins' greys
 
 Published as `baseline-203` (Reborn `4a052b3`; sequence 12800). #76: `skin::remap`'s table still had the pre-9.2.3
 greys (#A0A4AE, #848894), so the brighter MUTED/DIM stayed unmapped and pale on light skins; it now takes
