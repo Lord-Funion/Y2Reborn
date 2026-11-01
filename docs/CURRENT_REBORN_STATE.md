@@ -1,6 +1,17 @@
 # Current Reborn state on the Y2
 
-## 1.0.0-beta.9.2.13 — Y2Linux 1.0 Beta 9.2.13 (Baseline 204), 2026-11-01 (latest): search song, resume, letters
+## 1.0.0-beta.9.2.14 — Y2Linux 1.0 Beta 9.2.14 (Baseline 205), 2026-11-01 (latest): Bluetooth sink kept
+
+Published as `baseline-205` (Reborn `786eccb`; sequence 13000). F61 (`3435238`, report c0fe2638): quick radio station
+changes closed and reopened BlueALSA's PCM twice per station (the plan's probe, then the open), each a transport
+release and a new AVDTP Start; earbuds that answered in up to 6 s hit BlueZ's timeout and the link ended locally.
+`keep_sink` now keeps any output; `sink_change` compares the wired epoch only for the jack; the next start takes the
+kept Bluetooth spec through `keeps_bluetooth_sink` while `validate_bluetooth_observation` accepts the live
+`BluetoothPcm` (same transport generation, codec, rate, format); idle wheel clicks play only in a wired kept sink; a
+Bluetooth pause still sends `Stop` (F43). On the owner's player: six skips 2.5 s apart on AirPods Pro, each
+`sink_reused`, heard. `.github/ISSUE_TEMPLATE` issue forms (`c3277e2`), blank issues off.
+
+## 1.0.0-beta.9.2.13 — Y2Linux 1.0 Beta 9.2.13 (Baseline 204), 2026-11-01: search song, resume, letters
 
 Published as `baseline-204` (Reborn `69d8e37`; sequence 12900). #79 (`76edbe8`): a song picked in search plays alone
 (one-member `PlayCollection`, source kept); Play All plays every song found. #80 (`9d2c2ae`): `native/seek_index.c`
