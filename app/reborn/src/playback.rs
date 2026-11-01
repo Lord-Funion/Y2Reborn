@@ -616,10 +616,11 @@ impl Playback {
     pub fn stop_and_wait(&mut self, generation: u64) -> Result<(), String> {
         self.stop_and_wait_with_timeout(generation, Duration::from_secs(2))
     }
-    /// Stop what plays for the next stream (a track change, a seek): a wired
-    /// sink stays open with its queued audio dropped, and its spec comes back
-    /// for the next start to ask for again; anything else is released as by
-    /// `stop_and_wait`. A stop, a released pause and sleep still close it.
+    /// Stop what plays for the next stream (a track change, a seek, a
+    /// station): the sink stays open with its queued audio dropped, and its
+    /// spec comes back for the next start to ask for again; a sink that cannot
+    /// drop its audio is released as by `stop_and_wait`. A stop, a released
+    /// pause and sleep still close it.
     pub fn switch_and_wait(&mut self, generation: u64) -> Result<Option<SinkSpec>, String> {
         self.release_and_wait(generation, Duration::from_secs(2), SinkCommand::Switch)
     }

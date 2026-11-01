@@ -1,8 +1,11 @@
-use super::{failed_reconfiguration_model, keeps_wired_sink, run_sink_reconfiguration};
+use super::{
+    failed_reconfiguration_model, keeps_bluetooth_sink, keeps_wired_sink, run_sink_reconfiguration,
+};
 use crate::playback::Playback;
 use reborn_audio::{AudioSink, Parameters, SinkSpec};
 use reborn_core::{
-    AppModel, AudioOutput, EqBand, PcmFormat, PlaybackState, QueueEntryId, ReplayGainMode, Track,
+    AppModel, AudioOutput, BluetoothPcm, EqBand, PcmFormat, PlaybackState, QueueEntryId,
+    ReplayGainMode, Track,
 };
 use reborn_media::DspConfig;
 use reborn_observability::Observer;
@@ -230,6 +233,58 @@ fn a_kept_wired_sink_is_taken_only_where_the_plan_would_give_it() {
     assert!(!keeps_wired_sink(&other, &wired));
     let bluetooth = AudioOutput::Bluetooth("12:34:56:78:90:AB".into());
     assert!(!keeps_wired_sink(&kept, &bluetooth));
+}
+
+/// F61: the next station or song plays on in the kept Bluetooth sink while
+/// the headphones' observed transport is still the one it opened for.
+#[test]
+fn a_kept_bluetooth_sink_is_taken_only_for_the_same_observed_transport() {
+    let output = AudioOutput::Bluetooth("01:02:03:04:05:06".into());
+    let pcm = BluetoothPcm {
+        object: "/org/bluealsa/hci0/dev_01_02_03_04_05_06/a2dp".into(),
+        device: "/org/bluez/hci0/dev_01_02_03_04_05_06".into(),
+        transport: "A2DP-source".into(),
+        mode: "sink".into(),
+        codec: Some("SBC".into()),
+        format: Some(0x8210),
+        rate: Some(44_100),
+        channels: Some(2),
+        transport_generation: 7,
+        ..Default::default()
+    };
+    let mut kept = test_spec();
+    kept.output = output.clone();
+    kept.format = PcmFormat::S16LE;
+    kept.physical_bits = 16;
+    kept.valid_bits = 16;
+    kept.codec = pcm.codec.clone();
+    kept.transport_object = Some(pcm.object.clone());
+    kept.transport_device = Some(pcm.device.clone());
+    kept.transport = Some(pcm.transport.clone());
+    kept.mode = Some(pcm.mode.clone());
+    kept.transport_generation = pcm.transport_generation;
+    assert!(keeps_bluetooth_sink(&kept, &output, &pcm));
+    // A reconnect, another codec or another rate: a new sink.
+    let reconnected = BluetoothPcm {
+        transport_generation: 8,
+        ..pcm.clone()
+    };
+    assert!(!keeps_bluetooth_sink(&kept, &output, &reconnected));
+    let aac = BluetoothPcm {
+        codec: Some("AAC".into()),
+        ..pcm.clone()
+    };
+    assert!(!keeps_bluetooth_sink(&kept, &output, &aac));
+    let faster = BluetoothPcm {
+        rate: Some(48_000),
+        ..pcm.clone()
+    };
+    assert!(!keeps_bluetooth_sink(&kept, &output, &faster));
+    // Other headphones, or the jack.
+    let other = AudioOutput::Bluetooth("0A:0B:0C:0D:0E:0F".into());
+    assert!(!keeps_bluetooth_sink(&kept, &other, &pcm));
+    assert!(!keeps_bluetooth_sink(&kept, &AudioOutput::Wired, &pcm));
+    assert!(!keeps_bluetooth_sink(&test_spec(), &output, &pcm));
 }
 
 #[test]

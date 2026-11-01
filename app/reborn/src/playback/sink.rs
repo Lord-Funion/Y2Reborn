@@ -17,18 +17,22 @@ pub(crate) const SLOW_OPEN: Duration = Duration::from_secs(2);
 /// headphone open refused with ALSA -16 for 1–3 s after a wake).
 pub(crate) const BUSY_OPEN_FOR: Duration = Duration::from_secs(2);
 
-/// How long a wired sink stays open after its stream ended or was stopped
-/// for the next one: the next track starts in it well within this.
+/// How long a kept sink stays open after its stream ended or was stopped
+/// for the next one: the next track or station starts in it well within this.
 pub(crate) const KEEP_SINK_FOR: Duration = Duration::from_secs(2);
 
 /// The fade-in a kept sink starts the next stream with, so that the new
 /// stream does not start with a click where the old one was cut.
 pub(crate) const SWITCH_FADE_MS: u32 = 10;
 
-/// A wired sink between two streams, its queued audio dropped. Reopening the
+/// A sink between two streams, its queued audio dropped. Reopening the
 /// headphone output for every track power-cycles the codec's amplifier and
 /// charge pump, on the rail of its crystal: a marginal crystal stopped after
 /// enough of them (#52). The stock firmware keeps its output open too.
+/// Reopening a Bluetooth output closes BlueALSA's PCM, which releases the
+/// transport (AVDTP Suspend); the next open asks the headphones to Start
+/// again. Some answer in up to 6 s, BlueZ's limit, and a missed Start ends the
+/// link (F61: quick radio station changes). An open PCM keeps the transport.
 pub(crate) struct KeptSink {
     pub(crate) sink: Box<dyn AudioSink>,
     pub(crate) spec: SinkSpec,
@@ -39,9 +43,9 @@ pub(crate) struct KeptSink {
     pub(crate) until: Instant,
 }
 
-/// Keep a wired sink for the next stream, its queued audio dropped at once
-/// (nothing of the old track plays on). Any other sink, or one that cannot
-/// drop its audio, closes.
+/// Keep a sink for the next stream, its queued audio dropped at once (nothing
+/// of the old track plays on). A sink that cannot drop its audio closes. A
+/// Bluetooth pause still closes its sink (F43): it stops, it does not switch.
 pub(crate) fn keep_sink(
     sink: Option<Box<dyn AudioSink>>,
     opened: Option<(SinkSpec, u64)>,
@@ -49,9 +53,6 @@ pub(crate) fn keep_sink(
     id: u64,
 ) -> Option<KeptSink> {
     let (mut sink, (spec, wired)) = (sink?, opened?);
-    if !matches!(spec.output, AudioOutput::Wired) {
-        return None;
-    }
     if let Err(e) = sink.discard() {
         log.emit(
             Level::Warn,
@@ -74,7 +75,8 @@ pub(crate) fn keep_sink(
 }
 
 /// Why a kept sink cannot play the next stream; None: it can, being exactly
-/// the sink that stream wants, with the wired level and DAC filter it opened
+/// the sink that stream wants (for Bluetooth the same transport generation and
+/// codec), and for the wired output with the level and DAC filter it opened
 /// with (the amplifier takes a new choice only when it powers up).
 pub(crate) fn sink_change(
     kept: &SinkSpec,
@@ -82,7 +84,7 @@ pub(crate) fn sink_change(
     wanted: &SinkSpec,
     wired: u64,
 ) -> Option<&'static str> {
-    if !matches!(kept.output, AudioOutput::Wired) || kept.output != wanted.output {
+    if kept.output != wanted.output {
         Some("output")
     } else if kept.rate != wanted.rate {
         Some("rate")
@@ -90,7 +92,7 @@ pub(crate) fn sink_change(
         Some("format")
     } else if kept != wanted {
         Some("spec")
-    } else if kept_wired != wired {
+    } else if matches!(kept.output, AudioOutput::Wired) && kept_wired != wired {
         Some("wired_settings")
     } else {
         None

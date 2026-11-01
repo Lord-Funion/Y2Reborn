@@ -1060,11 +1060,18 @@ fn a_kept_sink_plays_on_only_for_exactly_its_spec_and_wired_settings() {
     assert_eq!(sink_change(&wired, 3, &s24, 3), Some("format"));
     let bluetooth = spec(AudioOutput::Bluetooth("12:34:56:78:90:AB".into()), 44_100);
     assert_eq!(sink_change(&wired, 3, &bluetooth, 3), Some("output"));
-    // A Bluetooth sink is never kept, even for the same transport.
-    assert_eq!(
-        sink_change(&bluetooth, 3, &bluetooth.clone(), 3),
-        Some("output")
-    );
+    // F61: a Bluetooth sink plays on for the same transport, whatever the
+    // wired settings; a reconnect (new transport generation) or another codec
+    // needs a new one.
+    assert_eq!(sink_change(&bluetooth, 3, &bluetooth.clone(), 3), None);
+    assert_eq!(sink_change(&bluetooth, 3, &bluetooth.clone(), 4), None);
+    assert_eq!(sink_change(&bluetooth, 3, &wired, 3), Some("output"));
+    let mut reconnected = bluetooth.clone();
+    reconnected.transport_generation += 1;
+    assert_eq!(sink_change(&bluetooth, 3, &reconnected, 3), Some("spec"));
+    let mut aac = bluetooth.clone();
+    aac.codec = Some("AAC".into());
+    assert_eq!(sink_change(&bluetooth, 3, &aac, 3), Some("spec"));
     let mut other_device = wired.clone();
     other_device.device = "other".into();
     assert_eq!(sink_change(&wired, 3, &other_device, 3), Some("spec"));
@@ -1075,11 +1082,12 @@ fn a_kept_sink_plays_on_only_for_exactly_its_spec_and_wired_settings() {
     );
 }
 /// A track change keeps the wired sink open when the next track wants
-/// the same one (#52): its queued audio is dropped and nothing reopens.
-/// Another rate or output opens a new sink after the kept one closed; a
-/// kept sink no stream asks for closes on its own.
+/// the same one (#52), and the Bluetooth sink for the next station or song
+/// (F61): its queued audio is dropped and nothing reopens. Another rate or
+/// output opens a new sink after the kept one closed; a kept sink no stream
+/// asks for closes on its own, and a stop closes it at once.
 #[test]
-fn consecutive_tracks_with_one_wired_spec_open_the_sink_once() {
+fn consecutive_streams_with_one_spec_open_the_sink_once() {
     struct KeptTestSink {
         open: Arc<AtomicU64>,
         discards: Arc<AtomicU64>,
@@ -1190,18 +1198,22 @@ fn consecutive_tracks_with_one_wired_spec_open_the_sink_once() {
         assert!(Instant::now() < until, "the kept sink stayed open");
         thread::sleep(Duration::from_millis(20));
     }
-    // Another output opens its own sink, which is not kept.
+    // F61: a Bluetooth sink is kept too, and the next station or song plays
+    // on in it (no new Start asked of the headphones).
     let bluetooth = spec(AudioOutput::Bluetooth("12:34:56:78:90:AB".into()), 48_000);
-    assert_eq!(start(&mut p, 5, bluetooth), None);
+    assert_eq!(start(&mut p, 5, bluetooth.clone()), None);
     assert_eq!(opens.load(Ordering::Relaxed), 3);
-    assert_eq!(p.switch_and_wait(6).unwrap(), None);
+    assert_eq!(start(&mut p, 6, bluetooth.clone()), Some(bluetooth));
+    assert_eq!(opens.load(Ordering::Relaxed), 3);
+    // A stop (also a Bluetooth pause, F43) closes it at once.
+    p.stop_and_wait(7).unwrap();
     assert_eq!(open.load(Ordering::Acquire), 0);
-    // A stop closes a kept wired sink at once.
-    assert_eq!(start(&mut p, 7, spec(AudioOutput::Wired, 48_000)), None);
-    p.stop_and_wait(8).unwrap();
+    // So it does a kept wired sink.
+    assert_eq!(start(&mut p, 8, spec(AudioOutput::Wired, 48_000)), None);
+    p.stop_and_wait(9).unwrap();
     assert_eq!(open.load(Ordering::Acquire), 0);
     assert_eq!(opens.load(Ordering::Relaxed), 4);
-    p.shutdown(9).unwrap();
+    p.shutdown(10).unwrap();
 }
 #[test]
 fn decoder_and_sink_agree_on_both_baseline_rates() {

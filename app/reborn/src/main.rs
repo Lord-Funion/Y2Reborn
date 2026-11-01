@@ -471,9 +471,9 @@ impl DirtyState {
     }
 }
 
-/// Release what plays, plan the next sink and start it. A wired sink stays
-/// open for the next stream when `keep` takes its spec as the plan (the
-/// plan's probe cannot run while it is open: the device is exclusive);
+/// Release what plays, plan the next sink and start it. A wired or Bluetooth
+/// sink stays open for the next stream when `keep` takes its spec as the plan
+/// (the plan's probe cannot run while it is open: the device is exclusive);
 /// otherwise it closes before the plan.
 fn run_sink_reconfiguration<P>(
     playback: &mut playback::Playback,
@@ -499,6 +499,21 @@ fn keeps_wired_sink(kept: &reborn_audio::SinkSpec, output: &AudioOutput) -> bool
     matches!(output, AudioOutput::Wired)
         && kept.output == *output
         && kept.rate == reborn_audio::WIRED_RATE
+}
+
+/// The kept Bluetooth sink plays the next stream (a station or a song) while
+/// it still matches the headphones' observed transport: same connection,
+/// codec, rate and format, as a fresh plan would check (F61: every reopen,
+/// probe included, asks the headphones to Start again, and a slow answer
+/// ends the link).
+fn keeps_bluetooth_sink(
+    kept: &reborn_audio::SinkSpec,
+    output: &AudioOutput,
+    pcm: &reborn_core::BluetoothPcm,
+) -> bool {
+    matches!(output, AudioOutput::Bluetooth(_))
+        && kept.output == *output
+        && kept.validate_bluetooth_observation(pcm).is_ok()
 }
 
 fn failed_reconfiguration_model(

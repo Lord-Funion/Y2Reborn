@@ -256,10 +256,10 @@ impl SinkWorker {
         ControlFlow::Continue(())
     }
 
-    /// Stopped or replaced: a wired sink waits for the next stream; a kept sink closes when its time is up.
+    /// Stopped or replaced: the sink waits for the next stream; a kept sink closes when its time is up.
     fn stopped(&mut self, st: &mut Playing) {
-        // Stopped or replaced: a wired sink waits for the next
-        // stream (a Stop closes it, as does the time running out).
+        // Stopped or replaced: the sink waits for the next stream
+        // (a Stop closes it, as does the time running out).
         if st.generation != self.se.load(Ordering::Acquire) {
             if let Some(k) = keep_sink(
                 st.sink.take(),
@@ -548,7 +548,14 @@ impl SinkWorker {
             if let Some(spec) = wanted {
                 self.keep_for_clicks(st, spec);
             }
-            let Some(k) = &mut st.kept else { return };
+            // A click plays only in a wired sink, never in the headphones'.
+            let Some(k) = st
+                .kept
+                .as_mut()
+                .filter(|k| k.spec.output == AudioOutput::Wired)
+            else {
+                return;
+            };
             let now = Instant::now();
             k.until = k.until.max(now + CLICK_KEEP);
             st.click.start(k.spec.rate);

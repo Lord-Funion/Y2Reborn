@@ -110,7 +110,11 @@ impl Runtime {
             playback,
             generation,
             |kept| {
-                (keeps_wired_sink(kept, &output) && kept.speaker == speaker).then(|| kept.clone())
+                match bluetooth_pcm.as_ref() {
+                    Some(pcm) => keeps_bluetooth_sink(kept, &output, pcm),
+                    None => keeps_wired_sink(kept, &output) && kept.speaker == speaker,
+                }
+                .then(|| kept.clone())
             },
             || {
                 match bluetooth_pcm.as_ref() {
