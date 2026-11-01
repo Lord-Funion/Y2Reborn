@@ -1895,6 +1895,39 @@ mod tests {
             "decoded {frames} frames"
         );
     }
+    /// Y2Reborn #80: raw AAC and MP3 have no seek table, so every resume
+    /// read the file from its start. A later decoder of the same file seeks
+    /// from the points an earlier one found (native/seek_index.c). Proof
+    /// without timing: after the first decoder, the middle of the file is
+    /// zeroed with its size and time kept. Reading from the start finds no
+    /// frames there and cannot count its way to the target; the kept points
+    /// jump over it.
+    #[test]
+    fn a_reopened_file_seeks_from_the_points_an_earlier_decoder_found() {
+        use std::os::unix::fs::FileExt;
+        let frame = std::fs::read(fixture("aac.aac")).unwrap();
+        // 2,200 copies of 0.28 s: about 10 minutes of ADTS AAC.
+        let bytes = frame.repeat(2_200);
+        let path = std::env::temp_dir().join(format!("reborn-seek-{}.aac", std::process::id()));
+        std::fs::write(&path, &bytes).unwrap();
+        let open = || Decoder::open(&path, 44_100, Cancel::new().unwrap()).unwrap();
+        let mut first = open();
+        first.seek(600_000).unwrap();
+        assert!(first.read().unwrap().is_some());
+        drop(first);
+        let file = std::fs::OpenOptions::new().write(true).open(&path).unwrap();
+        let modified = file.metadata().unwrap().modified().unwrap();
+        let (from, to) = (bytes.len() / 5, bytes.len() * 7 / 10);
+        file.write_all_at(&vec![0; to - from], from as u64).unwrap();
+        file.set_modified(modified).unwrap();
+        drop(file);
+        let mut second = open();
+        second.seek(500_000).unwrap();
+        let block = second.read().unwrap();
+        std::fs::remove_file(&path).unwrap();
+        let at = block.expect("audio after the seek").position_ms;
+        assert!((499_000..=501_000).contains(&at), "resumed at {at} ms");
+    }
     #[test]
     fn runtime_manifest_is_json() {
         let components = runtime_components().unwrap();

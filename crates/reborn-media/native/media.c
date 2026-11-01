@@ -49,6 +49,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+#include "seek_index.h"
 
 typedef struct {
   atomic_int cancelled;
@@ -153,6 +154,9 @@ typedef struct {
   /* Internet radio: a pipe from the network fetcher, never a socket. */
   int stream_fd;
   int64_t file_size;
+  /* A local file (not radio): its kept seek points (seek_index.c). */
+  RbFileIdentity identity;
+  int has_identity, seek_points_restored;
   uint64_t io_read;
   int io_limited;
   AVCodecContext *c;
@@ -995,6 +999,8 @@ void rb_media_close(RbMedia *m) {
   av_frame_free(&m->frame);
   av_packet_free(&m->p);
   avcodec_free_context(&m->c);
+  if (m->has_identity)
+    rb_seek_points_keep(&m->identity, m->f, m->stream);
   avformat_close_input(&m->f);
   if (m->io) {
     av_freep(&m->io->buffer);
@@ -1140,6 +1146,8 @@ static int open_input(RbMedia *m, const char *path, RbCancel *cancel) {
     close(fd); return AVERROR_INVALIDDATA;
   }
   m->file_size = info.st_size;
+  rb_file_identity(&m->identity, &info);
+  m->has_identity = 1;
   m->file = fdopen(fd, "rb");
   if (!m->file) { int error = errno; close(fd); return AVERROR(error); }
   uint8_t *buffer = av_malloc(32768);
@@ -1454,6 +1462,10 @@ int rb_media_seek(RbMedia *m, int64_t ms) {
   if (!m || ms < 0)
     return AVERROR(EINVAL);
   deadline(m->cancel);
+  if (m->has_identity && !m->seek_points_restored) {
+    m->seek_points_restored = 1;
+    rb_seek_points_restore(&m->identity, m->f, m->stream);
+  }
   int r = avformat_seek_file(m->f, -1, INT64_MIN, ms * 1000, ms * 1000, 0);
   if (r < 0)
     return r;
