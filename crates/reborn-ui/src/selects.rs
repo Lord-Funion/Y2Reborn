@@ -334,7 +334,8 @@ impl Ui {
             // The page's own order (album, search results, Songs A to Z, a
             // folder's own songs by file name), not library order: Next
             // plays the row below (Y2Reborn #21).
-            // The search: every song found, also those See All would show.
+            // The search: every song found, also those See All would show
+            // (Play All; a picked song plays alone, `play_effect`).
             let mut c = self.catalog.borrow_mut();
             self.ensure_catalog(&mut c, m, tracks);
             if m.screen == Screen::Search {
@@ -350,8 +351,15 @@ impl Ui {
             .collect()
     }
     pub(crate) fn play_effect(&self, m: &AppModel, tracks: &[Track], selected: usize) -> Effect {
-        let members = self.filtered_indices(m, tracks);
-        if members.len() > 1 || !m.navigation.filter.is_empty() {
+        // A song picked among search results plays alone, not with every
+        // song found: that is what Play All is for (Y2Reborn #79).
+        let search = m.screen == Screen::Search;
+        let members = if search {
+            vec![selected]
+        } else {
+            self.filtered_indices(m, tracks)
+        };
+        if search || members.len() > 1 || !m.navigation.filter.is_empty() {
             Effect::PlayCollection {
                 selected,
                 members,

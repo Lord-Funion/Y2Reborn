@@ -3795,6 +3795,22 @@ fn the_search_page_lists_each_kind_under_a_heading_with_play_all() {
         }
         other => panic!("{other:?}"),
     }
+    // A picked song plays alone, named after the search (Y2Reborn #79).
+    m.screen = Screen::Search;
+    m.navigation.filter = "album".into();
+    m.navigation.focus = songs + 3;
+    match ui.model_action(&mut m, Action::Select) {
+        Effect::PlayCollection {
+            selected,
+            members,
+            source,
+            ..
+        } => {
+            assert_eq!((selected, members), (shown[1], vec![shown[1]]));
+            assert_eq!(source, "Search “album”");
+        }
+        other => panic!("{other:?}"),
+    }
     // A long page scrolls so the focus stays in view under its heading.
     m.screen = Screen::Search;
     m.navigation.filter = "a".into();
@@ -5837,10 +5853,10 @@ fn see_all_shows_one_kind_of_result_and_back_returns_to_all_of_them() {
     assert_eq!(keys[..2], ["heading:songs", "search_play_all"]);
     assert_eq!(rows.len(), 2 + 9);
     assert!(!keys.iter().any(|k| k.starts_with("search_all:")));
-    // A song here still queues every song found.
+    // A song here plays alone too; Play All above it plays all nine (#79).
     m.navigation.focus = 5;
     match ui.model_action(&mut m, Action::Select) {
-        Effect::PlayCollection { members, .. } => assert_eq!(members.len(), 9),
+        Effect::PlayCollection { members, .. } => assert_eq!(members.len(), 1),
         other => panic!("{other:?}"),
     }
     // Back: all the results again, not the keys.
