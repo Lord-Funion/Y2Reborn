@@ -58,12 +58,45 @@ impl<C: Fn() -> Result<Connection, dbus::Error> + Send + 'static> BluetoothWorke
     /// away (`Continue`: connect again) or the thread ends (`Break`).
     fn session(&self, c: Connection, connected: &mut Vec<String>) -> ControlFlow<()> {
         let mut st = self.open(c);
+        self.watch_disconnects(&st.c);
         loop {
             match self.pass(&mut st, connected) {
                 ControlFlow::Continue(()) | ControlFlow::Break(Pass::Again) => {}
                 ControlFlow::Break(Pass::Reconnect) => return ControlFlow::Continue(()),
                 ControlFlow::Break(Pass::Exit) => return ControlFlow::Break(()),
             }
+        }
+    }
+
+    /// Log why each device disconnected, as BlueZ tells it. A user reported frequent disconnects
+    /// (2026-11-01) and no error report could say whose side ended the link: `transport_lost`
+    /// only says the peer went away, and bluetoothd logs only reasons it does not know.
+    fn watch_disconnects(&self, c: &Connection) {
+        let mut rule = MatchRule::new_signal("org.bluez.Device1", "Disconnected");
+        rule.sender = Some("org.bluez".into());
+        let log = self.log.clone();
+        let registered =
+            c.add_match::<(String, String), _>(rule, move |(reason, message), _, m| {
+                let path = m.path().map(|p| p.to_string()).unwrap_or_default();
+                log.emit(
+                    Level::Info,
+                    "bluetooth",
+                    "peer_disconnected",
+                    "Bluetooth device disconnected",
+                    None,
+                    disconnect_fields(&path, &reason, &message),
+                );
+                true
+            });
+        if let Err(error) = registered {
+            self.log.emit(
+                Level::Warn,
+                "bluetooth",
+                "disconnect_watch_failed",
+                &dbus_error(error),
+                None,
+                json!({"recovery":"disconnects_logged_without_reason"}),
+            );
         }
     }
 
@@ -1176,6 +1209,23 @@ pub(super) struct Session {
     unpublished: bool,
     commands_pending: bool,
     changed: bool,
+}
+
+/// A `peer_disconnected` record from BlueZ's `Disconnected(reason, message)`: whose side ended
+/// the link. `timeout`: the link was lost (range, radio); `remote`: the headphones ended it
+/// (switched off, out of battery, in their case); `local`: the player ended it.
+pub(super) fn disconnect_fields(path: &str, reason: &str, message: &str) -> serde_json::Value {
+    let address = path
+        .rsplit_once("/dev_")
+        .map(|(_, dev)| dev.replace('_', ":"))
+        .unwrap_or_default();
+    let side = match reason.strip_prefix("org.bluez.Reason.") {
+        Some("Timeout") => "timeout",
+        Some("Remote") => "remote",
+        Some("Local") => "local",
+        _ => "unknown",
+    };
+    json!({"address": address, "reason": side, "bluez_reason": reason, "message": message})
 }
 
 /// How a pass of the event loop ends early.

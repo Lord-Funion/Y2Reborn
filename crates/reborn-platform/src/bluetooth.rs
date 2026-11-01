@@ -2504,3 +2504,30 @@ mod user_request_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod disconnect_tests {
+    use super::worker::disconnect_fields;
+
+    #[test]
+    fn a_disconnect_says_whose_side_ended_the_link() {
+        let path = "/org/bluez/hci0/dev_F8_1B_04_01_02_03";
+        let record = |reason| disconnect_fields(path, reason, "Connection terminated");
+        assert_eq!(record("org.bluez.Reason.Timeout")["reason"], "timeout");
+        assert_eq!(record("org.bluez.Reason.Remote")["reason"], "remote");
+        assert_eq!(record("org.bluez.Reason.Local")["reason"], "local");
+        assert_eq!(record("org.bluez.Reason.Unknown")["reason"], "unknown");
+        assert_eq!(
+            record("org.bluez.Reason.Timeout")["address"],
+            "F8:1B:04:01:02:03"
+        );
+        let other = record("org.bluez.Reason.AuthenticationFailure");
+        assert_eq!(other["reason"], "unknown");
+        assert_eq!(
+            other["bluez_reason"],
+            "org.bluez.Reason.AuthenticationFailure"
+        );
+        assert_eq!(other["message"], "Connection terminated");
+        assert_eq!(disconnect_fields("/", "", "")["address"], "");
+    }
+}
