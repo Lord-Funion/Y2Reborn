@@ -1,6 +1,15 @@
 # Current Reborn state on the Y2
 
-## 1.0.0-beta.9.2.14 — Y2Linux 1.0 Beta 9.2.14 (Baseline 205), 2026-11-01 (latest): Bluetooth sink kept
+## 1.0.0-beta.9.2.15 — Y2Linux 1.0 Beta 9.2.15 (Baseline 206), 2026-11-01 (latest): Settings count
+
+Published as `baseline-206` (Reborn `5745736`; sequence 13100). #85 (PR #86 by mrtngamper, squashed as `97e46a8`):
+`pages::settings` and `pages::library` count the `tracks` they are given. They read `m.library.tracks`, which the
+render's `normalize` and `Ui::model_action` borrow out of the model, so `Ui::library_counts` (one slot keyed by
+`library_stamp`) alternated between the empty borrow and the real list and recounted every track each frame (72 000
+songs: ≈19.5 ms per frame on a PC, under 0.5 ms for every screen with the fix). `224f4f9` restores the test name
+`a_playlist_moves_to_another_place_in_the_playlists_list`. No other reborn-ui code reads `m.library.tracks`.
+
+## 1.0.0-beta.9.2.14 — Y2Linux 1.0 Beta 9.2.14 (Baseline 205), 2026-11-01: Bluetooth sink kept
 
 Published as `baseline-205` (Reborn `786eccb`; sequence 13000). F61 (`3435238`, report c0fe2638): quick radio station
 changes closed and reopened BlueALSA's PCM twice per station (the plan's probe, then the open), each a transport
