@@ -6872,7 +6872,7 @@ fn home_menu_moves_a_place_and_home_follows_its_order() {
 }
 
 #[test]
-fn a_playlist_moves_submenusto_another_place_in_the_playlists_list() {
+fn a_playlist_moves_to_another_place_in_the_playlists_list() {
     // Y2Reborn #33: playlists were Favorites first, then A to Z, always.
     let (mut ui, mut m) = playlists_app();
     let names = |ui: &Ui, m: &AppModel| -> Vec<String> {
