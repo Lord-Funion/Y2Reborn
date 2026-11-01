@@ -128,7 +128,10 @@ impl Session {
         }
         // At most two preferred attempts plus conformant SBC fallback. No XQ,
         // nonconformant bitpool, opaque codec blobs or unsupported high rates.
-        let mut ranked = vec!["LDAC", "aptX-HD", "aptX", "AAC"];
+        // Stable before loud numbers (Y2Reborn #87: crackling and cut-outs at
+        // high rates while Wi-Fi shares the antenna): Auto never picks LDAC or
+        // aptX HD, even when they were negotiated last; they stay a choice.
+        let mut ranked = vec!["AAC", "aptX"];
         if let Some(previous) = self.context.last_negotiated.as_deref() {
             if let Some(index) = ranked.iter().position(|name| *name == previous) {
                 let stable = ranked.remove(index);
@@ -140,8 +143,7 @@ impl Session {
             .filter(|name| {
                 !(self.preference != CodecPreference::Auto
                     || self.context.repeated_failures.contains(*name)
-                    || (self.context.wifi_heavy_transfer && matches!(*name, "LDAC" | "aptX-HD"))
-                    || (self.context.cpu_pressure && matches!(*name, "LDAC" | "AAC")))
+                    || (self.context.cpu_pressure && *name == "AAC"))
                     && (self.eligibility[*name].auto_eligible
                         || self.eligibility[*name].experimental_eligible)
             })
@@ -473,7 +475,7 @@ mod tests {
         assert_eq!(production.next(1, 0).as_deref(), Some("SBC"));
         let mut experimental =
             Session::new_experimental(1, CodecPreference::Auto, &inventory, &all, &all, true);
-        assert_eq!(experimental.next(1, 0).as_deref(), Some("LDAC"));
+        assert_eq!(experimental.next(1, 0).as_deref(), Some("AAC"));
         assert!(!experimental.eligibility["LDAC"].platform_qualified);
         assert!(!experimental.eligibility["LDAC"].distribution_approved);
         let mut unavailable = Session::new_experimental(
@@ -543,10 +545,22 @@ mod tests {
             );
         }
         let mut auto = Session::new(7, CodecPreference::Auto, &inv, &all, &all);
-        assert_eq!(auto.next(7, 0).as_deref(), Some("LDAC"));
-        assert_eq!(auto.next(7, 1).as_deref(), Some("aptX-HD"));
+        assert_eq!(auto.next(7, 0).as_deref(), Some("AAC"));
+        assert_eq!(auto.next(7, 1).as_deref(), Some("aptX"));
         assert_eq!(auto.next(7, 2).as_deref(), Some("SBC"));
         assert!(auto.next(7, 3).is_none());
+        // LDAC and aptX HD are never Auto's, not even after negotiating them
+        // last (Y2Reborn #87); chosen, they are asked for.
+        for last in ["LDAC", "aptX-HD"] {
+            let mut s = Session::new(7, CodecPreference::Auto, &inv, &all, &all);
+            s.apply_context(PolicyContext {
+                last_negotiated: Some(last.into()),
+                ..Default::default()
+            });
+            assert_eq!(s.next(7, 0).as_deref(), Some("AAC"), "{last}");
+        }
+        let mut chosen = Session::new(7, CodecPreference::Ldac, &inv, &all, &all);
+        assert_eq!(chosen.next(7, 0).as_deref(), Some("LDAC"));
         for (generation, time, unknown) in [(8, 0, false), (7, 12_000, false), (7, 1, true)] {
             let mut s = Session::new(7, CodecPreference::Auto, &inv, &all, &all);
             if unknown {

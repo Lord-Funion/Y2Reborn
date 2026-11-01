@@ -2333,19 +2333,17 @@
      "--codec=-LDAC",
      "--sbc-quality=high",
      "--sbc-abr",
-     "--aac-afterburner",
-     "--aac-bitrate=320000",
      "--aac-abr",
-     "--ldac-quality=standard",
+     "--ldac-quality=mobile",
      "--ldac-abr"
     ],
     "boot_id": "boot-a",
     "settings": {
      "aac_abr": true,
-     "aac_quality": "high",
+     "aac_quality": "standard",
      "experimental": false,
      "ldac_abr": true,
-     "ldac_quality": "standard",
+     "ldac_quality": "mobile",
      "sbc_abr": true,
      "sbc_quality": "high",
      "schema": 1
@@ -3154,19 +3152,17 @@
      "--codec=-LDAC",
      "--sbc-quality=high",
      "--sbc-abr",
-     "--aac-afterburner",
-     "--aac-bitrate=320000",
      "--aac-abr",
-     "--ldac-quality=standard",
+     "--ldac-quality=mobile",
      "--ldac-abr"
     ],
     "boot_id": "boot-a",
     "settings": {
      "aac_abr": true,
-     "aac_quality": "high",
+     "aac_quality": "standard",
      "experimental": false,
      "ldac_abr": true,
-     "ldac_quality": "standard",
+     "ldac_quality": "mobile",
      "sbc_abr": true,
      "sbc_quality": "high",
      "schema": 1
@@ -3188,19 +3184,17 @@
      "--codec=-LDAC",
      "--sbc-quality=high",
      "--sbc-abr",
-     "--aac-afterburner",
-     "--aac-bitrate=320000",
      "--aac-abr",
-     "--ldac-quality=standard",
+     "--ldac-quality=mobile",
      "--ldac-abr"
     ],
     "boot_id": "boot-a",
     "settings": {
      "aac_abr": true,
-     "aac_quality": "high",
+     "aac_quality": "standard",
      "experimental": false,
      "ldac_abr": true,
-     "ldac_quality": "standard",
+     "ldac_quality": "mobile",
      "sbc_abr": true,
      "sbc_quality": "high",
      "schema": 1
@@ -3222,19 +3216,17 @@
      "--codec=-LDAC",
      "--sbc-quality=high",
      "--sbc-abr",
-     "--aac-afterburner",
-     "--aac-bitrate=320000",
      "--aac-abr",
-     "--ldac-quality=standard",
+     "--ldac-quality=mobile",
      "--ldac-abr"
     ],
     "boot_id": "boot-a",
     "settings": {
      "aac_abr": true,
-     "aac_quality": "high",
+     "aac_quality": "standard",
      "experimental": false,
      "ldac_abr": true,
-     "ldac_quality": "standard",
+     "ldac_quality": "mobile",
      "sbc_abr": true,
      "sbc_quality": "high",
      "schema": 1
@@ -3256,19 +3248,17 @@
      "--codec=-LDAC",
      "--sbc-quality=high",
      "--sbc-abr",
-     "--aac-afterburner",
-     "--aac-bitrate=320000",
      "--aac-abr",
-     "--ldac-quality=standard",
+     "--ldac-quality=mobile",
      "--ldac-abr"
     ],
     "boot_id": "boot-a",
     "settings": {
      "aac_abr": true,
-     "aac_quality": "high",
+     "aac_quality": "standard",
      "experimental": false,
      "ldac_abr": true,
-     "ldac_quality": "standard",
+     "ldac_quality": "mobile",
      "sbc_abr": true,
      "sbc_quality": "high",
      "schema": 1
@@ -3290,19 +3280,17 @@
      "--codec=-LDAC",
      "--sbc-quality=high",
      "--sbc-abr",
-     "--aac-afterburner",
-     "--aac-bitrate=320000",
      "--aac-abr",
-     "--ldac-quality=standard",
+     "--ldac-quality=mobile",
      "--ldac-abr"
     ],
     "boot_id": "boot-a",
     "settings": {
      "aac_abr": true,
-     "aac_quality": "high",
+     "aac_quality": "standard",
      "experimental": false,
      "ldac_abr": true,
-     "ldac_quality": "standard",
+     "ldac_quality": "mobile",
      "sbc_abr": true,
      "sbc_quality": "high",
      "schema": 1
@@ -3324,19 +3312,17 @@
      "--codec=-LDAC",
      "--sbc-quality=high",
      "--sbc-abr",
-     "--aac-afterburner",
-     "--aac-bitrate=320000",
      "--aac-abr",
-     "--ldac-quality=standard",
+     "--ldac-quality=mobile",
      "--ldac-abr"
     ],
     "boot_id": "boot-a",
     "settings": {
      "aac_abr": true,
-     "aac_quality": "high",
+     "aac_quality": "standard",
      "experimental": false,
      "ldac_abr": true,
-     "ldac_quality": "standard",
+     "ldac_quality": "mobile",
      "sbc_abr": true,
      "sbc_quality": "high",
      "schema": 1
@@ -3358,19 +3344,17 @@
      "--codec=-LDAC",
      "--sbc-quality=high",
      "--sbc-abr",
-     "--aac-afterburner",
-     "--aac-bitrate=320000",
      "--aac-abr",
-     "--ldac-quality=standard",
+     "--ldac-quality=mobile",
      "--ldac-abr"
     ],
     "boot_id": "boot-a",
     "settings": {
      "aac_abr": true,
-     "aac_quality": "high",
+     "aac_quality": "standard",
      "experimental": false,
      "ldac_abr": true,
-     "ldac_quality": "standard",
+     "ldac_quality": "mobile",
      "sbc_abr": true,
      "sbc_quality": "high",
      "schema": 1
@@ -3392,19 +3376,17 @@
      "--codec=-LDAC",
      "--sbc-quality=high",
      "--sbc-abr",
-     "--aac-afterburner",
-     "--aac-bitrate=320000",
      "--aac-abr",
-     "--ldac-quality=standard",
+     "--ldac-quality=mobile",
      "--ldac-abr"
     ],
     "boot_id": "boot-a",
     "settings": {
      "aac_abr": true,
-     "aac_quality": "high",
+     "aac_quality": "standard",
      "experimental": false,
      "ldac_abr": true,
-     "ldac_quality": "standard",
+     "ldac_quality": "mobile",
      "sbc_abr": true,
      "sbc_quality": "high",
      "schema": 1
@@ -3562,10 +3544,10 @@
    "pending_restart": true,
    "requested": {
     "aac_abr": true,
-    "aac_quality": "high",
+    "aac_quality": "standard",
     "experimental": false,
     "ldac_abr": true,
-    "ldac_quality": "standard",
+    "ldac_quality": "mobile",
     "sbc_abr": true,
     "sbc_quality": "high",
     "schema": 1
@@ -3602,10 +3584,10 @@
   "files": {
    "/data/bluetooth/codec-policy.json": {
     "aac_abr": true,
-    "aac_quality": "high",
+    "aac_quality": "standard",
     "experimental": false,
     "ldac_abr": true,
-    "ldac_quality": "standard",
+    "ldac_quality": "mobile",
     "sbc_abr": false,
     "sbc_quality": "high",
     "schema": 1
@@ -3619,10 +3601,10 @@
    "pending_restart": true,
    "requested": {
     "aac_abr": true,
-    "aac_quality": "high",
+    "aac_quality": "standard",
     "experimental": false,
     "ldac_abr": true,
-    "ldac_quality": "standard",
+    "ldac_quality": "mobile",
     "sbc_abr": false,
     "sbc_quality": "high",
     "schema": 1
@@ -3659,10 +3641,10 @@
   "files": {
    "/data/bluetooth/codec-policy.json": {
     "aac_abr": true,
-    "aac_quality": "high",
+    "aac_quality": "standard",
     "experimental": false,
     "ldac_abr": true,
-    "ldac_quality": "standard",
+    "ldac_quality": "mobile",
     "sbc_abr": false,
     "sbc_quality": "high",
     "schema": 1
@@ -3673,10 +3655,10 @@
    "apply_action": "restart_player",
    "effective": {
     "aac_abr": true,
-    "aac_quality": "high",
+    "aac_quality": "standard",
     "experimental": false,
     "ldac_abr": true,
-    "ldac_quality": "standard",
+    "ldac_quality": "mobile",
     "sbc_abr": true,
     "sbc_quality": "high",
     "schema": 1
@@ -3685,10 +3667,10 @@
    "pending_restart": true,
    "requested": {
     "aac_abr": true,
-    "aac_quality": "high",
+    "aac_quality": "standard",
     "experimental": false,
     "ldac_abr": true,
-    "ldac_quality": "standard",
+    "ldac_quality": "mobile",
     "sbc_abr": false,
     "sbc_quality": "high",
     "schema": 1
@@ -3726,10 +3708,10 @@
    "apply_action": "restart_player",
    "effective": {
     "aac_abr": true,
-    "aac_quality": "high",
+    "aac_quality": "standard",
     "experimental": false,
     "ldac_abr": true,
-    "ldac_quality": "standard",
+    "ldac_quality": "mobile",
     "sbc_abr": true,
     "sbc_quality": "high",
     "schema": 1
@@ -3738,10 +3720,10 @@
    "pending_restart": false,
    "requested": {
     "aac_abr": true,
-    "aac_quality": "high",
+    "aac_quality": "standard",
     "experimental": false,
     "ldac_abr": true,
-    "ldac_quality": "standard",
+    "ldac_quality": "mobile",
     "sbc_abr": true,
     "sbc_quality": "high",
     "schema": 1
@@ -3824,10 +3806,10 @@
    "pending_restart": true,
    "requested": {
     "aac_abr": true,
-    "aac_quality": "high",
+    "aac_quality": "standard",
     "experimental": false,
     "ldac_abr": true,
-    "ldac_quality": "standard",
+    "ldac_quality": "mobile",
     "sbc_abr": true,
     "sbc_quality": "high",
     "schema": 1
@@ -3880,10 +3862,10 @@
   "files": {
    "/data/bluetooth/codec-policy.json": {
     "aac_abr": true,
-    "aac_quality": "high",
+    "aac_quality": "standard",
     "experimental": false,
     "ldac_abr": true,
-    "ldac_quality": "standard",
+    "ldac_quality": "mobile",
     "sbc_abr": false,
     "sbc_quality": "xq+",
     "schema": 1
@@ -3897,10 +3879,10 @@
    "pending_restart": true,
    "requested": {
     "aac_abr": true,
-    "aac_quality": "high",
+    "aac_quality": "standard",
     "experimental": false,
     "ldac_abr": true,
-    "ldac_quality": "standard",
+    "ldac_quality": "mobile",
     "sbc_abr": false,
     "sbc_quality": "xq+",
     "schema": 1
@@ -3941,10 +3923,10 @@
    "pending_restart": true,
    "requested": {
     "aac_abr": true,
-    "aac_quality": "high",
+    "aac_quality": "standard",
     "experimental": false,
     "ldac_abr": true,
-    "ldac_quality": "standard",
+    "ldac_quality": "mobile",
     "sbc_abr": true,
     "sbc_quality": "high",
     "schema": 1
@@ -7790,10 +7772,10 @@
      "pending_restart": true,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -7854,10 +7836,10 @@
      "ldac_quality_index": null,
      "preference": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -7982,10 +7964,10 @@
      "pending_restart": true,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -8046,10 +8028,10 @@
      "ldac_quality_index": null,
      "preference": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -8179,10 +8161,10 @@
      "pending_restart": true,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -8243,10 +8225,10 @@
      "ldac_quality_index": null,
      "preference": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -8839,10 +8821,10 @@
      "pending_restart": true,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -8907,10 +8889,10 @@
      "ldac_quality_index": 1,
      "preference": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -9035,10 +9017,10 @@
      "pending_restart": true,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -9184,10 +9166,10 @@
      "pending_restart": true,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -9248,10 +9230,10 @@
      "ldac_quality_index": null,
      "preference": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -9430,10 +9412,10 @@
      "pending_restart": true,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -9547,10 +9529,10 @@
      "pending_restart": true,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -9611,10 +9593,10 @@
      "ldac_quality_index": null,
      "preference": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -9742,10 +9724,10 @@
      "pending_restart": true,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -9888,10 +9870,10 @@
      "apply_action": "restart_player",
      "effective": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -9900,10 +9882,10 @@
      "pending_restart": false,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -9964,10 +9946,10 @@
      "ldac_quality_index": null,
      "preference": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -10149,10 +10131,10 @@
      "pending_restart": true,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -10259,10 +10241,10 @@
      "pending_restart": true,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -10376,10 +10358,10 @@
      "pending_restart": true,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -10510,10 +10492,10 @@
      "pending_restart": true,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -11305,10 +11287,10 @@
      "apply_action": "restart_player",
      "effective": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -11317,10 +11299,10 @@
      "pending_restart": false,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -11381,10 +11363,10 @@
      "ldac_quality_index": null,
      "preference": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -19281,10 +19263,10 @@
      "apply_action": "restart_player",
      "effective": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -19293,10 +19275,10 @@
      "pending_restart": false,
      "requested": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -19357,10 +19339,10 @@
      "ldac_quality_index": null,
      "preference": {
       "aac_abr": true,
-      "aac_quality": "high",
+      "aac_quality": "standard",
       "experimental": false,
       "ldac_abr": true,
-      "ldac_quality": "standard",
+      "ldac_quality": "mobile",
       "sbc_abr": true,
       "sbc_quality": "high",
       "schema": 1
@@ -33544,7 +33526,11 @@
      "state": "Connected"
     },
     "boot_id": "boot-a",
-    "codec_bitrate_override": null,
+    "codec_bitrate_override": {
+     "aac_max_bps": 192000,
+     "reason": "wifi_radio_on",
+     "sbc_bitpool_percent": 85
+    },
     "cpu_pressure": "some avg10=0.00",
     "monotonic_s": "<volatile>",
     "provisional": true,
@@ -33562,7 +33548,11 @@
       "state": "Connected"
      },
      "boot_id": "boot-a",
-     "codec_bitrate_override": null,
+     "codec_bitrate_override": {
+      "aac_max_bps": 192000,
+      "reason": "wifi_radio_on",
+      "sbc_bitpool_percent": 85
+     },
      "cpu_pressure": "some avg10=0.00",
      "monotonic_s": "<volatile>",
      "provisional": true,
@@ -33685,7 +33675,11 @@
      "state": "Connected"
     },
     "boot_id": "boot-a",
-    "codec_bitrate_override": null,
+    "codec_bitrate_override": {
+     "aac_max_bps": 192000,
+     "reason": "wifi_radio_on",
+     "sbc_bitpool_percent": 85
+    },
     "cpu_pressure": "some avg10=0.00",
     "monotonic_s": "<volatile>",
     "provisional": true,
@@ -33703,7 +33697,11 @@
       "state": "Connected"
      },
      "boot_id": "boot-a",
-     "codec_bitrate_override": null,
+     "codec_bitrate_override": {
+      "aac_max_bps": 192000,
+      "reason": "wifi_radio_on",
+      "sbc_bitpool_percent": 85
+     },
      "cpu_pressure": "some avg10=0.00",
      "monotonic_s": "<volatile>",
      "provisional": true,
@@ -33828,7 +33826,11 @@
      "state": "Connected"
     },
     "boot_id": "boot-a",
-    "codec_bitrate_override": null,
+    "codec_bitrate_override": {
+     "aac_max_bps": 192000,
+     "reason": "wifi_radio_on",
+     "sbc_bitpool_percent": 85
+    },
     "cpu_pressure": "some avg10=0.00",
     "monotonic_s": "<volatile>",
     "provisional": true,
@@ -33944,7 +33946,11 @@
      "state": "Connected"
     },
     "boot_id": "boot-a",
-    "codec_bitrate_override": null,
+    "codec_bitrate_override": {
+     "aac_max_bps": 192000,
+     "reason": "wifi_radio_on",
+     "sbc_bitpool_percent": 85
+    },
     "cpu_pressure": "some avg10=0.00",
     "monotonic_s": "<volatile>",
     "provisional": true,
@@ -34060,7 +34066,11 @@
      "state": "Connected"
     },
     "boot_id": "boot-a",
-    "codec_bitrate_override": null,
+    "codec_bitrate_override": {
+     "aac_max_bps": 192000,
+     "reason": "wifi_radio_on",
+     "sbc_bitpool_percent": 85
+    },
     "cpu_pressure": "some avg10=0.00",
     "monotonic_s": "<volatile>",
     "provisional": true,
@@ -34078,7 +34088,11 @@
       "state": "Connected"
      },
      "boot_id": "boot-a",
-     "codec_bitrate_override": null,
+     "codec_bitrate_override": {
+      "aac_max_bps": 192000,
+      "reason": "wifi_radio_on",
+      "sbc_bitpool_percent": 85
+     },
      "cpu_pressure": "some avg10=0.00",
      "monotonic_s": "<volatile>",
      "provisional": true,
@@ -34203,7 +34217,11 @@
      "state": "Connected"
     },
     "boot_id": "boot-a",
-    "codec_bitrate_override": null,
+    "codec_bitrate_override": {
+     "aac_max_bps": 192000,
+     "reason": "wifi_radio_on",
+     "sbc_bitpool_percent": 85
+    },
     "cpu_pressure": "some avg10=0.00",
     "monotonic_s": "<volatile>",
     "provisional": true,
@@ -34305,7 +34323,11 @@
      "state": "Connected"
     },
     "boot_id": "boot-a",
-    "codec_bitrate_override": null,
+    "codec_bitrate_override": {
+     "aac_max_bps": 192000,
+     "reason": "wifi_radio_on",
+     "sbc_bitpool_percent": 85
+    },
     "cpu_pressure": "some avg10=0.00",
     "monotonic_s": "<volatile>",
     "provisional": true,
@@ -34407,7 +34429,11 @@
      "state": "Connected"
     },
     "boot_id": "boot-a",
-    "codec_bitrate_override": null,
+    "codec_bitrate_override": {
+     "aac_max_bps": 192000,
+     "reason": "wifi_radio_on",
+     "sbc_bitpool_percent": 85
+    },
     "cpu_pressure": "some avg10=0.00",
     "monotonic_s": "<volatile>",
     "provisional": true,
@@ -34425,7 +34451,11 @@
       "state": "Connected"
      },
      "boot_id": "boot-a",
-     "codec_bitrate_override": null,
+     "codec_bitrate_override": {
+      "aac_max_bps": 192000,
+      "reason": "wifi_radio_on",
+      "sbc_bitpool_percent": 85
+     },
      "cpu_pressure": "some avg10=0.00",
      "monotonic_s": "<volatile>",
      "provisional": true,
@@ -34522,7 +34552,11 @@
      "state": "Connected"
     },
     "boot_id": "boot-a",
-    "codec_bitrate_override": null,
+    "codec_bitrate_override": {
+     "aac_max_bps": 192000,
+     "reason": "wifi_radio_on",
+     "sbc_bitpool_percent": 85
+    },
     "cpu_pressure": "some avg10=0.00",
     "monotonic_s": "<volatile>",
     "provisional": true,
