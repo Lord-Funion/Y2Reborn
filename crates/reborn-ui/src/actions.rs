@@ -1,11 +1,12 @@
 //! Input: an action, the wheel and focus, selecting a row.
 use crate::*;
 
-/// Only the wheel's fastest cadence (4 steps: ten detents under 45 ms apart)
-/// shows the fast-scroll letter; a quick but steady turn moves rows. At 2 steps
-/// the letter came after four quick detents, so rows could not be read through
-/// at speed (Y2Linux #64).
-const LETTER_SCROLL_STEPS: i32 = 4;
+/// A real spin (3 steps: six detents, smoothed under 70 ms apart) shows the
+/// fast-scroll letter; a quick but steady turn (2 steps, under 110 ms) moves
+/// rows. At 2 steps the letter came after four quick detents, so rows could
+/// not be read through at speed; at 4 (ten detents under 45 ms, 9.2.2) two
+/// users could not reach it however hard they spun (Y2Linux #64).
+const LETTER_SCROLL_STEPS: i32 = 3;
 
 impl Ui {
     pub fn action(&mut self, m: &mut AppModel, tracks: &[Track], action: Action) -> Effect {

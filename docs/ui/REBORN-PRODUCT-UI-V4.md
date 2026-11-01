@@ -520,7 +520,8 @@ Playlist Order. Previews `13-folder`, `13b-folder-songs`. Tests
   `reborn_core::AlbumOrder`): by the artist an album row shows ("The" skipped), then title. Albums and Cover Flow
   share it; the fast-scroll letter is the artist's. A new Customize row (no existing row holds an order).
   Test `albums_order_by_title_or_by_artist_and_the_letter_follows`.
-* **Letter scrolling (#30):** once the wheel turns fast enough that the letter shows in an A to Z list (Songs,
+* **Letter scrolling (#30):** once the wheel turns fast enough (3 steps: six detents, smoothed ≤70 ms apart; Y2Linux #64 — 2 steps came too
+  easily, 4 was out of reach) that the letter shows in an A to Z list (Songs,
   Artists, Albums and Cover Flow, Folders), each detent goes to the first row of the next letter, or back to the
   first row of this letter, else the one before; the letter stays 700 ms (`FAST_SCROLL_LINGER`) after the last
   detent, so turning back after overshooting stays by letter, then rows step again. After the last letter the
