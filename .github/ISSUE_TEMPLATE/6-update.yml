@@ -1,0 +1,66 @@
+name: 📦 Install or update
+description: Installing Y2Linux, an update, or going back to stock failed or got stuck.
+labels: [update]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please say exactly where it stopped; a photo of the screen helps most.
+        Wrong form? Go back and pick another; Y2Linux or Y2Reborn are both fine, the maintainer moves issues where they belong.
+  - type: dropdown
+    id: how
+    attributes:
+      label: What were you doing?
+      options:
+        - First install (SP Flash Tool)
+        - Update on the player (Software Update)
+        - Going back to stock
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: From which version to which?
+      placeholder: e.g. Beta 9.2.11 → Beta 9.2.13 / stock 1.1.0 → Beta 9.2.13
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: Where did it stop, and what did the screen show?
+      placeholder: e.g. Stuck at "Installing" 63 % for 20 minutes, then restarted to the old version.
+    validations:
+      required: true
+  - type: dropdown
+    id: now
+    attributes:
+      label: Does the player start now?
+      options:
+        - Yes, normally
+        - Yes, but into the old version
+        - No, only a logo or a black screen
+    validations:
+      required: true
+  - type: input
+    id: computer
+    attributes:
+      label: Computer
+      description: Only for a first install or going back to stock.
+      placeholder: e.g. Windows 11, Fedora 43; SP Flash Tool v5.2032
+  - type: input
+    id: report
+    attributes:
+      label: Error report
+      description: |
+        Right after it happens: Settings → System → Error Reports → **Send Report Now**, then paste the **Install ID**
+        shown on that page. Without Wi-Fi: **Save Report** and attach the file from the *Error Reports* folder under
+        "Anything else". Reports hold no song titles, file names, Wi-Fi names or passwords
+        ([what is in a report](https://github.com/SchulzCode/Y2Linux/blob/main/docs/ERROR-REPORTS.md)).
+      placeholder: Install ID, "attached", or why not (e.g. the player won't start)
+    validations:
+      required: false
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Photos or a short video of the screen help a lot. Drag files (and a saved report) in here.

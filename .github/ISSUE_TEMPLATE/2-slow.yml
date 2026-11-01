@@ -1,0 +1,96 @@
+name: 🐢 Slow or laggy
+description: Scrolling, opening a page, starting up or searching takes too long.
+labels: [performance]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Speed depends a lot on the library, so please say how big yours is.
+        Wrong form? Go back and pick another; Y2Linux or Y2Reborn are both fine, the maintainer moves issues where they belong.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Settings → System → About
+      placeholder: e.g. 1.0 Beta 9.2.13
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where is it slow?
+      description: The page or action, and whether other pages are fine.
+      placeholder: e.g. Scrolling in Settings and all its pages; Songs and Albums scroll normally.
+    validations:
+      required: true
+  - type: dropdown
+    id: looks
+    attributes:
+      label: What does it look like?
+      multiple: true
+      options:
+        - Every wheel step lags behind
+        - It freezes for a moment, then jumps
+        - A page takes long to open
+        - Starting up takes long
+        - Search results take long
+        - Something else (say below)
+    validations:
+      required: true
+  - type: dropdown
+    id: when
+    attributes:
+      label: When is it slow?
+      options:
+        - All the time
+        - Only for a while after starting or inserting the SD card
+        - Only while charging or connected to a computer
+        - I don't know
+    validations:
+      required: true
+  - type: dropdown
+    id: songs
+    attributes:
+      label: About how many songs?
+      options:
+        - Under 1 000
+        - 1 000 – 10 000
+        - 10 000 – 50 000
+        - Over 50 000
+    validations:
+      required: true
+  - type: input
+    id: storage
+    attributes:
+      label: Storage
+      description: Where the music is. For an SD card, its size and format if you know it. Is it fast without the card?
+      placeholder: e.g. 512 GB SD card, exFAT; fast again with the card out
+    validations:
+      required: true
+  - type: dropdown
+    id: since
+    attributes:
+      label: Since when?
+      options:
+        - It always did this
+        - Since an update (say which below)
+        - I don't know
+    validations:
+      required: true
+  - type: input
+    id: report
+    attributes:
+      label: Error report
+      description: |
+        Right after it happens: Settings → System → Error Reports → **Send Report Now**, then paste the **Install ID**
+        shown on that page. Without Wi-Fi: **Save Report** and attach the file from the *Error Reports* folder under
+        "Anything else". Reports hold no song titles, file names, Wi-Fi names or passwords
+        ([what is in a report](https://github.com/SchulzCode/Y2Linux/blob/main/docs/ERROR-REPORTS.md)).
+      placeholder: Install ID, "attached", or why not (e.g. the player won't start)
+    validations:
+      required: true
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Photos or a short video of the screen help a lot. Drag files (and a saved report) in here.

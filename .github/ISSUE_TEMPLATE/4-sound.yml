@@ -1,0 +1,82 @@
+name: 🎧 Sound, Bluetooth or playback
+description: No sound, crackles, too quiet or loud, skips, Bluetooth headphones won't connect or drop out.
+labels: [sound]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Say what you hear and on which output; the headphones' model matters for Bluetooth.
+        Wrong form? Go back and pick another; Y2Linux or Y2Reborn are both fine, the maintainer moves issues where they belong.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Settings → System → About
+      placeholder: e.g. 1.0 Beta 9.2.13
+    validations:
+      required: true
+  - type: dropdown
+    id: output
+    attributes:
+      label: Output
+      options:
+        - Headphone jack
+        - Bluetooth
+        - Speaker
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Headphones or speaker model
+      placeholder: e.g. Sony WH-1000XM4, AirPods Pro 2, Sennheiser HD 600
+  - type: textarea
+    id: what
+    attributes:
+      label: What do you hear, and when?
+      placeholder: e.g. Crackles every few seconds on FLAC 24-bit/96 kHz files, MP3 is fine.
+    validations:
+      required: true
+  - type: input
+    id: files
+    attributes:
+      label: File type
+      description: If it happens with some songs only.
+      placeholder: e.g. FLAC 24/96, MP3 320, AAC/M4A, Opus
+  - type: dropdown
+    id: often
+    attributes:
+      label: How often?
+      options:
+        - Every time
+        - Sometimes
+        - Only once so far
+    validations:
+      required: true
+  - type: dropdown
+    id: since
+    attributes:
+      label: Since when?
+      options:
+        - It always did this
+        - Since an update (say which below)
+        - I don't know
+    validations:
+      required: true
+  - type: input
+    id: report
+    attributes:
+      label: Error report
+      description: |
+        Right after it happens: Settings → System → Error Reports → **Send Report Now**, then paste the **Install ID**
+        shown on that page. Without Wi-Fi: **Save Report** and attach the file from the *Error Reports* folder under
+        "Anything else". Reports hold no song titles, file names, Wi-Fi names or passwords
+        ([what is in a report](https://github.com/SchulzCode/Y2Linux/blob/main/docs/ERROR-REPORTS.md)).
+      placeholder: Install ID, "attached", or why not (e.g. the player won't start)
+    validations:
+      required: true
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Photos or a short video of the screen help a lot. Drag files (and a saved report) in here.

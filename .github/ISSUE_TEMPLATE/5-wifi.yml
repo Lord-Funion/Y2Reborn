@@ -1,0 +1,67 @@
+name: 📶 Wi-Fi, internet radio or Last.fm
+description: Can't connect, drops out, no Wi-Fi after sleep, radio stations or scrobbling don't work.
+labels: [wifi]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Your network name and password are never needed and never in a report.
+        Wrong form? Go back and pick another; Y2Linux or Y2Reborn are both fine, the maintainer moves issues where they belong.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Settings → System → About
+      placeholder: e.g. 1.0 Beta 9.2.13
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      placeholder: e.g. Connects after a restart, but after a sleep it says "Couldn't connect".
+    validations:
+      required: true
+  - type: input
+    id: router
+    attributes:
+      label: Router or hotspot
+      description: Model, and the band and security if you know them.
+      placeholder: e.g. FRITZ!Box 7590, 2.4 GHz, WPA2 / iPhone hotspot
+  - type: dropdown
+    id: often
+    attributes:
+      label: How often?
+      options:
+        - Every time
+        - Sometimes
+        - Only once so far
+    validations:
+      required: true
+  - type: dropdown
+    id: since
+    attributes:
+      label: Since when?
+      options:
+        - It always did this
+        - Since an update (say which below)
+        - I don't know
+    validations:
+      required: true
+  - type: input
+    id: report
+    attributes:
+      label: Error report
+      description: |
+        Right after it happens: Settings → System → Error Reports → **Send Report Now**, then paste the **Install ID**
+        shown on that page. Without Wi-Fi: **Save Report** and attach the file from the *Error Reports* folder under
+        "Anything else". Reports hold no song titles, file names, Wi-Fi names or passwords
+        ([what is in a report](https://github.com/SchulzCode/Y2Linux/blob/main/docs/ERROR-REPORTS.md)).
+      placeholder: Install ID, "attached", or why not (e.g. the player won't start)
+    validations:
+      required: true
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Photos or a short video of the screen help a lot. Drag files (and a saved report) in here.

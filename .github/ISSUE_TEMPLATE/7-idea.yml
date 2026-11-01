@@ -1,0 +1,29 @@
+name: 💡 Feature request
+description: Something new the player should do, or something it should do differently.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      placeholder: e.g. A "Recently Added" place on Home.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why?
+      description: What you want to do with it. This helps find the best way, which may be different from the first idea.
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where would you look for it?
+      description: Which menu or page you'd expect it in, or a sketch.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Settings → System → About
+      placeholder: e.g. 1.0 Beta 9.2.13

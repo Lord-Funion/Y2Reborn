@@ -1,0 +1,93 @@
+name: 🔋 Battery, charging or sleep
+description: Drains fast, won't charge, won't sleep or wake, won't turn on or off, gets hot.
+labels: [power]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For drain, numbers help most: the battery % and the time before and after.
+        Wrong form? Go back and pick another; Y2Linux or Y2Reborn are both fine, the maintainer moves issues where they belong.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Settings → System → About
+      placeholder: e.g. 1.0 Beta 9.2.13
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is wrong?
+      multiple: true
+      options:
+        - The battery drains too fast
+        - It doesn't charge, or charges slowly
+        - The battery % is wrong or jumps
+        - It doesn't go to sleep, or wakes by itself
+        - It doesn't wake up (black screen)
+        - It doesn't turn on, or doesn't turn off
+        - It gets hot
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      placeholder: e.g. 95 % at 22:00 asleep, 60 % at 7:00; Bluetooth and Wi-Fi on, nothing playing.
+    validations:
+      required: true
+  - type: input
+    id: charger
+    attributes:
+      label: Charger
+      description: For charging problems; what the player was plugged into, and the cable.
+      placeholder: e.g. 20 W USB-C phone charger / laptop USB port / power bank
+  - type: dropdown
+    id: radios
+    attributes:
+      label: What was on?
+      multiple: true
+      options:
+        - Wi-Fi
+        - Bluetooth
+        - Playing music
+        - SD card inserted
+        - None of these
+  - type: dropdown
+    id: often
+    attributes:
+      label: How often?
+      options:
+        - Every time
+        - Sometimes
+        - Only once so far
+    validations:
+      required: true
+  - type: dropdown
+    id: since
+    attributes:
+      label: Since when?
+      options:
+        - It always did this
+        - Since an update (say which below)
+        - I don't know
+    validations:
+      required: true
+  - type: input
+    id: report
+    attributes:
+      label: Error report
+      description: |
+        Right after it happens: Settings → System → Error Reports → **Send Report Now**, then paste the **Install ID**
+        shown on that page. Without Wi-Fi: **Save Report** and attach the file from the *Error Reports* folder under
+        "Anything else". Reports hold no song titles, file names, Wi-Fi names or passwords
+        ([what is in a report](https://github.com/SchulzCode/Y2Linux/blob/main/docs/ERROR-REPORTS.md)).
+      placeholder: Install ID, "attached", or why not (e.g. the player won't start)
+    validations:
+      required: true
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Photos or a short video of the screen help a lot. Drag files (and a saved report) in here.
