@@ -1,6 +1,18 @@
 # Current Reborn state on the Y2
 
-## 1.0.0-beta.9.2.15 — Y2Linux 1.0 Beta 9.2.15 (Baseline 206), 2026-11-01 (latest): Settings count
+## 1.0.0-beta.9.2.16 — Y2Linux 1.0 Beta 9.2.16 (Baseline 207), 2026-11-02 (latest): steadier Bluetooth codecs
+
+Published as `baseline-207` (Reborn `8667100`; sequence 13200). #87 (Sony WH-1000XM4 crackled on AAC 320 kbit/s
+with Wi-Fi on; the saved LDAC never applied). `854a727`: a codec request refused because playback holds the PCM
+("Release the Bluetooth PCM…", "Bluetooth PCM still open…", `codec_pcm_held`) is handed to the app as
+`Status::codec_deferred {address, seq}` (kept across worker refreshes); `CodecReconnect` re-arms the attempt once per
+new seq, at most three times per connection (reset on reconnect and when a restarted worker counts from 1), so the
+choice is asked again at the next pause or stop. `7e9acd8`: Auto ranks AAC, aptX, then SBC; LDAC and aptX HD only
+when chosen (not even after being negotiated last); the Wi-Fi-heavy-transfer exclusion went with them. The platform
+side (AAC standard / LDAC mobile defaults, the Wi-Fi codec ceiling in BlueALSA) is in Y2Linux. Not yet tried on a
+player.
+
+## 1.0.0-beta.9.2.15 — Y2Linux 1.0 Beta 9.2.15 (Baseline 206), 2026-11-01: Settings count
 
 Published as `baseline-206` (Reborn `5745736`; sequence 13100). #85 (PR #86 by mrtngamper, squashed as `97e46a8`):
 `pages::settings` and `pages::library` count the `tracks` they are given. They read `m.library.tracks`, which the
