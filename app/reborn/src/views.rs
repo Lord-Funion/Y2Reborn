@@ -120,6 +120,7 @@ pub(crate) fn bluetooth_view(s: &bluetooth::Status) -> BluetoothView {
                 audio_ready: s.pcms.iter().any(|pcm| pcm.is_a2dp_playback_for(&d.path)),
                 codec: s.active_codec(&d.path),
                 connecting: s.waiting.as_deref() == Some(d.path.as_str()),
+                auto_connect: d.auto_connect,
             })
             .collect(),
         codec_choices: s.codec_choices(),

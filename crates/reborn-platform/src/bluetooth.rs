@@ -44,6 +44,9 @@ pub struct Device {
     /// Connected, but the daemon is still setting up its stream (codec, A2DP): not playable yet.
     #[serde(default)]
     pub settling: bool,
+    /// Connects by itself when it comes back (Y2Reborn #78).
+    #[serde(default)]
+    pub auto_connect: bool,
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
@@ -240,6 +243,11 @@ pub enum Command {
     Volume {
         device: String,
         volume: u8,
+    },
+    /// Whether the device at this path connects by itself (Y2Reborn #78).
+    AutoConnect {
+        device: String,
+        on: bool,
     },
     Stop,
 }
@@ -550,6 +558,10 @@ impl Client {
                 address: address(&device)?,
                 volume,
             },
+            Command::AutoConnect { device, on } => Request::AutoConnect {
+                address: address(&device)?,
+                on,
+            },
             Command::Refresh | Command::Stop => return None,
         })
     }
@@ -583,6 +595,7 @@ fn status_from(state: &radiod::Bluetooth) -> Status {
             volume: d.volume,
             transport: d.transport.clone(),
             settling: d.connected && d.audio && d.link != Link::Ready,
+            auto_connect: d.auto_connect,
         })
         .collect();
     let waiting = state
@@ -638,10 +651,38 @@ fn pcm_from(pcm: &radiod::Pcm) -> BluetoothPcm {
     }
 }
 
-/// The daemon never changes a codec while the player's stream runs (it reads BlueALSA's `Running`),
-/// so no lease is held any more; kept so the sink's open stays as it was.
-pub fn playback_pcm_lease() -> Result<Option<std::fs::File>, String> {
-    Ok(None)
+/// The player holds a stream to these headphones open: the radio daemon changes no codec meanwhile
+/// (told on creation, released on drop).
+pub struct StreamLease {
+    address: String,
+}
+
+impl Drop for StreamLease {
+    fn drop(&mut self) {
+        let _ = crate::radiod::ask_within(
+            &Request::Stream {
+                address: std::mem::take(&mut self.address),
+                open: false,
+            },
+            Duration::from_secs(1),
+        );
+    }
+}
+
+/// Before the BlueALSA stream for `address` opens. Refused while the daemon is still changing that
+/// headset's codec; without a daemon (never on a player) nothing is held.
+pub fn playback_pcm_lease(address: &str) -> Result<Option<StreamLease>, String> {
+    let request = Request::Stream {
+        address: address.to_owned(),
+        open: true,
+    };
+    match crate::radiod::ask_within(&request, Duration::from_secs(1)) {
+        Ok(Message::Reply(reply)) if reply.ok => Ok(Some(StreamLease {
+            address: address.to_owned(),
+        })),
+        Ok(Message::Reply(_)) => Err("Bluetooth headphones are still connecting".into()),
+        Ok(Message::State(_)) | Err(_) => Ok(None),
+    }
 }
 
 fn current() -> Result<radiod::Bluetooth, String> {

@@ -239,6 +239,8 @@ pub struct BluetoothDeviceView {
     pub codec: Option<String>,
     /// A Connect waiting for another Bluetooth operation to finish.
     pub connecting: bool,
+    /// Connects by itself when it comes back (Y2Reborn #78: off for a TV that is always on).
+    pub auto_connect: bool,
 }
 
 impl BluetoothDeviceView {

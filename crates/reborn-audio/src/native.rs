@@ -206,12 +206,17 @@ fn output_name(output: &AudioOutput) -> Result<(String, bool), String> {
         }
     }
 }
-fn bluetooth_pcm_lease(device: &str) -> Result<Option<std::fs::File>, String> {
-    if !device.starts_with("bluealsa:") {
+fn bluetooth_pcm_lease(
+    device: &str,
+) -> Result<Option<reborn_platform::bluetooth::StreamLease>, String> {
+    // `bluealsa:DEV=<address>,PROFILE=a2dp`: the radio daemon changes no codec while it is open.
+    let Some(address) = device
+        .strip_prefix("bluealsa:DEV=")
+        .and_then(|rest| rest.split(',').next())
+    else {
         return Ok(None);
-    }
-    // Y2 coordination with codec switching is platform policy.
-    reborn_platform::bluetooth::playback_pcm_lease()
+    };
+    reborn_platform::bluetooth::playback_pcm_lease(address)
 }
 struct WritePacing {
     partial: bool,
@@ -254,7 +259,7 @@ impl WritePacing {
     }
 }
 pub struct AlsaSink {
-    _pcm_lease: Option<std::fs::File>,
+    _pcm_lease: Option<reborn_platform::bluetooth::StreamLease>,
     raw: NonNull<c_void>,
     params: Parameters,
     log: Observer,

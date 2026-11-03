@@ -205,6 +205,38 @@ impl Ui {
         self.bluetooth.devices.iter().find(|d| d.path == path)
     }
 
+    /// The menu of one Bluetooth device: connect, use for audio, codec, connect by itself, forget.
+    fn bluetooth_menu(&self, m: &AppModel, key: Option<&str>) -> Vec<Item> {
+        let Some(device) = self.device(key) else {
+            return vec![];
+        };
+        let mut rows = vec![Item::new(
+            match device.operation() {
+                "pair" => "Pair",
+                "disconnect" => "Disconnect",
+                _ => "Connect",
+            },
+            "bt_connect",
+        )];
+        let current = matches!(&m.output, AudioOutput::Bluetooth(a) if a.eq_ignore_ascii_case(&device.address));
+        if device.usable_audio() && !current {
+            rows.push(Item::new("Use for Audio", "bt_output"));
+        }
+        if device.usable_audio() && !self.bluetooth.codec_choices.is_empty() {
+            rows.push(
+                Item::new("Codec", "bt_codec").with_secondary(m.settings.codec_preference.label()),
+            );
+        }
+        if device.saved_pairing() {
+            rows.push(
+                Item::new("Connect Automatically", "bt_auto")
+                    .with_secondary(if device.auto_connect { "On" } else { "Off" }),
+            );
+            rows.push(Item::new("Forget Device", "bt_forget"));
+        }
+        rows
+    }
+
     pub(crate) fn context_rows(&self, m: &AppModel, tracks: &[Track]) -> Vec<Item> {
         if m.screen == Screen::NowPlaying {
             let Some(current) = m.current() else {
@@ -353,33 +385,7 @@ impl Ui {
                 ]
             }
             Screen::Queue => self.up_next_menu(m, key),
-            Screen::Bluetooth => {
-                let Some(device) = self.device(key) else {
-                    return vec![];
-                };
-                let mut rows = vec![Item::new(
-                    match device.operation() {
-                        "pair" => "Pair",
-                        "disconnect" => "Disconnect",
-                        _ => "Connect",
-                    },
-                    "bt_connect",
-                )];
-                let current = matches!(&m.output, AudioOutput::Bluetooth(a) if a.eq_ignore_ascii_case(&device.address));
-                if device.usable_audio() && !current {
-                    rows.push(Item::new("Use for Audio", "bt_output"));
-                }
-                if device.usable_audio() && !self.bluetooth.codec_choices.is_empty() {
-                    rows.push(
-                        Item::new("Codec", "bt_codec")
-                            .with_secondary(m.settings.codec_preference.label()),
-                    );
-                }
-                if device.saved_pairing() {
-                    rows.push(Item::new("Forget Device", "bt_forget"));
-                }
-                rows
-            }
+            Screen::Bluetooth => self.bluetooth_menu(m, key),
             Screen::Wifi => {
                 let Some(id) = key.and_then(|k| k.strip_prefix("saved:")) else {
                     return vec![];

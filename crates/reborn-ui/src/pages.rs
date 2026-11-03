@@ -962,7 +962,7 @@ fn bluetooth(ui: &Ui, m: &AppModel) -> Page {
     let quality = m.platform.snapshot.bluetooth_quality;
     let mut page = Page::rows(rows);
     page.status = if quality.pending_restart {
-        Some("Restart the player to apply the saved codec quality.".into())
+        Some("Saved. It applies when nothing plays; headphones reconnect once.".into())
     } else if let Some(problem) = &b.problem {
         Some(problem.clone())
     } else {

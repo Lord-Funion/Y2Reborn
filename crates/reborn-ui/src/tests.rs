@@ -132,6 +132,7 @@ fn radio_bluetooth() -> BluetoothView {
             audio_ready: true,
             codec: Some("SBC".into()),
             connecting: false,
+            auto_connect: true,
         }],
         ..Default::default()
     }
@@ -1974,6 +1975,28 @@ fn bluetooth_codec_row_only_appears_with_a_real_choice() {
 }
 
 #[test]
+fn a_saved_device_can_stop_connecting_by_itself() {
+    // Y2Reborn #78: a TV that is always on should stay paired without taking the audio.
+    let mut ui = radios();
+    let mut m = app(Screen::Bluetooth);
+    select_key(&mut ui, &mut m, "bt_device:/bt/a");
+    let rows = ui.modal_rows_public(&m, &m.library.tracks);
+    let row = rows
+        .iter()
+        .position(|r| r.label == "Connect Automatically")
+        .expect("row");
+    assert_eq!(rows[row].secondary, "On");
+    m.navigation.modal_focus = row;
+    assert_eq!(
+        ui.model_action(&mut m, Action::Select),
+        Effect::BluetoothDevice {
+            path: "/bt/a".into(),
+            operation: "auto_off".into()
+        }
+    );
+}
+
+#[test]
 fn bluetooth_device_states_and_select_actions() {
     let mut ui = radios();
     ui.bluetooth.devices.push(BluetoothDeviceView {
@@ -1987,6 +2010,7 @@ fn bluetooth_device_states_and_select_actions() {
         paired: true,
         bonded: true,
         connecting: true,
+        auto_connect: true,
         ..Default::default()
     });
     let mut m = app(Screen::Bluetooth);

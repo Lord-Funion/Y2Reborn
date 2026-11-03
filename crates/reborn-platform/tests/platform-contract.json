@@ -7762,9 +7762,8 @@
     "preferred_codec": null,
     "reason": "controller_bluez_bluealsa_observed",
     "reconnect": {
-     "boot_id": "boot-a",
-     "monotonic_us": "<volatile>",
-     "state": "Connected"
+     "reason": "reconnect_record_stale_or_absent",
+     "state": "Unavailable"
     },
     "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
@@ -7959,9 +7958,8 @@
     "preferred_codec": null,
     "reason": "controller_bluez_bluealsa_observed",
     "reconnect": {
-     "boot_id": "boot-a",
-     "monotonic_us": "<volatile>",
-     "state": "Connected"
+     "reason": "reconnect_record_stale_or_absent",
+     "state": "Unavailable"
     },
     "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
@@ -9031,9 +9029,7 @@
     "pcm": null,
     "preferred_codec": null,
     "reason": "dbus_observation_unavailable",
-    "reconnect": {
-     "state": "x"
-    },
+    "reconnect": null,
     "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
@@ -9680,9 +9676,8 @@
     "preferred_codec": null,
     "reason": "controller_bluez_bluealsa_observed",
     "reconnect": {
-     "boot_id": "boot-a",
-     "monotonic_us": "<volatile>",
-     "state": "Connected"
+     "reason": "reconnect_record_stale_or_absent",
+     "state": "Unavailable"
     },
     "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
@@ -11097,9 +11092,8 @@
     "preferred_codec": null,
     "reason": "controller_bluez_bluealsa_observed",
     "reconnect": {
-     "boot_id": "boot-a",
-     "monotonic_us": "<volatile>",
-     "state": "Connected"
+     "reason": "reconnect_record_stale_or_absent",
+     "state": "Unavailable"
     },
     "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
@@ -19073,9 +19067,8 @@
     "preferred_codec": null,
     "reason": "controller_bluez_bluealsa_observed",
     "reconnect": {
-     "boot_id": "boot-a",
-     "monotonic_us": "<volatile>",
-     "state": "Connected"
+     "reason": "reconnect_record_stale_or_absent",
+     "state": "Unavailable"
     },
     "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
@@ -32962,9 +32955,7 @@
     "association_id": null,
     "boot_id": "boot-a",
     "coexistence": {
-     "bluetooth_link": {
-      "state": "Connected"
-     },
+     "bluetooth_link": {},
      "boot_id": "boot-a",
      "codec_bitrate_override": null,
      "cpu_pressure": "some avg10=0.00",
@@ -33089,9 +33080,7 @@
     "association_id": "00:11:22:33:44:55",
     "boot_id": "boot-a",
     "coexistence": {
-     "bluetooth_link": {
-      "state": "Connected"
-     },
+     "bluetooth_link": {},
      "boot_id": "boot-a",
      "codec_bitrate_override": null,
      "cpu_pressure": "some avg10=0.00",
@@ -33422,9 +33411,7 @@
     "association_id": "00:11:22:33:44:55",
     "boot_id": "boot-a",
     "coexistence": {
-     "bluetooth_link": {
-      "state": "Connected"
-     },
+     "bluetooth_link": {},
      "boot_id": "boot-a",
      "codec_bitrate_override": null,
      "cpu_pressure": "some avg10=0.00",
@@ -33727,9 +33714,7 @@
     "association_id": null,
     "boot_id": "boot-a",
     "coexistence": {
-     "bluetooth_link": {
-      "state": "Connected"
-     },
+     "bluetooth_link": {},
      "boot_id": "boot-a",
      "codec_bitrate_override": null,
      "cpu_pressure": "some avg10=0.00",

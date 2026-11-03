@@ -20,10 +20,15 @@ pub(crate) fn send(writer: &mut UnixStream, request: &Request) -> std::io::Resul
 
 /// One request and its answer; Err("radio daemon unavailable") when it does not run.
 pub(crate) fn ask(request: &Request) -> Result<Message, String> {
+    ask_within(request, Duration::from_secs(5))
+}
+
+/// As [`ask`], waiting at most `wait` for the answer.
+pub(crate) fn ask_within(request: &Request, wait: Duration) -> Result<Message, String> {
     let mut stream =
         UnixStream::connect(SOCKET).map_err(|_| "radio daemon unavailable".to_string())?;
     stream
-        .set_read_timeout(Some(Duration::from_secs(5)))
+        .set_read_timeout(Some(wait))
         .map_err(|e| e.to_string())?;
     send(&mut stream, request).map_err(|e| e.to_string())?;
     let mut line = String::new();

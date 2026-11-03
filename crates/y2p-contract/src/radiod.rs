@@ -51,8 +51,11 @@ pub enum Request {
     AutoConnect { address: String, on: bool },
     /// The player opened (`open`) or closed its stream to this headset: no codec change while open.
     Stream { address: String, open: bool },
-    /// The owner's "Restart Bluetooth": the next step of recovery, now.
+    /// Restart BlueALSA and BlueZ now (what switching Bluetooth off and on does after a failure).
     RestartBluetooth,
+    /// The owner's codec settings changed (`codec-settings`): BlueALSA starts again with them as
+    /// soon as no stream is open (headphones reconnect by themselves), no player restart.
+    ReloadCodecs,
     /// Wi-Fi on or off; `persist` keeps it across restarts.
     WifiPower { on: bool, persist: bool },
     /// Wi-Fi off and on once (the Wi-Fi recovery's last step before a core reset).
@@ -116,7 +119,7 @@ pub enum Service {
     Ready,
     /// A recovery step runs (`Bluetooth::recovery` says which).
     Recovering,
-    /// Every recovery step failed: the owner's "Restart Bluetooth" tries again.
+    /// Every recovery step failed: switching Bluetooth off and on tries again.
     Failed,
     /// Asleep (the sleep helper took it down).
     Quiesced,
@@ -307,4 +310,23 @@ pub struct WifiPower {
     pub on: bool,
     /// Held off for now: a wake brings Bluetooth headphones back first.
     pub held: bool,
+}
+
+impl Bluetooth {
+    /// The reconnect state as the `status` command has always named it (`bluetooth.reconnect.state`).
+    pub fn reconnect_state(&self) -> &'static str {
+        if self.service == Service::Starting {
+            "Unavailable"
+        } else if !self.powered {
+            "Off"
+        } else if self.devices.iter().any(|d| d.connected && d.audio) {
+            "Connected"
+        } else if self.devices.iter().any(|d| d.link == Link::Connecting) {
+            "Connecting"
+        } else if self.devices.iter().any(|d| d.link == Link::Parked) {
+            "Exhausted"
+        } else {
+            "Waiting"
+        }
+    }
 }

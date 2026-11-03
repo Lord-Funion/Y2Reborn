@@ -146,6 +146,25 @@ impl Ui {
         rows
     }
 
+    /// A Bluetooth device's menu row as the effect it asks for: connect or disconnect (or pair), use
+    /// it for audio, or switch whether it connects by itself (Y2Reborn #78).
+    fn device_effect(&self, menu_key: &str, source_key: &str) -> Effect {
+        let Some(device) = self.device(Some(source_key)) else {
+            return Effect::None;
+        };
+        let operation = match menu_key {
+            "bt_output" if device.usable_audio() => "output",
+            "bt_output" => return Effect::None,
+            "bt_auto" if device.auto_connect => "auto_off",
+            "bt_auto" => "auto_on",
+            _ => device.operation(),
+        };
+        Effect::BluetoothDevice {
+            path: device.path.clone(),
+            operation: operation.into(),
+        }
+    }
+
     pub(crate) fn context_action(
         &mut self,
         m: &mut AppModel,
@@ -354,19 +373,7 @@ impl Ui {
         }
         Self::close_modal(m);
         match menu_key {
-            "bt_connect" | "bt_output" => self
-                .device(Some(&source_key))
-                .filter(|device| menu_key != "bt_output" || device.usable_audio())
-                .map(|device| Effect::BluetoothDevice {
-                    path: device.path.clone(),
-                    operation: if menu_key == "bt_output" {
-                        "output"
-                    } else {
-                        device.operation()
-                    }
-                    .into(),
-                })
-                .unwrap_or(Effect::None),
+            "bt_connect" | "bt_output" | "bt_auto" => self.device_effect(menu_key, &source_key),
             "wifi_connect" => source_key
                 .strip_prefix("saved:")
                 .and_then(|s| s.parse().ok())

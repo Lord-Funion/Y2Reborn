@@ -63,6 +63,10 @@ impl Runtime {
                 "connect" => bluetooth::Command::Connect(path),
                 "disconnect" => bluetooth::Command::Disconnect(path),
                 "forget" => bluetooth::Command::Forget(path),
+                "auto_on" | "auto_off" => bluetooth::Command::AutoConnect {
+                    device: path,
+                    on: operation == "auto_on",
+                },
                 _ => return Err("unsupported Bluetooth action".into()),
             };
             self.bluetooth
