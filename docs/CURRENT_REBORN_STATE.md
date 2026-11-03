@@ -1,6 +1,17 @@
 # Current Reborn state on the Y2
 
-## 1.0.0-beta.9.2.16 — Y2Linux 1.0 Beta 9.2.16 (Baseline 207), 2026-11-02 (latest): steadier Bluetooth codecs
+## 1.0.0-beta.9.3.4 — test build 212, 2026-11-03 (on the developer's player, not published): Bluetooth as a client of the radio daemon
+
+The D-Bus worker (`bluetooth.rs` + `bluetooth/worker.rs`), `CodecReconnect`, busy retries, intents and PCM locks are
+gone: `reborn-platform/src/bluetooth.rs` is a client of Y2Linux's `y2-radiod` (`/run/y2/radiod.sock`,
+`y2p_contract::radiod`); its `Status` is built only from the daemon's state, a connected headset still being set up is
+`settling` and not playable, the sink takes a `StreamLease` around BlueALSA's PCM. The codec choice is always accepted
+(applied when headphones connect or the stream stops); codec quality applies without a restart. Settings > Bluetooth >
+a saved device: Connect Automatically (#78). #92: a rolled-back output change keeps the whole library
+(`runtime::audio::keep_live_parts`); a status without the adapter is no lost peer. Wi-Fi's switch asks the daemon.
+AVRCP answers only calls that want an answer.
+
+## 1.0.0-beta.9.2.16 — Y2Linux 1.0 Beta 9.2.16 (Baseline 207), 2026-11-02: steadier Bluetooth codecs
 
 Published as `baseline-207` (Reborn `8667100`; sequence 13200). #87 (Sony WH-1000XM4 crackled on AAC 320 kbit/s
 with Wi-Fi on; the saved LDAC never applied). `854a727`: a codec request refused because playback holds the PCM
