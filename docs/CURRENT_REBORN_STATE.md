@@ -1,5 +1,12 @@
 # Current Reborn state on the Y2
 
+## 1.0.0-beta.9.3.7 — Y2Linux 1.0 Beta 9.3.7 (Baseline 215), 2026-11-03: Bluetooth as a client of the radio daemon (published)
+
+Published as `baseline-215` (Reborn `8fc6f69`); test builds 9.3–9.3.6 were never published. No Reborn code change
+after 9.3.4: the 9.3.5–9.3.7 fixes (AirPods' own AAC configuration, set-up without resolved services, waiting for the
+codec list) are in Y2Linux's BlueALSA patch 0006 and `y2-radiod`. Known: a pause longer than ≈20 s drops the link once
+(Y2Linux [Beta 9.3.7 report](https://github.com/SchulzCode/Y2Linux/blob/main/docs/validation/Y2-LINUX-1.0-BETA-9.3.7.md)).
+
 ## 1.0.0-beta.9.3.4 — test build 212, 2026-11-03 (on the developer's player, not published): Bluetooth as a client of the radio daemon
 
 The D-Bus worker (`bluetooth.rs` + `bluetooth/worker.rs`), `CodecReconnect`, busy retries, intents and PCM locks are
