@@ -14,6 +14,7 @@ mod native;
 pub mod playlists;
 pub mod power;
 pub mod radio;
+mod radiod;
 pub mod scrobble;
 pub mod storage;
 pub mod wifi;

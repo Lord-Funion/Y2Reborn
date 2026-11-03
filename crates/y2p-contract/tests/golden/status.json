@@ -21,7 +21,7 @@
   "preferred_codec": null,
   "reason": "dbus_observation_unavailable",
   "reconnect": null,
-  "reconnect_owner": "y2-bt-reconnect",
+  "reconnect_owner": "y2-radiod",
   "remote_advertised": null,
   "remote_advertised_reason": "API_exposes_mutual_subset_only",
   "requested_codec": null,

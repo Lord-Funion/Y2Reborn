@@ -7,29 +7,21 @@ impl Runtime {
         &mut self,
         preference: reborn_core::CodecPreference,
     ) -> Result<(), String> {
-        if !codec_change_allowed(self.model.playback, self.pending_reconfiguration.is_some()) {
-            return Err("Pause music before changing codec".into());
-        }
-        let address = self
-            .bt_state
-            .devices
-            .iter()
-            .find(|d| d.connected && d.audio)
-            .map(|d| d.address.clone())
-            .ok_or("Connect Bluetooth headphones first")?;
+        // The radio daemon applies it when headphones connect, or when their stream next stops:
+        // never during playback, and nothing to wait for here.
         self.bluetooth
             .as_ref()
             .ok_or("Bluetooth unavailable")?
             .commands
             .try_send(bluetooth::Command::Codec {
-                address,
+                address: String::new(),
                 preference,
             })
             .map_err(|_| "Bluetooth busy")?;
         self.model.settings.codec_preference = preference;
         self.dirty.mark_both();
         self.ui
-            .flash("Codec preference saved. It applies when the device reconnects audio.");
+            .flash("Codec saved. It applies when the headphones connect or at the next pause.");
         Ok(())
     }
 

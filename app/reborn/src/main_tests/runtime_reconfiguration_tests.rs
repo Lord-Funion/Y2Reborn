@@ -405,3 +405,25 @@ fn pre_release_failure_preserves_the_still_running_model() {
     assert_eq!(restored.generation, previous.generation);
     assert_eq!(restored.last_error, previous.last_error);
 }
+
+#[test]
+fn a_rolled_back_output_change_keeps_the_library_and_book_progress() {
+    // Y2Reborn #92: a Bluetooth loss while a sink opened restored the snapshot taken without the
+    // library; Audiobooks vanished and the next checkpoint wrote an empty shelf.
+    let mut live = active_model();
+    live.library.tracks = vec![Track {
+        id: 5,
+        path: PathBuf::from("/music/book.m4b"),
+        ..Default::default()
+    }];
+    live.library.scanning = false;
+    let mut snapshot = live.clone();
+    snapshot.library = Default::default();
+    snapshot.library.scanning = true;
+    snapshot.output = AudioOutput::Wired;
+    live.output = AudioOutput::Bluetooth("12:34:56:78:90:AB".into());
+    crate::runtime::keep_live_parts(&mut live, &mut snapshot);
+    assert_eq!(snapshot.library.tracks.len(), 1);
+    assert!(!snapshot.library.scanning);
+    assert_eq!(snapshot.output, AudioOutput::Wired);
+}

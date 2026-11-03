@@ -143,6 +143,18 @@ impl Paths {
             })
     }
     fn radio(&self, on: bool, persist: bool) -> Result<(), String> {
+        // The radio daemon owns the switch (and the wake order with Bluetooth); this player
+        // switches it only when the daemon does not run.
+        if self.rfkill == std::path::Path::new("/sys/class/rfkill") {
+            use y2p_contract::radiod::{Message, Request};
+            match crate::radiod::ask(&Request::WifiPower { on, persist }) {
+                Ok(Message::Reply(reply)) if reply.ok => return Ok(()),
+                Ok(Message::Reply(reply)) => {
+                    return Err(reply.reason.unwrap_or_else(|| "refused".into()))
+                }
+                Ok(Message::State(_)) | Err(_) => {}
+            }
+        }
         let mut found = false;
         for e in fs::read_dir(&self.rfkill)
             .map_err(|e| e.to_string())?

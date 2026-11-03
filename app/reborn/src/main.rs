@@ -960,16 +960,10 @@ mod ui_readiness_tests;
 mod loop_interval_tests;
 
 #[cfg(test)]
-#[path = "main_tests/feature_product_tests.rs"]
-mod feature_product_tests;
-
-#[cfg(test)]
 #[path = "main_tests/auto_output_tests.rs"]
 mod auto_output_tests;
 
 #[cfg(test)]
-#[path = "main_tests/codec_reconnect_tests.rs"]
-mod codec_reconnect_tests;
 #[cfg(test)]
 #[path = "main_tests/shuffle_and_seek_tests.rs"]
 mod shuffle_and_seek_tests;

@@ -74,10 +74,7 @@ impl Runtime {
         sink_release_started: bool,
         transition_generation: Option<u64>,
     ) {
-        previous.library.tracks = std::mem::take(&mut self.model.library.tracks);
-        previous.library.shelf = std::mem::take(&mut self.model.library.shelf);
-        previous.library.chapters = std::mem::take(&mut self.model.library.chapters);
-        previous.platform = std::mem::take(&mut self.model.platform);
+        keep_live_parts(&mut self.model, &mut previous);
         self.keep_held_volume(&mut previous);
         if !sink_release_started {
             self.model = previous;
@@ -151,6 +148,10 @@ impl Runtime {
     }
     pub(crate) fn abandon_pending_reconfiguration(&mut self) {
         if let Some(mut pending) = self.pending_reconfiguration.take() {
+            // The snapshot was taken without the library, book progress, chapter marks and platform
+            // facts (`with_model_action`): they stay as they are now. Restoring the snapshot alone
+            // emptied the library and the next checkpoint wrote an empty shelf (Y2Reborn #92).
+            keep_live_parts(&mut self.model, &mut pending.previous);
             self.keep_held_volume(&mut pending.previous);
             self.model = pending.previous;
             self.dirty = pending.dirty_before;
@@ -326,4 +327,14 @@ impl Runtime {
             .collect();
         self.play_members(index, members, shuffle, "Songs".into(), None)
     }
+}
+
+/// Move what an output change never rolls back from the live model into the model it restores: the
+/// whole library (tracks, book progress, chapter marks, and a scan's state: a stale `scanning` made
+/// Scan for Music do nothing) and the platform facts. `with_model_action` snapshots without them, so
+/// a restored snapshot alone had an empty library and the next checkpoint wrote an empty shelf
+/// (Y2Reborn #92).
+pub(crate) fn keep_live_parts(live: &mut AppModel, previous: &mut AppModel) {
+    previous.library = std::mem::take(&mut live.library);
+    previous.platform = std::mem::take(&mut live.platform);
 }

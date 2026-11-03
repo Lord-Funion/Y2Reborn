@@ -105,7 +105,7 @@
      ]
     },
     "bluetooth": {
-     "automatic_connection_owner": "y2-bt-reconnect",
+     "automatic_connection_owner": "y2-radiod",
      "avrcp": true,
      "baseline_codec": "SBC",
      "codec_auto": {
@@ -811,7 +811,7 @@
      ]
     },
     "bluetooth": {
-     "automatic_connection_owner": "y2-bt-reconnect",
+     "automatic_connection_owner": "y2-radiod",
      "avrcp": true,
      "baseline_codec": "SBC",
      "codec_auto": {
@@ -1709,7 +1709,7 @@
      ]
     },
     "bluetooth": {
-     "automatic_connection_owner": "y2-bt-reconnect",
+     "automatic_connection_owner": "y2-radiod",
      "avrcp": true,
      "baseline_codec": "SBC",
      "codec_auto": {
@@ -2575,7 +2575,7 @@
     "preferred_codec": null,
     "reason": "dbus_observation_unavailable",
     "reconnect": null,
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -3142,262 +3142,6 @@
  },
  {
   "argv": [
-   "connectivity-daemon"
-  ],
-  "exit": 0,
-  "files": {
-   "/run/y2/codec-runtime.json": {
-    "arguments": [
-     "--codec=AAC",
-     "--codec=-LDAC",
-     "--sbc-quality=high",
-     "--sbc-abr",
-     "--aac-abr",
-     "--ldac-quality=mobile",
-     "--ldac-abr"
-    ],
-    "boot_id": "boot-a",
-    "settings": {
-     "aac_abr": true,
-     "aac_quality": "standard",
-     "experimental": false,
-     "ldac_abr": true,
-     "ldac_quality": "mobile",
-     "sbc_abr": true,
-     "sbc_quality": "high",
-     "schema": 1
-    }
-   }
-  },
-  "name": "connectivity/connectivity-daemon-attach",
-  "stdout": null
- },
- {
-  "argv": [
-   "connectivity-daemon"
-  ],
-  "exit": 0,
-  "files": {
-   "/run/y2/codec-runtime.json": {
-    "arguments": [
-     "--codec=AAC",
-     "--codec=-LDAC",
-     "--sbc-quality=high",
-     "--sbc-abr",
-     "--aac-abr",
-     "--ldac-quality=mobile",
-     "--ldac-abr"
-    ],
-    "boot_id": "boot-a",
-    "settings": {
-     "aac_abr": true,
-     "aac_quality": "standard",
-     "experimental": false,
-     "ldac_abr": true,
-     "ldac_quality": "mobile",
-     "sbc_abr": true,
-     "sbc_quality": "high",
-     "schema": 1
-    }
-   }
-  },
-  "name": "connectivity/connectivity-daemon-cold",
-  "stdout": null
- },
- {
-  "argv": [
-   "connectivity-daemon"
-  ],
-  "exit": 0,
-  "files": {
-   "/run/y2/codec-runtime.json": {
-    "arguments": [
-     "--codec=AAC",
-     "--codec=-LDAC",
-     "--sbc-quality=high",
-     "--sbc-abr",
-     "--aac-abr",
-     "--ldac-quality=mobile",
-     "--ldac-abr"
-    ],
-    "boot_id": "boot-a",
-    "settings": {
-     "aac_abr": true,
-     "aac_quality": "standard",
-     "experimental": false,
-     "ldac_abr": true,
-     "ldac_quality": "mobile",
-     "sbc_abr": true,
-     "sbc_quality": "high",
-     "schema": 1
-    }
-   }
-  },
-  "name": "connectivity/connectivity-daemon-completed",
-  "stdout": null
- },
- {
-  "argv": [
-   "connectivity-daemon"
-  ],
-  "exit": 0,
-  "files": {
-   "/run/y2/codec-runtime.json": {
-    "arguments": [
-     "--codec=AAC",
-     "--codec=-LDAC",
-     "--sbc-quality=high",
-     "--sbc-abr",
-     "--aac-abr",
-     "--ldac-quality=mobile",
-     "--ldac-abr"
-    ],
-    "boot_id": "boot-a",
-    "settings": {
-     "aac_abr": true,
-     "aac_quality": "standard",
-     "experimental": false,
-     "ldac_abr": true,
-     "ldac_quality": "mobile",
-     "sbc_abr": true,
-     "sbc_quality": "high",
-     "schema": 1
-    }
-   }
-  },
-  "name": "connectivity/connectivity-daemon-disabled-other-boot",
-  "stdout": null
- },
- {
-  "argv": [
-   "connectivity-daemon"
-  ],
-  "exit": 0,
-  "files": {
-   "/run/y2/codec-runtime.json": {
-    "arguments": [
-     "--codec=AAC",
-     "--codec=-LDAC",
-     "--sbc-quality=high",
-     "--sbc-abr",
-     "--aac-abr",
-     "--ldac-quality=mobile",
-     "--ldac-abr"
-    ],
-    "boot_id": "boot-a",
-    "settings": {
-     "aac_abr": true,
-     "aac_quality": "standard",
-     "experimental": false,
-     "ldac_abr": true,
-     "ldac_quality": "mobile",
-     "sbc_abr": true,
-     "sbc_quality": "high",
-     "schema": 1
-    }
-   }
-  },
-  "name": "connectivity/connectivity-daemon-disabled",
-  "stdout": null
- },
- {
-  "argv": [
-   "connectivity-daemon"
-  ],
-  "exit": 0,
-  "files": {
-   "/run/y2/codec-runtime.json": {
-    "arguments": [
-     "--codec=AAC",
-     "--codec=-LDAC",
-     "--sbc-quality=high",
-     "--sbc-abr",
-     "--aac-abr",
-     "--ldac-quality=mobile",
-     "--ldac-abr"
-    ],
-    "boot_id": "boot-a",
-    "settings": {
-     "aac_abr": true,
-     "aac_quality": "standard",
-     "experimental": false,
-     "ldac_abr": true,
-     "ldac_quality": "mobile",
-     "sbc_abr": true,
-     "sbc_quality": "high",
-     "schema": 1
-    }
-   }
-  },
-  "name": "connectivity/connectivity-daemon-not-listed",
-  "stdout": null
- },
- {
-  "argv": [
-   "connectivity-daemon"
-  ],
-  "exit": 0,
-  "files": {
-   "/run/y2/codec-runtime.json": {
-    "arguments": [
-     "--codec=AAC",
-     "--codec=-LDAC",
-     "--sbc-quality=high",
-     "--sbc-abr",
-     "--aac-abr",
-     "--ldac-quality=mobile",
-     "--ldac-abr"
-    ],
-    "boot_id": "boot-a",
-    "settings": {
-     "aac_abr": true,
-     "aac_quality": "standard",
-     "experimental": false,
-     "ldac_abr": true,
-     "ldac_quality": "mobile",
-     "sbc_abr": true,
-     "sbc_quality": "high",
-     "schema": 1
-    }
-   }
-  },
-  "name": "connectivity/connectivity-daemon-reuse",
-  "stdout": null
- },
- {
-  "argv": [
-   "connectivity-daemon"
-  ],
-  "exit": 0,
-  "files": {
-   "/run/y2/codec-runtime.json": {
-    "arguments": [
-     "--codec=AAC",
-     "--codec=-LDAC",
-     "--sbc-quality=high",
-     "--sbc-abr",
-     "--aac-abr",
-     "--ldac-quality=mobile",
-     "--ldac-abr"
-    ],
-    "boot_id": "boot-a",
-    "settings": {
-     "aac_abr": true,
-     "aac_quality": "standard",
-     "experimental": false,
-     "ldac_abr": true,
-     "ldac_quality": "mobile",
-     "sbc_abr": true,
-     "sbc_quality": "high",
-     "schema": 1
-    }
-   }
-  },
-  "name": "connectivity/connectivity-daemon-stale-pids",
-  "stdout": null
- },
- {
-  "argv": [
    "codec-settings",
    "--aac-quality=standard",
    "--ldac-abr",
@@ -3408,18 +3152,7 @@
    "mobile"
   ],
   "exit": 0,
-  "files": {
-   "/data/bluetooth/codec-policy.json": {
-    "aac_abr": true,
-    "aac_quality": "standard",
-    "experimental": true,
-    "ldac_abr": false,
-    "ldac_quality": "mobile",
-    "sbc_abr": true,
-    "sbc_quality": "xq",
-    "schema": 1
-   }
-  },
+  "files": {},
   "name": "devices/codec-settings-aac-ldac",
   "stdout": {
    "apply_action": "restart_player",
@@ -3581,18 +3314,7 @@
    "off"
   ],
   "exit": 0,
-  "files": {
-   "/data/bluetooth/codec-policy.json": {
-    "aac_abr": true,
-    "aac_quality": "standard",
-    "experimental": false,
-    "ldac_abr": true,
-    "ldac_quality": "mobile",
-    "sbc_abr": false,
-    "sbc_quality": "high",
-    "schema": 1
-   }
-  },
+  "files": {},
   "name": "devices/codec-settings-live-number-arguments",
   "stdout": {
    "apply_action": "restart_player",
@@ -3638,18 +3360,7 @@
    "off"
   ],
   "exit": 0,
-  "files": {
-   "/data/bluetooth/codec-policy.json": {
-    "aac_abr": true,
-    "aac_quality": "standard",
-    "experimental": false,
-    "ldac_abr": true,
-    "ldac_quality": "mobile",
-    "sbc_abr": false,
-    "sbc_quality": "high",
-    "schema": 1
-   }
-  },
+  "files": {},
   "name": "devices/codec-settings-live-pending",
   "stdout": {
    "apply_action": "restart_player",
@@ -3859,18 +3570,7 @@
    "off"
   ],
   "exit": 0,
-  "files": {
-   "/data/bluetooth/codec-policy.json": {
-    "aac_abr": true,
-    "aac_quality": "standard",
-    "experimental": false,
-    "ldac_abr": true,
-    "ldac_quality": "mobile",
-    "sbc_abr": false,
-    "sbc_quality": "xq+",
-    "schema": 1
-   }
-  },
+  "files": {},
   "name": "devices/codec-settings-sbc",
   "stdout": {
    "apply_action": "restart_player",
@@ -7869,7 +7569,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -8066,7 +7766,7 @@
      "monotonic_us": "<volatile>",
      "state": "Connected"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -8263,7 +7963,7 @@
      "monotonic_us": "<volatile>",
      "state": "Connected"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -8423,7 +8123,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -8583,7 +8283,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -8726,7 +8426,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -8922,7 +8622,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -9076,7 +8776,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -9263,7 +8963,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -9334,7 +9034,7 @@
     "reconnect": {
      "state": "x"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -9451,7 +9151,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -9630,7 +9330,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -9783,7 +9483,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -9984,7 +9684,7 @@
      "monotonic_us": "<volatile>",
      "state": "Connected"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -10053,7 +9753,7 @@
     "preferred_codec": null,
     "reason": "dbus_observation_unavailable",
     "reconnect": null,
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -10170,7 +9870,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -10280,7 +9980,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -10417,7 +10117,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -10531,7 +10231,7 @@
      "reason": "reconnect_record_stale_or_absent",
      "state": "Unavailable"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -11401,7 +11101,7 @@
      "monotonic_us": "<volatile>",
      "state": "Connected"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -12833,7 +12533,7 @@
     "preferred_codec": null,
     "reason": "dbus_observation_unavailable",
     "reconnect": null,
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -13430,7 +13130,7 @@
     "preferred_codec": null,
     "reason": "dbus_observation_unavailable",
     "reconnect": null,
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -14310,7 +14010,7 @@
     "preferred_codec": null,
     "reason": "dbus_observation_unavailable",
     "reconnect": null,
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -14911,7 +14611,7 @@
     "preferred_codec": null,
     "reason": "dbus_observation_unavailable",
     "reconnect": null,
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -15540,7 +15240,7 @@
     "preferred_codec": null,
     "reason": "dbus_observation_unavailable",
     "reconnect": null,
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -16146,7 +15846,7 @@
     "preferred_codec": null,
     "reason": "dbus_observation_unavailable",
     "reconnect": null,
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -17326,7 +17026,7 @@
     "preferred_codec": null,
     "reason": "dbus_observation_unavailable",
     "reconnect": null,
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -17924,7 +17624,7 @@
     "preferred_codec": null,
     "reason": "dbus_observation_unavailable",
     "reconnect": null,
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -18597,7 +18297,7 @@
     "preferred_codec": null,
     "reason": "dbus_observation_unavailable",
     "reconnect": null,
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -19377,7 +19077,7 @@
      "monotonic_us": "<volatile>",
      "state": "Connected"
     },
-    "reconnect_owner": "y2-bt-reconnect",
+    "reconnect_owner": "y2-radiod",
     "remote_advertised": null,
     "remote_advertised_reason": "API_exposes_mutual_subset_only",
     "requested_codec": null,
@@ -31265,18 +30965,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -31362,18 +31050,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": 0.0,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -31470,18 +31146,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": 0.0,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -31578,18 +31242,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": 0.0,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -31686,18 +31338,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -31783,18 +31423,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -31880,18 +31508,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -31977,18 +31593,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": 0.0,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -32085,18 +31689,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -32189,18 +31781,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -32293,18 +31873,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -32393,18 +31961,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": 0.0,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -32504,18 +32060,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": 0.0,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -32615,18 +32159,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -32712,18 +32244,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": 0.0,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -32820,18 +32340,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": 0.0,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -32928,18 +32436,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -33025,18 +32521,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -33122,18 +32606,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -33219,18 +32691,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -33316,18 +32776,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": 0.0,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -33424,18 +32872,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {},
-    "boot_id": "boot-a",
-    "codec_bitrate_override": null,
-    "cpu_pressure": null,
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -33521,24 +32957,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {
-     "state": "Connected"
-    },
-    "boot_id": "boot-a",
-    "codec_bitrate_override": {
-     "aac_max_bps": 192000,
-     "reason": "wifi_radio_on",
-     "sbc_bitpool_percent": 85
-    },
-    "cpu_pressure": "some avg10=0.00",
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": 0.0,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": "ASSOCIATING",
     "association_id": null,
@@ -33548,11 +32966,7 @@
       "state": "Connected"
      },
      "boot_id": "boot-a",
-     "codec_bitrate_override": {
-      "aac_max_bps": 192000,
-      "reason": "wifi_radio_on",
-      "sbc_bitpool_percent": 85
-     },
+     "codec_bitrate_override": null,
      "cpu_pressure": "some avg10=0.00",
      "monotonic_s": "<volatile>",
      "provisional": true,
@@ -33670,24 +33084,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {
-     "state": "Connected"
-    },
-    "boot_id": "boot-a",
-    "codec_bitrate_override": {
-     "aac_max_bps": 192000,
-     "reason": "wifi_radio_on",
-     "sbc_bitpool_percent": 85
-    },
-    "cpu_pressure": "some avg10=0.00",
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": 0.0,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": "COMPLETED",
     "association_id": "00:11:22:33:44:55",
@@ -33697,11 +33093,7 @@
       "state": "Connected"
      },
      "boot_id": "boot-a",
-     "codec_bitrate_override": {
-      "aac_max_bps": 192000,
-      "reason": "wifi_radio_on",
-      "sbc_bitpool_percent": 85
-     },
+     "codec_bitrate_override": null,
      "cpu_pressure": "some avg10=0.00",
      "monotonic_s": "<volatile>",
      "provisional": true,
@@ -33821,24 +33213,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {
-     "state": "Connected"
-    },
-    "boot_id": "boot-a",
-    "codec_bitrate_override": {
-     "aac_max_bps": 192000,
-     "reason": "wifi_radio_on",
-     "sbc_bitpool_percent": 85
-    },
-    "cpu_pressure": "some avg10=0.00",
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": true,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": "COMPLETED",
     "association_id": "00:11:22:33:44:55",
@@ -33941,24 +33315,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {
-     "state": "Connected"
-    },
-    "boot_id": "boot-a",
-    "codec_bitrate_override": {
-     "aac_max_bps": 192000,
-     "reason": "wifi_radio_on",
-     "sbc_bitpool_percent": 85
-    },
-    "cpu_pressure": "some avg10=0.00",
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": true,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": "COMPLETED",
     "association_id": "00:11:22:33:44:55",
@@ -34061,24 +33417,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {
-     "state": "Connected"
-    },
-    "boot_id": "boot-a",
-    "codec_bitrate_override": {
-     "aac_max_bps": 192000,
-     "reason": "wifi_radio_on",
-     "sbc_bitpool_percent": 85
-    },
-    "cpu_pressure": "some avg10=0.00",
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": true,
-    "wifi_bytes_per_second": 0.0,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": "COMPLETED",
     "association_id": "00:11:22:33:44:55",
@@ -34088,11 +33426,7 @@
       "state": "Connected"
      },
      "boot_id": "boot-a",
-     "codec_bitrate_override": {
-      "aac_max_bps": 192000,
-      "reason": "wifi_radio_on",
-      "sbc_bitpool_percent": 85
-     },
+     "codec_bitrate_override": null,
      "cpu_pressure": "some avg10=0.00",
      "monotonic_s": "<volatile>",
      "provisional": true,
@@ -34212,24 +33546,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {
-     "state": "Connected"
-    },
-    "boot_id": "boot-a",
-    "codec_bitrate_override": {
-     "aac_max_bps": 192000,
-     "reason": "wifi_radio_on",
-     "sbc_bitpool_percent": 85
-    },
-    "cpu_pressure": "some avg10=0.00",
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -34318,24 +33634,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {
-     "state": "Connected"
-    },
-    "boot_id": "boot-a",
-    "codec_bitrate_override": {
-     "aac_max_bps": 192000,
-     "reason": "wifi_radio_on",
-     "sbc_bitpool_percent": 85
-    },
-    "cpu_pressure": "some avg10=0.00",
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -34424,24 +33722,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {
-     "state": "Connected"
-    },
-    "boot_id": "boot-a",
-    "codec_bitrate_override": {
-     "aac_max_bps": 192000,
-     "reason": "wifi_radio_on",
-     "sbc_bitpool_percent": 85
-    },
-    "cpu_pressure": "some avg10=0.00",
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": false,
-    "wifi_bytes_per_second": 0.0,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": null,
     "association_id": null,
@@ -34451,11 +33731,7 @@
       "state": "Connected"
      },
      "boot_id": "boot-a",
-     "codec_bitrate_override": {
-      "aac_max_bps": 192000,
-      "reason": "wifi_radio_on",
-      "sbc_bitpool_percent": 85
-     },
+     "codec_bitrate_override": null,
      "cpu_pressure": "some avg10=0.00",
      "monotonic_s": "<volatile>",
      "provisional": true,
@@ -34547,24 +33823,6 @@
   ],
   "exit": 0,
   "files": {
-   "/run/y2/coexistence.json": {
-    "bluetooth_link": {
-     "state": "Connected"
-    },
-    "boot_id": "boot-a",
-    "codec_bitrate_override": {
-     "aac_max_bps": 192000,
-     "reason": "wifi_radio_on",
-     "sbc_bitpool_percent": 85
-    },
-    "cpu_pressure": "some avg10=0.00",
-    "monotonic_s": "<volatile>",
-    "provisional": true,
-    "schema": 1,
-    "wifi_active": true,
-    "wifi_bytes_per_second": null,
-    "wifi_heavy_transfer": false
-   },
    "/run/y2/network.json": {
     "association": "COMPLETED",
     "association_id": "00:11:22:33:44:55",

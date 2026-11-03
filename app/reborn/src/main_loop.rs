@@ -229,7 +229,7 @@ pub(crate) fn run() -> Result<(), String> {
         None
     } else {
         let wake = server.notifier().map_err(|e| e.to_string())?;
-        Some(bluetooth::Bluetooth::spawn_notified(log.clone(), wake).map_err(|e| e.to_string())?)
+        Some(bluetooth_service(&log, wake, &model)?)
     };
     startup_phase(&log, process_started, "radio_workers_ready");
     let diagnostics = diagnostics::Diagnostics::spawn(
@@ -466,7 +466,6 @@ pub(crate) fn run() -> Result<(), String> {
     let zone_in_flight = false;
     let download_poll = Instant::now();
     let last_platform_screen = rt.model.screen;
-    let codec_reconnect = CodecReconnect::default();
     let auto_output = AutoOutput::default();
     let mut main_loop = MainLoop {
         log,
@@ -514,7 +513,6 @@ pub(crate) fn run() -> Result<(), String> {
         zone_in_flight,
         download_poll,
         last_platform_screen,
-        codec_reconnect,
         auto_output,
     };
     while !reborn_platform::stop_requested() {
@@ -799,7 +797,6 @@ pub(crate) struct MainLoop {
     zone_in_flight: bool,
     download_poll: Instant,
     last_platform_screen: Screen,
-    codec_reconnect: CodecReconnect,
     auto_output: AutoOutput,
 }
 
@@ -1608,32 +1605,20 @@ impl MainLoop {
         let mut bt_lost = false;
         if let Some(service) = &rt.bluetooth {
             while let Ok(s) = service.events.try_recv() {
-                if let Some(address) = self.codec_reconnect.next(
-                    &s,
-                    rt.model.playback,
-                    rt.pending_reconfiguration.is_some(),
-                ) {
-                    if service
-                        .commands
-                        .try_send(bluetooth::Command::Codec {
-                            address: address.clone(),
-                            preference: rt.model.settings.codec_preference,
-                        })
-                        .is_ok()
-                    {
-                        self.codec_reconnect.sent(address);
-                    }
-                }
                 // Several snapshots can arrive in one tick (after a wake, or a
                 // burst when a peer drops): a later one must not hide an earlier
                 // disconnect (reports 61caa81e/297f1032: output stayed Bluetooth
-                // and every Play failed until a restart).
+                // and every Play failed until a restart). A status without the
+                // adapter (Bluetooth restarting, the radio daemon away) is not a
+                // disconnect: taking it for one emptied the library (Y2Reborn #92).
                 if let AudioOutput::Bluetooth(address) = &rt.model.output {
-                    bt_lost |= rt
-                        .bt_state
-                        .devices
-                        .iter()
-                        .any(|d| &d.address == address && d.connected)
+                    bt_lost |= s.available
+                        && rt.bt_state.available
+                        && rt
+                            .bt_state
+                            .devices
+                            .iter()
+                            .any(|d| &d.address == address && d.connected)
                         && !s
                             .devices
                             .iter()
@@ -1714,6 +1699,10 @@ impl MainLoop {
 
     /// The audio transport's epoch (a sink that changed underneath).
     fn transport_epoch(&mut self, rt: &mut Runtime) {
+        if matches!(rt.model.output, AudioOutput::Bluetooth(_)) && !rt.bt_state.available {
+            // Nothing is known while Bluetooth restarts: the stream's own errors tell.
+            return;
+        }
         match transport_epoch_state(
             &rt.model.output,
             rt.model.playback,
@@ -1787,37 +1776,9 @@ impl MainLoop {
                 Command::Scan => rt
                     .effect(Effect::ScanLibrary)
                     .map(|_| json!({"accepted":true})),
-                Command::BluetoothCodec {
-                    address,
-                    preference,
-                } => {
-                    if !codec_change_allowed(
-                        rt.model.playback,
-                        rt.pending_reconfiguration.is_some(),
-                    ) {
-                        Err("Pause music before changing codec".into())
-                    } else {
-                        let result = rt
-                            .bluetooth
-                            .as_ref()
-                            .ok_or("Bluetooth service unavailable".into())
-                            .and_then(|worker| {
-                                worker
-                                    .commands
-                                    .try_send(bluetooth::Command::Codec {
-                                        address,
-                                        preference,
-                                    })
-                                    .map(|_| json!({"accepted":true,"negotiated":false}))
-                                    .map_err(|_| "Bluetooth busy".into())
-                            });
-                        if result.is_ok() {
-                            rt.model.settings.codec_preference = preference;
-                            rt.dirty.mark_both();
-                        }
-                        result
-                    }
-                }
+                Command::BluetoothCodec { preference, .. } => rt
+                    .on_set_codec_preference(preference)
+                    .map(|()| json!({"accepted":true,"negotiated":false})),
                 Command::Radio { radio, action } => {
                     use reborn_control::{Radio, RadioAction};
                     // Scan uses exactly the button/UI path, not an independent
@@ -2383,4 +2344,19 @@ impl MainLoop {
             thread::sleep(interval);
         }
     }
+}
+
+/// The Bluetooth client, told the codec choice this player saved: the radio daemon keeps it too, and
+/// a choice made before the daemon existed lives only here.
+fn bluetooth_service(
+    log: &Observer,
+    wake: std::os::unix::net::UnixStream,
+    model: &AppModel,
+) -> Result<bluetooth::Bluetooth, String> {
+    let bt = bluetooth::Bluetooth::spawn_notified(log.clone(), wake).map_err(|e| e.to_string())?;
+    let _ = bt.commands.try_send(bluetooth::Command::Codec {
+        address: String::new(),
+        preference: model.settings.codec_preference,
+    });
+    Ok(bt)
 }

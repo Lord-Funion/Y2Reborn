@@ -1,9 +1,11 @@
 use super::*;
 fn status(address: &str, path: &str) -> bluetooth::Status {
-    let mut status = bluetooth::Status::default();
-    status.available = true;
-    status.powered = true;
-    status.bluealsa = true;
+    let mut status = bluetooth::Status {
+        available: true,
+        powered: true,
+        bluealsa: true,
+        ..Default::default()
+    };
     add(&mut status, address, path);
     status
 }

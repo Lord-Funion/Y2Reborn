@@ -69,7 +69,7 @@
    ]
   },
   "bluetooth": {
-   "automatic_connection_owner": "y2-bt-reconnect",
+   "automatic_connection_owner": "y2-radiod",
    "avrcp": true,
    "baseline_codec": "SBC",
    "codec_auto": {

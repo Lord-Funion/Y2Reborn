@@ -128,21 +128,8 @@ pub(crate) fn bluetooth_view(s: &bluetooth::Status) -> BluetoothView {
                 .get("SBC")
                 .is_some_and(|e| e.compiled_locally && e.runtime_enabled && e.mutually_usable)
         }),
-        problem: s
-            .error
-            .as_deref()
-            .map(|e| format!("Couldn't complete that. {}", bluetooth_hint(e))),
-    }
-}
-
-pub(crate) fn bluetooth_hint(error: &str) -> &'static str {
-    let e = error.to_ascii_lowercase();
-    if e.contains("auth") || e.contains("reject") || e.contains("canceled") {
-        "Put the device in pairing mode and try again."
-    } else if e.contains("timeout") || e.contains("host is down") || e.contains("page") {
-        "Make sure the device is on and nearby."
-    } else {
-        "Try again."
+        // The radio daemon words its failures for the owner.
+        problem: s.error.clone(),
     }
 }
 
