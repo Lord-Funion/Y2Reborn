@@ -25,14 +25,15 @@ pub(crate) const KEEP_SINK_FOR: Duration = Duration::from_secs(2);
 /// stream does not start with a click where the old one was cut.
 pub(crate) const SWITCH_FADE_MS: u32 = 10;
 
-/// A sink between two streams, its queued audio dropped. Reopening the
-/// headphone output for every track power-cycles the codec's amplifier and
-/// charge pump, on the rail of its crystal: a marginal crystal stopped after
-/// enough of them (#52). The stock firmware keeps its output open too.
-/// Reopening a Bluetooth output closes BlueALSA's PCM, which releases the
-/// transport (AVDTP Suspend); the next open asks the headphones to Start
-/// again. Some answer in up to 6 s, BlueZ's limit, and a missed Start ends the
-/// link (F61: quick radio station changes). An open PCM keeps the transport.
+/// A sink between two streams, its queued audio dropped (wired) or playing on
+/// (Bluetooth). Reopening the headphone output for every track power-cycles
+/// the codec's amplifier and charge pump, on the rail of its crystal: a
+/// marginal crystal stopped after enough of them (#52). The stock firmware
+/// keeps its output open too. Reopening a Bluetooth output closes BlueALSA's
+/// PCM, which releases the transport (AVDTP Suspend); the next open asks the
+/// headphones to Start again. Some answer in up to 6 s, BlueZ's limit, and a
+/// missed Start ends the link (F61: quick radio station changes). An open PCM
+/// keeps the transport.
 pub(crate) struct KeptSink {
     pub(crate) sink: Box<dyn AudioSink>,
     pub(crate) spec: SinkSpec,
@@ -43,9 +44,16 @@ pub(crate) struct KeptSink {
     pub(crate) until: Instant,
 }
 
-/// Keep a sink for the next stream, its queued audio dropped at once (nothing
-/// of the old track plays on). A sink that cannot drop its audio closes. A
-/// Bluetooth pause still closes its sink (F43): it stops, it does not switch.
+/// Keep a sink for the next stream. A wired sink's queued audio is dropped at
+/// once (nothing of the old track plays on); a sink that cannot drop its audio
+/// closes. A Bluetooth sink keeps its queued audio, under a tenth of a second,
+/// and the next stream follows it without a break: dropping it stops the
+/// packets to the headphones while BlueALSA flushes its encoder and the next
+/// track's first samples arrive (55–62 ms per skip, measured 2026-11-04), and
+/// the headphones play that time out of their buffer and never get it back,
+/// since the stream stays started and the sender keeps real time (AirPods
+/// Pro: crackle after two skips, silence after three). A Bluetooth pause
+/// still closes its sink (F43): it stops, it does not switch.
 pub(crate) fn keep_sink(
     sink: Option<Box<dyn AudioSink>>,
     opened: Option<(SinkSpec, u64)>,
@@ -53,6 +61,16 @@ pub(crate) fn keep_sink(
     id: u64,
 ) -> Option<KeptSink> {
     let (mut sink, (spec, wired)) = (sink?, opened?);
+    if keeps_queued_audio(&spec) {
+        let since = Instant::now();
+        return Some(KeptSink {
+            sink,
+            spec,
+            wired,
+            since,
+            until: since + KEEP_SINK_FOR,
+        });
+    }
     if let Err(e) = sink.discard() {
         log.emit(
             Level::Warn,
@@ -72,6 +90,24 @@ pub(crate) fn keep_sink(
         since,
         until: since + KEEP_SINK_FOR,
     })
+}
+
+/// A kept sink whose queued audio plays on into the next stream (Bluetooth).
+pub(crate) fn keeps_queued_audio(spec: &SinkSpec) -> bool {
+    matches!(spec.output, AudioOutput::Bluetooth(_))
+}
+
+/// The kept sink as the next stream's, `true` for reused. A Bluetooth sink
+/// kept with its audio may have run empty meanwhile (the end of a song): it
+/// is prepared again here, not by an underrun on the first write.
+pub(crate) fn reuse_kept(
+    mut sink: Box<dyn AudioSink>,
+    spec: &SinkSpec,
+) -> Result<(Box<dyn AudioSink>, bool), String> {
+    if keeps_queued_audio(spec) {
+        sink.pause(false)?;
+    }
+    Ok((sink, true))
 }
 
 /// Why a kept sink cannot play the next stream; None: it can, being exactly

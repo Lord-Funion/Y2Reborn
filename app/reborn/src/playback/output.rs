@@ -165,7 +165,7 @@ impl SinkWorker {
                                 }
                             });
                     let opened = match reused {
-                        Some(s) => Ok((s, true)),
+                        Some(s) => reuse_kept(s, &spec),
                         None => (self.factory)(&spec, self.al.clone(), id).map(|s| (s, false)),
                     };
                     match opened {

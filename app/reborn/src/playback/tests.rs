@@ -1082,8 +1082,10 @@ fn a_kept_sink_plays_on_only_for_exactly_its_spec_and_wired_settings() {
     );
 }
 /// A track change keeps the wired sink open when the next track wants
-/// the same one (#52), and the Bluetooth sink for the next station or song
-/// (F61): its queued audio is dropped and nothing reopens. Another rate or
+/// the same one (#52), its queued audio dropped, and the Bluetooth sink for
+/// the next station or song (F61) with its queued audio playing on (a drop
+/// stops the packets to the headphones, which AirPods never get back; the
+/// kept sink is prepared again instead). Another rate or
 /// output opens a new sink after the kept one closed; a kept sink no stream
 /// asks for closes on its own, and a stop closes it at once.
 #[test]
@@ -1091,6 +1093,7 @@ fn consecutive_streams_with_one_spec_open_the_sink_once() {
     struct KeptTestSink {
         open: Arc<AtomicU64>,
         discards: Arc<AtomicU64>,
+        resumes: Arc<AtomicU64>,
         rate: u32,
     }
     impl AudioSink for KeptTestSink {
@@ -1113,6 +1116,12 @@ fn consecutive_streams_with_one_spec_open_the_sink_once() {
             self.discards.fetch_add(1, Ordering::Relaxed);
             Ok(())
         }
+        fn pause(&mut self, on: bool) -> Result<(), String> {
+            if !on {
+                self.resumes.fetch_add(1, Ordering::Relaxed);
+            }
+            Ok(())
+        }
         fn delay(&self) -> u64 {
             0
         }
@@ -1126,8 +1135,14 @@ fn consecutive_streams_with_one_spec_open_the_sink_once() {
     let open = Arc::new(AtomicU64::new(0));
     let peak = Arc::new(AtomicU64::new(0));
     let discards = Arc::new(AtomicU64::new(0));
-    let (factory_opens, factory_open, factory_peak, factory_discards) =
-        (opens.clone(), open.clone(), peak.clone(), discards.clone());
+    let resumes = Arc::new(AtomicU64::new(0));
+    let (factory_opens, factory_open, factory_peak, factory_discards, factory_resumes) = (
+        opens.clone(),
+        open.clone(),
+        peak.clone(),
+        discards.clone(),
+        resumes.clone(),
+    );
     let root = std::env::temp_dir().join(format!("reborn-kept-{}", std::process::id()));
     let log = Observer::new(&root).unwrap();
     let mut p = Playback::with_sink(
@@ -1140,6 +1155,7 @@ fn consecutive_streams_with_one_spec_open_the_sink_once() {
             Ok(Box::new(KeptTestSink {
                 open: factory_open.clone(),
                 discards: factory_discards.clone(),
+                resumes: factory_resumes.clone(),
                 rate: requested.rate,
             }))
         }),
@@ -1199,12 +1215,20 @@ fn consecutive_streams_with_one_spec_open_the_sink_once() {
         thread::sleep(Duration::from_millis(20));
     }
     // F61: a Bluetooth sink is kept too, and the next station or song plays
-    // on in it (no new Start asked of the headphones).
+    // on in it (no new Start asked of the headphones), after its queued
+    // audio, which is not dropped: the sink is prepared again instead.
     let bluetooth = spec(AudioOutput::Bluetooth("12:34:56:78:90:AB".into()), 48_000);
+    let dropped = discards.load(Ordering::Relaxed);
     assert_eq!(start(&mut p, 5, bluetooth.clone()), None);
     assert_eq!(opens.load(Ordering::Relaxed), 3);
     assert_eq!(start(&mut p, 6, bluetooth.clone()), Some(bluetooth));
     assert_eq!(opens.load(Ordering::Relaxed), 3);
+    assert_eq!(
+        discards.load(Ordering::Relaxed),
+        dropped,
+        "Bluetooth audio kept"
+    );
+    assert_eq!(resumes.load(Ordering::Relaxed), 1);
     // A stop (also a Bluetooth pause, F43) closes it at once.
     p.stop_and_wait(7).unwrap();
     assert_eq!(open.load(Ordering::Acquire), 0);
