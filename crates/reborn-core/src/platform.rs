@@ -3,6 +3,7 @@
 //! `reborn-platform` is the only crate that reads Y2Linux files, sockets or
 //! command output. It projects them into these models; the UI presents them.
 //! Nothing here performs I/O, and no raw platform JSON crosses this boundary.
+use std::time::Instant;
 
 /// What a normal user is told about the battery.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -123,6 +124,23 @@ pub const HEADSET_PAUSE_AWAKE_SECS: u64 = 15 * 60;
 /// going on) still holds off automatic sleep.
 pub fn headset_pause_awake(paused_seconds: Option<u64>) -> bool {
     paused_seconds.is_some_and(|seconds| seconds < HEADSET_PAUSE_AWAKE_SECS)
+}
+
+/// When the current pause with headphones began, for [`headset_pause_awake`]:
+/// none while the player is not paused with connected headphones (so the
+/// next pause starts a hold of its own), else the one already kept, else the
+/// pause's own moment (`paused_at`), else now (a Paused state restored at
+/// boot has no pause moment).
+pub fn headset_hold_since(
+    headset: bool,
+    kept: Option<Instant>,
+    paused_at: Option<Instant>,
+    now: Instant,
+) -> Option<Instant> {
+    if !headset {
+        return None;
+    }
+    kept.or(paused_at).or(Some(now))
 }
 
 /// A running Wi-Fi radio owns the APDMA and BTIF clocks, which keeps CPU0 out of
@@ -605,6 +623,7 @@ pub fn human_bytes(bytes: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Duration;
 
     #[test]
     fn a_charger_refusal_holds_automatic_sleep_only_while_a_cable_shows() {
@@ -712,6 +731,32 @@ mod tests {
         assert!(headset_pause_awake(Some(HEADSET_PAUSE_AWAKE_SECS - 1)));
         assert!(!headset_pause_awake(Some(HEADSET_PAUSE_AWAKE_SECS)));
         assert!(!headset_pause_awake(None));
+    }
+
+    #[test]
+    fn a_headset_hold_begins_with_each_pause_and_ends_with_it() {
+        let t0 = Instant::now();
+        let later = t0 + Duration::from_secs(20 * 60);
+        // Paused at boot, no pause moment: the hold starts now.
+        assert_eq!(headset_hold_since(true, None, None, t0), Some(t0));
+        // A pause while playing: from the pause itself, kept across ticks.
+        let paused = t0 + Duration::from_secs(5);
+        assert_eq!(
+            headset_hold_since(true, None, Some(paused), later),
+            Some(paused)
+        );
+        assert_eq!(
+            headset_hold_since(true, Some(paused), Some(paused), later),
+            Some(paused)
+        );
+        // Playing again (or no headphones): no hold, and the old moment goes
+        // (Y2Linux #90: a 17 min old hold let the next pause sleep at 60 s).
+        assert_eq!(headset_hold_since(false, Some(t0), Some(t0), later), None);
+        let again = later + Duration::from_secs(1);
+        assert_eq!(
+            headset_hold_since(true, None, Some(again), again),
+            Some(again)
+        );
     }
 }
 

@@ -90,21 +90,27 @@ impl Runtime {
             || self.pending_reconfiguration.is_some()
             || self.model.library.scanning
             || self.query.is_some();
-        if playing || busy || !self.model.screen_off {
-            self.sleep_attempt = Some(Instant::now());
-            return;
-        }
         // Headphones connected: a pause stays awake a while, so their own
-        // play button can continue (asleep, the radio is off).
+        // play button can continue (asleep, the radio is off). The hold
+        // counts from the pause itself and ends with the pause: kept across
+        // a resume, a stale hold from an earlier pause (or the Paused state
+        // a boot restores) was already over when the next pause came, and
+        // the player slept 60 s after it with the headphones connected
+        // (Y2Linux #90, F68).
         let headset = self.model.playback == PlaybackState::Paused
             && matches!(&self.model.output, AudioOutput::Bluetooth(address)
             if self.bt_state.devices.iter().any(|d| {
                 d.connected && d.address.eq_ignore_ascii_case(address)
             }));
-        if !headset {
-            self.headset_paused = None;
-        } else if self.headset_paused.is_none() {
-            self.headset_paused = Some(Instant::now());
+        self.headset_paused = reborn_core::platform::headset_hold_since(
+            headset,
+            self.headset_paused,
+            self.paused_at,
+            Instant::now(),
+        );
+        if playing || busy || !self.model.screen_off {
+            self.sleep_attempt = Some(Instant::now());
+            return;
         }
         if reborn_core::platform::headset_pause_awake(
             self.headset_paused.map(|since| since.elapsed().as_secs()),

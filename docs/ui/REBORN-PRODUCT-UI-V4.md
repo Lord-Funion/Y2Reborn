@@ -320,7 +320,10 @@ involved.
 
 A paused player with Bluetooth headphones connected stays awake for
 `HEADSET_PAUSE_AWAKE_SECS` (15 minutes) before automatic sleep, so the headphones can
-continue playback; asleep, the radio is off and nothing hears them. The paused sink is still
+continue playback; asleep, the radio is off and nothing hears them. The 15 minutes count
+from the pause itself (`paused_at`) and end with the pause: a hold kept across a resume was
+already over at the next pause, and the player slept 60 s after it with the headphones
+connected (Y2Linux #90, F68; `platform::headset_hold_since`). The paused sink is still
 released after three minutes (`HOLD_LIMIT`); playing again then reopens it.
 
 ## Search page (Beta 8.32, owner request 2026-10-24)
