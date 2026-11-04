@@ -962,6 +962,44 @@ fn a_held_pause_stops_writing_and_resumes_without_reopening() {
     p.hold(true);
     p.stop(2);
     assert!(!p.is_held());
+    // A Bluetooth sink is held without its own pause (that drained the
+    // stream and left AirPods silent): writing stops, nothing else.
+    pauses.lock().unwrap().clear();
+    p.load(
+        track(),
+        vec![],
+        0,
+        spec(AudioOutput::Bluetooth("12:34:56:78:90:AB".into()), 44100),
+        3,
+        DspConfig::with_volume(80),
+        3,
+    )
+    .unwrap();
+    let before = frames.load(Ordering::Relaxed);
+    assert!(
+        wait_for(&|| frames.load(Ordering::Relaxed) > before + 2_000),
+        "Bluetooth playback started"
+    );
+    p.hold(true);
+    thread::sleep(Duration::from_millis(100));
+    let at_hold = frames.load(Ordering::Relaxed);
+    thread::sleep(Duration::from_millis(300));
+    assert_eq!(
+        frames.load(Ordering::Relaxed),
+        at_hold,
+        "nothing written while held"
+    );
+    p.hold(false);
+    assert!(
+        wait_for(&|| frames.load(Ordering::Relaxed) > at_hold + 2_000),
+        "continues"
+    );
+    assert!(
+        pauses.lock().unwrap().is_empty(),
+        "no device pause on Bluetooth"
+    );
+    p.stop(4);
+    p.shutdown(5).unwrap();
 }
 
 #[test]

@@ -285,7 +285,16 @@ impl SinkWorker {
         // queue). The stall and drain clocks restart on resume.
         let want_hold = self.sink_hold.load(Ordering::Acquire) && st.sink.is_some();
         if want_hold != st.held {
-            if let Some(s) = &mut st.sink {
+            // A Bluetooth sink is only left alone: its own pause drained the
+            // stream (BlueALSA 5.0 stops it after ~100 ms), a gap in the
+            // packets that AirPods Pro never recovered from; the hold before a
+            // track change (Next) now keeps them flowing, and a real Bluetooth
+            // pause closes the sink (F43).
+            let device_pause = !st
+                .open_spec
+                .as_ref()
+                .is_some_and(|(spec, _)| keeps_queued_audio(spec));
+            if let Some(s) = st.sink.as_mut().filter(|_| device_pause) {
                 st.clicking = None;
                 if let Err(e) = s.pause(want_hold) {
                     self.al.emit(
