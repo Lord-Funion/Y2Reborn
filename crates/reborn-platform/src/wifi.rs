@@ -175,6 +175,27 @@ impl Paths {
         }
         Ok(())
     }
+    /// Wi-Fi off and on once, as the owner's switch does it; the owner's choice stays as it is.
+    fn restart(&self) -> Result<(), String> {
+        let real = self.rfkill == Path::new("/sys/class/rfkill");
+        if real {
+            use y2p_contract::radiod::{Message, Request};
+            match crate::radiod::ask_within(&Request::WifiRestart, Duration::from_secs(8)) {
+                Ok(Message::Reply(reply)) if reply.ok => return Ok(()),
+                Ok(Message::Reply(reply)) => {
+                    return Err(reply.reason.unwrap_or_else(|| "refused".into()))
+                }
+                Ok(Message::State(_)) | Err(_) => {}
+            }
+        }
+        // Without the radio daemon: a block undone before the driver took wlan0 away is no restart.
+        self.radio(false, false)?;
+        let gone = Instant::now() + Duration::from_secs(3);
+        while real && Path::new("/sys/class/net/wlan0").exists() && Instant::now() < gone {
+            thread::sleep(Duration::from_millis(100));
+        }
+        self.radio(true, false)
+    }
 }
 impl Control {
     fn open() -> Result<Self, String> {
@@ -358,6 +379,16 @@ fn add_network(c: &Control, ssid: &str, password: &str, hidden: bool) -> Result<
 /// known after one 4-way handshake (≈10 s on the Y2, owner's player 8.27).
 const JOIN_SECONDS: u64 = 30;
 
+/// How long a join waits for the supplicant to come back after its Wi-Fi restart.
+const RESTART_SECONDS: u64 = 20;
+
+/// What the same join needs once more after a Wi-Fi restart.
+struct Retry {
+    password: Option<String>,
+    saved: bool,
+    hidden: bool,
+}
+
 /// One join being checked: the supplicant's events say whether it connected,
 /// the password was wrong or the network is not in range.
 struct PendingJoin {
@@ -376,6 +407,12 @@ struct PendingJoin {
     /// The last disconnect was ours (a sleep's radio off, another join), not
     /// the access point's or a timeout.
     interrupted: bool,
+    /// Set until the one Wi-Fi restart of this join was tried.
+    retry: Option<Retry>,
+    /// Waiting (until then) for the supplicant after that restart.
+    restarting: Option<Instant>,
+    /// The block was cleaned up before the restart: nothing left to remove.
+    cleaned: bool,
 }
 
 /// `id=7` in a supplicant event (`[id=7 id_str=]`, `id=7 ssid=…`).
@@ -437,11 +474,63 @@ impl PendingJoin {
             status_at: now,
             timed_out: false,
             interrupted: false,
+            retry: Some(Retry {
+                password: password.map(str::to_owned),
+                saved: saved.is_some(),
+                hidden,
+            }),
+            restarting: None,
+            cleaned: false,
         })
     }
 
-    /// The outcome once there is one.
+    /// The outcome once there is one. A join that finds nothing restarts Wi-Fi once and is tried
+    /// again (Y2Linux #83: after Wi-Fi came on, its scans missed the network for 34 s; the
+    /// owner's off and on found it in 3 s).
     fn step(&mut self, paths: &Paths, now: Instant) -> Option<JoinOutcome> {
+        if let Some(until) = self.restarting {
+            return self.rejoin(paths, now, until);
+        }
+        let outcome = self.listen(paths, now)?;
+        if outcome != JoinOutcome::NotFound || self.retry.is_none() {
+            return Some(outcome);
+        }
+        let cleaned = self.finish(paths, outcome);
+        self.cleaned = cleaned.is_ok();
+        if cleaned.and_then(|()| paths.restart()).is_err() {
+            return Some(outcome);
+        }
+        self.restarting = Some(Instant::now() + Duration::from_secs(RESTART_SECONDS));
+        None
+    }
+
+    /// After the restart: the same join once the supplicant answers again, else not found.
+    fn rejoin(&mut self, paths: &Paths, now: Instant, until: Instant) -> Option<JoinOutcome> {
+        if now >= until {
+            return Some(JoinOutcome::NotFound);
+        }
+        let retry = self.retry.as_ref()?;
+        let saved = match retry.saved {
+            true => Some(saved_network(&Control::at(paths).ok()?, &self.ssid)?),
+            false => None,
+        };
+        let password = retry.password.as_deref();
+        let next = Self::start(
+            paths,
+            self.attempt,
+            &self.ssid,
+            password,
+            saved,
+            retry.hidden,
+        );
+        let mut next = next.ok()?;
+        next.retry = None;
+        *self = next;
+        None
+    }
+
+    /// The supplicant's own verdict on this join, once there is one.
+    fn listen(&mut self, paths: &Paths, now: Instant) -> Option<JoinOutcome> {
         for _ in 0..32 {
             let mut bytes = [0; 4096];
             let n = match self.monitor.socket.recv(&mut bytes) {
@@ -515,6 +604,9 @@ impl PendingJoin {
     /// remove one that did not. Every other saved network is enabled again
     /// (SELECT_NETWORK disabled them, and the old flow saved them disabled).
     fn finish(&self, paths: &Paths, outcome: JoinOutcome) -> Result<(), String> {
+        if self.cleaned {
+            return Ok(());
+        }
         let c = Control::at(paths)?;
         if outcome == JoinOutcome::Joined {
             if self.added {
@@ -543,6 +635,19 @@ impl PendingJoin {
         }
         Ok(())
     }
+}
+/// The saved network of this name (its number may change when the supplicant starts again).
+fn saved_network(c: &Control, ssid: &str) -> Option<u32> {
+    let name = hex_ssid(ssid);
+    c.request("LIST_NETWORKS")
+        .ok()?
+        .lines()
+        .skip(1)
+        .filter_map(|l| l.split('\t').next()?.parse::<u32>().ok())
+        .find(|id| {
+            c.request(&format!("GET_NETWORK {id} ssid"))
+                .is_ok_and(|v| ssid_hex(&v) == name)
+        })
 }
 fn networks(text: &str) -> Result<Vec<Network>, String> {
     if !text.starts_with("bssid / frequency / signal level / flags / ssid") {
@@ -1417,7 +1522,11 @@ mod tests {
                                 "OK\n"
                             }
                             "DETACH" => {
-                                *m.lock().unwrap() = None;
+                                // Per client, as the supplicant does.
+                                let mut attached = m.lock().unwrap();
+                                if attached.as_deref() == Some(from) {
+                                    *attached = None;
+                                }
                                 "OK\n"
                             }
                             "SCAN" => {
@@ -1570,13 +1679,6 @@ mod tests {
             .any(|r| r == "REMOVE_NETWORK 1" || r == "REMOVE_NETWORK 3"));
         let at = |c: &str| done.iter().position(|r| r == c).unwrap();
         assert!(at("ENABLE_NETWORK all") < at("SAVE_CONFIG"));
-        // Out of range: three "not found" in a row.
-        let mut join =
-            PendingJoin::start(&fake.paths, 3, "Home", Some("rightpassword"), None, false).unwrap();
-        for _ in 0..3 {
-            fake.event("<3>CTRL-EVENT-NETWORK-NOT-FOUND");
-        }
-        assert_eq!(outcome(&mut join, &fake.paths), JoinOutcome::NotFound);
         // F52: a handshake cut short on this side (a sleep's radio off, another
         // join) is not a password verdict; the supplicant's timeout is.
         let mut join =
@@ -1615,6 +1717,60 @@ mod tests {
             Some(17)
         );
         assert_eq!(ssid_hex("\"Ab\""), "4162");
+    }
+    #[test]
+    fn a_join_that_finds_nothing_restarts_wifi_once_and_tries_again() {
+        // Y2Linux #83: after Wi-Fi came on, its scans missed the network for 34 s; the owner's
+        // off and on found it in 3 s.
+        let fake = Supplicant::new(HEADER.into());
+        fake.paths.radio(true, false).unwrap();
+        *fake.saved.lock().unwrap() = "0\tCafe\tany\t\n1\tHome\tany\t\n".into();
+        let sent = |fake: &Supplicant| fake.requests.lock().unwrap().clone();
+        let not_found = |join: &mut PendingJoin| {
+            for _ in 0..3 {
+                fake.event("<3>CTRL-EVENT-NETWORK-NOT-FOUND");
+            }
+            outcome(join, &fake.paths)
+        };
+        // A typed password: the block goes before the restart and is added again after it.
+        let mut join =
+            PendingJoin::start(&fake.paths, 3, "Home", Some("rightpassword"), None, false).unwrap();
+        fake.requests.lock().unwrap().clear();
+        let until = Instant::now() + Duration::from_secs(5);
+        while join.retry.is_some() {
+            fake.event("<3>CTRL-EVENT-NETWORK-NOT-FOUND");
+            assert_eq!(join.step(&fake.paths, Instant::now()), None);
+            assert!(Instant::now() < until, "no restart");
+            thread::sleep(Duration::from_millis(10));
+        }
+        let order = sent(&fake);
+        let at = |c: &str| order.iter().position(|r| r.starts_with(c)).unwrap();
+        assert!(
+            at("REMOVE_NETWORK 3") < at("ADD_NETWORK") && at("ADD_NETWORK") < at("SELECT_NETWORK")
+        );
+        assert!(
+            fake.paths.power().unwrap(),
+            "Wi-Fi is on again after the restart"
+        );
+        // The second "not found" is the answer; its block is removed once.
+        assert_eq!(not_found(&mut join), JoinOutcome::NotFound);
+        fake.requests.lock().unwrap().clear();
+        join.finish(&fake.paths, JoinOutcome::NotFound).unwrap();
+        assert_eq!(sent(&fake), ["REMOVE_NETWORK 3", "ENABLE_NETWORK all"]);
+        // A saved network is found again by its name and selected, never removed.
+        let mut join = PendingJoin::start(&fake.paths, 4, "Home", None, Some(1), false).unwrap();
+        fake.requests.lock().unwrap().clear();
+        while join.retry.is_some() {
+            fake.event("<3>CTRL-EVENT-NETWORK-NOT-FOUND");
+            assert_eq!(join.step(&fake.paths, Instant::now()), None);
+            thread::sleep(Duration::from_millis(10));
+        }
+        assert!(sent(&fake).contains(&"SELECT_NETWORK 1".to_owned()));
+        assert!(!sent(&fake).iter().any(|r| r.starts_with("REMOVE_NETWORK")));
+        fake.event(
+            "<3>CTRL-EVENT-CONNECTED - Connection to aa:bb:cc:dd:ee:ff completed [id=1 id_str=]",
+        );
+        assert_eq!(outcome(&mut join, &fake.paths), JoinOutcome::Joined);
     }
     #[test]
     fn a_failed_network_that_is_no_longer_saved_is_not_a_problem() {
