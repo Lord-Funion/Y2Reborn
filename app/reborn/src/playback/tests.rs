@@ -1851,3 +1851,60 @@ fn inserted_stretch(with: &[i32], plain: &[i32]) -> usize {
     assert!(clicks > 0 && clicks <= 2 * 176, "{clicks}");
     inserted
 }
+
+/// Y2Linux #96: a Bluetooth sink is kept fed with silence while no music arrives, up to 40 ms of
+/// its ring and no further; a sink that cannot tell its ring gets none.
+#[test]
+fn a_bluetooth_sink_is_topped_up_with_silence_not_left_to_run_dry() {
+    struct Ring {
+        queued: Option<u64>,
+        written: Vec<u8>,
+    }
+    impl AudioSink for Ring {
+        fn parameters(&self) -> Parameters {
+            Parameters::default()
+        }
+        fn write(&mut self, pcm: &[u8]) -> Result<usize, String> {
+            self.written.extend_from_slice(pcm);
+            let frames = pcm.len() / 4;
+            self.queued = self.queued.map(|q| q + frames as u64);
+            Ok(frames)
+        }
+        fn discard(&mut self) -> Result<(), String> {
+            Ok(())
+        }
+        fn delay(&self) -> u64 {
+            // A codec's delay: large while the ring itself is empty.
+            9_000
+        }
+        fn queued(&self) -> Option<u64> {
+            self.queued
+        }
+    }
+    let mut empty = Ring {
+        queued: Some(0),
+        written: Vec::new(),
+    };
+    let frames = super::output::top_up_silence(&mut empty, PcmFormat::S16LE, 48_000);
+    assert!(
+        (1920..1920 + 256).contains(&frames),
+        "40 ms at 48 kHz: {frames}"
+    );
+    assert!(empty.written.iter().all(|b| *b == 0), "silence only");
+    let mut full = Ring {
+        queued: Some(4000),
+        written: Vec::new(),
+    };
+    assert_eq!(
+        super::output::top_up_silence(&mut full, PcmFormat::S16LE, 48_000),
+        0
+    );
+    let mut unknown = Ring {
+        queued: None,
+        written: Vec::new(),
+    };
+    assert_eq!(
+        super::output::top_up_silence(&mut unknown, PcmFormat::S16LE, 48_000),
+        0
+    );
+}

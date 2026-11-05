@@ -70,6 +70,7 @@ impl SinkWorker {
         self.hold(st)?;
         self.receive(st)?;
         self.write(st);
+        self.bridge(st);
         self.drain(st);
         self.gauges(st);
         ControlFlow::Continue(())
@@ -312,6 +313,8 @@ impl SinkWorker {
             st.drain_start = Instant::now();
         }
         if st.held {
+            // Held before a track change: a Bluetooth stream stays fed (no device pause there).
+            self.bridge(st);
             self.click_while_held(st);
             let pace = if st.clicking.is_some() { 10 } else { 20 };
             thread::sleep(Duration::from_millis(pace));
@@ -506,6 +509,24 @@ impl SinkWorker {
         }
     }
 
+    /// A Bluetooth stream never runs dry while music is on its way (a song's start after a skip,
+    /// a decoder catching up): an underrun stops it inside BlueALSA (xrun recovery is Drop and
+    /// Start), a gap after which AirPods stay silent until a new stream starts (Y2Linux #96:
+    /// every skip went silent where the next song took 60–280 ms, longer than the 85 ms ring).
+    /// Silence keeps it fed instead, as a phone does; never at the end of the queue (it drains).
+    fn bridge(&mut self, st: &mut Playing) {
+        let bluetooth = (st.open_spec.as_ref()).is_some_and(|(spec, _)| keeps_queued_audio(spec));
+        // While held, nothing of the pending music is written either.
+        if (st.pending.is_some() && !st.held) || st.eof || !bluetooth {
+            return;
+        }
+        let Some(s) = st.sink.as_mut() else { return };
+        let written = top_up_silence(s.as_mut(), st.sink_format, st.rate);
+        if written > 0 {
+            self.al.add("bluetooth_bridge_frames", written as f64);
+        }
+    }
+
     /// Whether a wheel click is due: asked for, and the open sink `wired` (#67).
     fn take_click(&self, wired: bool) -> bool {
         self.sink_click.swap(false, Ordering::AcqRel) && wired
@@ -680,6 +701,28 @@ impl SinkWorker {
         self.al
             .gauge("audio_buffer_ms", n as f64 * 1000. / f64::from(st.rate));
     }
+}
+
+/// How much a Bluetooth sink keeps queued while no music arrives (`bridge`): 40 ms of its ring.
+const BRIDGE_MS: u64 = 40;
+
+/// Silence written until `sink` holds `BRIDGE_MS` of audio in its ring; the frames written.
+pub(super) fn top_up_silence(sink: &mut dyn AudioSink, format: PcmFormat, rate: u32) -> u64 {
+    const CHUNK: usize = 256;
+    let low = u64::from(rate) * BRIDGE_MS / 1000;
+    let silence = vec![0; CHUNK * format.bytes_per_frame()];
+    let mut written = 0;
+    // Bounded: a sink that misreports its ring never keeps the thread here.
+    for _ in 0..=low as usize / CHUNK {
+        if !sink.queued().is_some_and(|queued| queued < low) {
+            break;
+        }
+        match sink.write(&silence) {
+            Ok(n) if n > 0 => written += n as u64,
+            _ => break,
+        }
+    }
+    written
 }
 
 /// Silence with the click in it, enough that a paused stream that clicked keeps playing: about

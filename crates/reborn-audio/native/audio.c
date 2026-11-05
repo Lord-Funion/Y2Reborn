@@ -581,6 +581,12 @@ int rb_sink_pause(RbSink *s, int on, int device_pause) {
     return snd_pcm_prepare(s->pcm);
   return 0;
 }
+/* Frames the ring has room for (snd_pcm_delay of a BlueALSA PCM also counts its codec and
+ * transport delay, which hides an empty ring). */
+int rb_sink_avail(RbSink *s) {
+  snd_pcm_sframes_t n = snd_pcm_avail_update(s->pcm);
+  return (int)n;
+}
 int rb_sink_delay(RbSink *s) {
   snd_pcm_sframes_t n = 0;
   int r = snd_pcm_delay(s->pcm, &n);

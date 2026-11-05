@@ -149,6 +149,11 @@ pub trait AudioSink {
     fn write(&mut self, pcm: &[u8]) -> Result<usize, String>;
     fn discard(&mut self) -> Result<(), String>;
     fn delay(&self) -> u64;
+    /// Frames waiting in the sink's own ring, without what lies beyond it (a Bluetooth codec's
+    /// delay is in `delay`); None where the sink cannot tell.
+    fn queued(&self) -> Option<u64> {
+        None
+    }
     /// Pause in place and resume; the stream stays open. A sink without a
     /// pause of its own simply stops being written to.
     fn pause(&mut self, on: bool) -> Result<(), String> {
