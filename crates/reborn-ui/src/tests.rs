@@ -6660,11 +6660,15 @@ fn fast_scrolling_steps_by_letter_and_lingers() {
     // Letter mode: one letter per detent, slow or fast.
     ui.model_action(&mut m, Action::WheelClockwise(1));
     assert_eq!(m.navigation.focus, 10, "B");
+    // Reborn #91: a letter's first row is at the top, forwards as backwards.
+    assert_eq!(m.navigation.scroll, 10, "B at the top");
     ui.model_action(&mut m, Action::WheelClockwise(4));
     assert_eq!(m.navigation.focus, 20, "C");
+    assert_eq!(m.navigation.scroll, 20, "C at the top");
     // Turning back stays by letter: the letter before.
     ui.model_action(&mut m, Action::WheelCounterClockwise(1));
     assert_eq!(m.navigation.focus, 10, "back to B");
+    assert_eq!(m.navigation.scroll, 10, "B at the top");
     // From inside a letter, back goes to its first row, then the one before.
     m.navigation.focus = 15;
     ui.model_action(&mut m, Action::WheelCounterClockwise(1));

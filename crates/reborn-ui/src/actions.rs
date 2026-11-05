@@ -279,11 +279,14 @@ impl Ui {
         {
             self.fast_scroll_until = Some(now + FAST_SCROLL_LINGER);
             // At an end one row at a time: a rested wheel wraps as always.
-            let delta = match target as i32 - m.navigation.focus as i32 {
-                0 => direction,
-                jump => jump,
-            };
-            self.move_focus(m, tracks, delta);
+            let jump = target as i32 - m.navigation.focus as i32;
+            self.move_focus(m, tracks, if jump == 0 { direction } else { jump });
+            if jump != 0 {
+                // Reborn #91: the letter's first row at the top, whichever way the wheel turned.
+                let rows = self.row_count(m, tracks);
+                let last_top = rows.saturating_sub(self.visible_count(m, tracks));
+                m.navigation.scroll = m.navigation.focus.min(last_top);
+            }
             return Effect::None;
         }
         if accelerate && suggested.abs() >= LETTER_SCROLL_STEPS {
