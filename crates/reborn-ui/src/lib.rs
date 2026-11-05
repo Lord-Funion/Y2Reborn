@@ -189,8 +189,7 @@ pub struct NetworkView {
     pub ssid: String,
     /// 0–3 signal bars.
     pub bars: u8,
-    /// `None`: security this player cannot join.
-    pub secured: Option<bool>,
+    pub security: reborn_core::platform::NetworkSecurity,
     pub saved_id: Option<u32>,
     pub visible: bool,
 }

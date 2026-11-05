@@ -102,14 +102,14 @@ fn radio_wifi() -> WifiView {
             NetworkView {
                 ssid: "Home".into(),
                 bars: 3,
-                secured: Some(true),
+                security: reborn_core::platform::NetworkSecurity::Password,
                 saved_id: Some(7),
                 visible: true,
             },
             NetworkView {
                 ssid: "Café".into(),
                 bars: 2,
-                secured: Some(true),
+                security: reborn_core::platform::NetworkSecurity::Password,
                 saved_id: None,
                 visible: true,
             },
@@ -1921,6 +1921,37 @@ fn screen_off_ignores_navigation_but_keeps_transport_and_volume() {
         ui.model_action(&mut m, Action::VolumeUp),
         Effect::AdjustVolume(2)
     );
+}
+
+#[test]
+fn a_network_the_player_cannot_join_says_why() {
+    // Y2Linux #91: a gym's WPA3 network only said "Unsupported security".
+    use reborn_core::platform::UnsupportedSecurity as Why;
+    let mut ui = radios();
+    let network = |ssid: &str, why| NetworkView {
+        ssid: ssid.into(),
+        bars: 2,
+        security: reborn_core::platform::NetworkSecurity::Unsupported(why),
+        saved_id: None,
+        visible: true,
+    };
+    ui.wifi.networks = vec![
+        network("Gym Guest", Why::Wpa3),
+        network("Office", Why::Login),
+        network("Old Router", Why::Wep),
+        network("Odd", Why::Other),
+    ];
+    let m = app(Screen::Wifi);
+    let page = pages::page(&ui, &m, &m.library.tracks);
+    let detail = |ssid: &str| {
+        let row = page.rows.iter().find(|r| r.label == ssid).unwrap();
+        assert!(!row.enabled, "{ssid} cannot be chosen");
+        row.secondary.clone()
+    };
+    assert_eq!(detail("Gym Guest"), "WPA3 only · Not supported");
+    assert_eq!(detail("Office"), "Needs a login · Not supported");
+    assert_eq!(detail("Old Router"), "WEP · Not supported");
+    assert_eq!(detail("Odd"), "Unsupported security");
 }
 
 #[test]

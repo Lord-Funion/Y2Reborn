@@ -483,7 +483,7 @@ fn radio(
         if kind == Radio::Wifi {
             if let Some(n) = ui.wifi.networks.iter().find(|n| n.ssid == row.label) {
                 signal_bars(c, WIDTH - 24., y + 26., n.bars.min(4));
-                if n.secured == Some(true) {
+                if n.security.password() {
                     c.icon(Icon::Lock, WIDTH - 56., y + 26., 14., color::MUTED);
                 }
             }

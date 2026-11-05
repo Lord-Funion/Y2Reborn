@@ -401,7 +401,7 @@ impl Ui {
                     .networks
                     .iter()
                     .find(|n| n.saved_id.map(|v| v.to_string()).as_deref() == Some(id))
-                    .is_some_and(|n| n.secured == Some(true));
+                    .is_some_and(|n| n.security.password());
                 let mut items = vec![if joined {
                     Item::new("Disconnect", "wifi_disconnect")
                 } else {

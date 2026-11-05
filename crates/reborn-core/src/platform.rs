@@ -487,6 +487,38 @@ pub enum WifiProblem {
     Other,
 }
 
+/// Why the player cannot join a network (Y2Linux #91: its row only said "Unsupported security").
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UnsupportedSecurity {
+    /// WPA3 only (SAE) or Enhanced Open (OWE): the Wi-Fi chip's firmware connects with open,
+    /// WEP, WPA and WPA2 keys only, so the player cannot ever join these.
+    Wpa3,
+    /// A login per person (WPA2/WPA3-Enterprise, 802.1X), as at work or school.
+    Login,
+    /// WEP, broken for twenty years: left out on purpose.
+    Wep,
+    Other,
+}
+
+/// How a network is joined; one the player cannot join says why.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum NetworkSecurity {
+    #[default]
+    Password,
+    Open,
+    Unsupported(UnsupportedSecurity),
+}
+
+impl NetworkSecurity {
+    /// Joined with a password (a lock beside it, Change Password on a saved one).
+    pub fn password(self) -> bool {
+        self == Self::Password
+    }
+    pub fn joinable(self) -> bool {
+        !matches!(self, Self::Unsupported(_))
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct PlatformInfo {
     pub release_version: Option<String>,

@@ -826,7 +826,7 @@ fn wifi(ui: &Ui) -> Page {
     for n in &w.networks {
         let state = if checking == Some(n.ssid.as_str()) {
             // Tried before it is saved (Y2Reborn #20).
-            if n.saved_id.is_some() || n.secured != Some(true) {
+            if n.saved_id.is_some() || !n.security.password() {
                 "Connecting…".into()
             } else {
                 "Checking password…".into()
@@ -851,7 +851,7 @@ fn wifi(ui: &Ui) -> Page {
             Some(id) => format!("saved:{id}"),
             None => format!("ssid:{}", n.ssid),
         };
-        rows.push(disabled(row(&n.ssid, &key, state), n.secured.is_some()));
+        rows.push(disabled(row(&n.ssid, &key, state), n.security.joinable()));
     }
     // A network that is not broadcast never shows above (Y2Reborn #61).
     rows.push(row("Other Network…", "wifi_other", ""));
@@ -873,14 +873,18 @@ fn wifi(ui: &Ui) -> Page {
     page
 }
 
-/// Saved, Secured or Open; the bars beside it show the signal (UI v4).
+/// Saved, Secured, Open or why it can't be joined (Y2Linux #91); bars show the signal (UI v4).
 fn network_detail(n: &NetworkView) -> String {
-    match (n.saved_id.is_some(), n.secured) {
-        (_, None) => "Unsupported security".into(),
+    use reborn_core::platform::{NetworkSecurity as Security, UnsupportedSecurity as Why};
+    match (n.saved_id.is_some(), n.security) {
+        (_, Security::Unsupported(Why::Wpa3)) => "WPA3 only · Not supported".into(),
+        (_, Security::Unsupported(Why::Login)) => "Needs a login · Not supported".into(),
+        (_, Security::Unsupported(Why::Wep)) => "WEP · Not supported".into(),
+        (_, Security::Unsupported(Why::Other)) => "Unsupported security".into(),
         (true, _) if !n.visible => "Saved · Not in range".into(),
         (true, _) => "Saved".into(),
-        (false, Some(true)) => "Secured".into(),
-        (false, Some(false)) => "Open".into(),
+        (false, Security::Password) => "Secured".into(),
+        (false, Security::Open) => "Open".into(),
     }
 }
 

@@ -1,5 +1,6 @@
 //! Selecting on the radio, settings, Bluetooth and Wi-Fi screens, and playing what is chosen.
 use crate::*;
+use reborn_core::platform::NetworkSecurity;
 
 /// A network the user typed a password for: its keyboard reopens with it after a wrong password.
 pub(crate) struct TypedJoin {
@@ -422,18 +423,18 @@ impl Ui {
             .networks
             .iter()
             .find(|n| n.ssid == ssid)
-            .and_then(|n| n.secured)
+            .map(|n| n.security)
         {
-            Some(false) => Effect::WifiConnect {
+            Some(NetworkSecurity::Open) => Effect::WifiConnect {
                 ssid: ssid.into(),
                 password: String::new(),
                 hidden: false,
             },
-            Some(true) => {
+            Some(NetworkSecurity::Password) => {
                 self.open_wifi_keyboard(ssid.to_owned(), "", false);
                 Effect::None
             }
-            None => Effect::None,
+            Some(NetworkSecurity::Unsupported(_)) | None => Effect::None,
         }
     }
 

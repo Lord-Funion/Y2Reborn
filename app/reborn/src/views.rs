@@ -1,5 +1,6 @@
 //! What the Wi-Fi, Bluetooth and audio pages show of the platform's state.
 use crate::*;
+use reborn_core::platform::NetworkSecurity;
 
 /// Present one Wi-Fi observation in product terms.
 pub(crate) fn wifi_view(s: &wifi::Status) -> WifiView {
@@ -44,7 +45,11 @@ pub(crate) fn wifi_view(s: &wifi::Status) -> WifiView {
             Some(NetworkView {
                 ssid: n.ssid.clone(),
                 bars: visible.map(|v| bars(v.signal)).unwrap_or(0),
-                secured: visible.and_then(|v| v.password_required()).or(Some(true)),
+                // A saved network is joined as it was saved.
+                security: match visible.map(wifi::Network::security) {
+                    Some(NetworkSecurity::Open) => NetworkSecurity::Open,
+                    _ => NetworkSecurity::Password,
+                },
                 saved_id: Some(n.saved_id?),
                 visible: visible.is_some(),
             })
@@ -57,7 +62,7 @@ pub(crate) fn wifi_view(s: &wifi::Status) -> WifiView {
             .map(|n| NetworkView {
                 ssid: n.ssid.clone(),
                 bars: bars(n.signal),
-                secured: n.password_required(),
+                security: n.security(),
                 saved_id: None,
                 visible: true,
             }),

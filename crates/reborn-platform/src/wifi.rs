@@ -1,5 +1,9 @@
 #![forbid(unsafe_code)]
-use reborn_core::{atomic_write, RadioScan};
+use reborn_core::{
+    atomic_write,
+    platform::{NetworkSecurity, UnsupportedSecurity},
+    RadioScan,
+};
 use reborn_observability::{HealthState, Level, Observer};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -36,6 +40,34 @@ impl Network {
         } else {
             None
         }
+    }
+    /// Why the player cannot join this network, when it cannot (`password_required` is None).
+    /// The supplicant is built without WPA3, so a WPA3-only network's key type is empty
+    /// (`[WPA2--CCMP]`), often with the router's `[SAE-H2E]`; Enhanced Open looks the same.
+    pub fn security(&self) -> NetworkSecurity {
+        match (self.password_required(), self.unsupported()) {
+            (Some(false), _) => NetworkSecurity::Open,
+            (_, Some(why)) => NetworkSecurity::Unsupported(why),
+            _ => NetworkSecurity::Password,
+        }
+    }
+    pub fn unsupported(&self) -> Option<UnsupportedSecurity> {
+        if self.password_required().is_some() {
+            return None;
+        }
+        let s = self.security.as_str();
+        Some(if s.contains("EAP") {
+            UnsupportedSecurity::Login
+        } else if s.contains("WEP") {
+            UnsupportedSecurity::Wep
+        } else if ["SAE", "OWE", "[WPA2--", "[RSN--"]
+            .iter()
+            .any(|k| s.contains(k))
+        {
+            UnsupportedSecurity::Wpa3
+        } else {
+            UnsupportedSecurity::Other
+        })
     }
 }
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -1993,18 +2025,26 @@ mod ui_security_tests {
     use super::Network;
     #[test]
     fn only_supported_security_can_be_connected_from_the_wheel_ui() {
-        for (security, expected) in [
-            ("[ESS]", Some(false)),
-            ("[WPA2-PSK-CCMP][ESS]", Some(true)),
-            ("[WPA2-EAP-CCMP][ESS]", None),
-            ("[WEP][ESS]", None),
-            ("[WPA3-SAE-CCMP][ESS]", None),
+        use super::UnsupportedSecurity::{Login, Other, Wep, Wpa3};
+        for (security, expected, why) in [
+            ("[ESS]", Some(false), None),
+            ("[WPA2-PSK-CCMP][ESS]", Some(true), None),
+            // WPA2/WPA3 mixed: joined with its WPA2 password.
+            ("[WPA2-PSK-CCMP][SAE-H2E][ESS][UTF-8]", Some(true), None),
+            ("[WPA2-EAP-CCMP][ESS]", None, Some(Login)),
+            ("[WEP][ESS]", None, Some(Wep)),
+            ("[WPA3-SAE-CCMP][ESS]", None, Some(Wpa3)),
+            // Y2Linux #91: WPA3 only as this supplicant (built without WPA3) prints it.
+            ("[WPA2--CCMP][SAE-H2E][ESS]", None, Some(Wpa3)),
+            ("[WPA2--CCMP][ESS]", None, Some(Wpa3)),
+            ("[WPA2-?][ESS]", None, Some(Other)),
         ] {
             let network = Network {
                 security: security.into(),
                 ..Default::default()
             };
             assert_eq!(network.password_required(), expected, "{security}");
+            assert_eq!(network.unsupported(), why, "{security}");
         }
     }
 }
