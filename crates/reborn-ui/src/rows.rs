@@ -437,6 +437,7 @@ impl Ui {
         match m.navigation.modal {
             Some(Modal::ContextMenu) => self.context_rows(m, tracks),
             Some(Modal::PlaylistPicker) => self.picker_rows(m),
+            Some(Modal::QuickMenu) => self.quick_menu_rows(m),
             Some(Modal::OutputPicker) => {
                 let mut rows = vec![Item::new("Headphone Jack", "output:wired").with_secondary(
                     if m.output == AudioOutput::Wired {
@@ -574,6 +575,7 @@ impl Ui {
                 );
             }
             Some(Modal::DateField(field)) => return date_time::picker_copy(field),
+            Some(Modal::QuickMenu) => return self.quick_menu_copy(m),
             Some(Modal::SleepTimer) => (
                 "Sleep Timer",
                 "Turn the wheel to choose. Select starts it; Back cancels.",

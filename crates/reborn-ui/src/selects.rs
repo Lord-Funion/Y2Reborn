@@ -16,7 +16,8 @@ impl Ui {
         if !self.adjusting_brightness {
             return None;
         }
-        if m.screen != Screen::SettingsDisplay || m.navigation.modal.is_some() {
+        let quick = m.navigation.modal == Some(Modal::QuickMenu);
+        if !quick && (m.screen != Screen::SettingsDisplay || m.navigation.modal.is_some()) {
             self.adjusting_brightness = false;
             return None;
         }

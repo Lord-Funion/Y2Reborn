@@ -526,16 +526,25 @@ pub struct SheetRow<'a> {
 
 /// A bottom sheet of actions, as used for song options. Its focused row is
 /// the focus row of every list.
+/// An action sheet's row height.
+pub const SHEET_ROW: f32 = 31.;
+
+/// Where an action sheet of `rows` starts and how tall its head is.
+pub fn sheet_top(rows: usize, no_subtitle: bool) -> (f32, f32) {
+    let head = if no_subtitle { 40. } else { 52. };
+    let h = head + rows.min(6) as f32 * SHEET_ROW + 14.;
+    (HEIGHT - h - 8., head)
+}
+
 pub fn action_sheet(c: &mut Canvas, title: &str, subtitle: &str, rows: &[SheetRow], focus: usize) {
     let scrim_at = c.draw.len();
     scrim(c, false);
     let body = c.draw.len();
-    let row_h = 31.;
-    let head = if subtitle.is_empty() { 40. } else { 52. };
+    let row_h = SHEET_ROW;
+    let (y, head) = sheet_top(rows.len(), subtitle.is_empty());
     let visible = rows.len().min(6);
-    let h = head + visible as f32 * row_h + 14.;
+    let h = HEIGHT - 8. - y;
     let (x, w) = (8., WIDTH - 16.);
-    let y = HEIGHT - h - 8.;
     c.rrect(x, y, w, h, 18., color::SHEET);
     c.rrect_outline(x, y, w, h, 18., 1., color::GLASS);
     c.text_mid(x + 20., y + 22., w - 40., title, Face::S15, color::TEXT);

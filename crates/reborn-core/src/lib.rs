@@ -973,6 +973,8 @@ pub enum Modal {
     Confirm(ConfirmAction),
     /// "Add to Playlist": the playlists, the last used first, and New.
     PlaylistPicker,
+    /// Held Power: brightness, the radios, the sleep timer, Restart and Power Off (Y2Linux #85).
+    QuickMenu,
 }
 
 /// The fields of the date and time set by hand, in the order shown.

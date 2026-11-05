@@ -606,6 +606,24 @@ fn modal(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track]) {
             let title = song.unwrap_or(title);
             components::action_sheet(c, &title, &subtitle, &sheet, focus);
         }
+        Some(Modal::QuickMenu) if ui.adjusting_brightness => {
+            components::action_sheet(c, &title, &body, &sheet, focus);
+            // The level as a bar in the Brightness row, the first.
+            let (y, head) = components::sheet_top(sheet.len(), body.is_empty());
+            let (from, to) = (130., WIDTH - 80.);
+            let min = f32::from(reborn_core::BRIGHTNESS_MIN);
+            let level = (f32::from(m.settings.brightness) - min) / (100. - min);
+            let bar_y = y + head + (components::SHEET_ROW - 3.) / 2. - 2.;
+            c.rrect(from, bar_y, to - from, 4., 2., color::GLASS);
+            c.rrect(
+                from,
+                bar_y,
+                (to - from) * level.clamp(0., 1.),
+                4.,
+                2.,
+                ui.accent(),
+            );
+        }
         _ => components::action_sheet(c, &title, &body, &sheet, focus),
     }
 }

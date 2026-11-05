@@ -67,6 +67,7 @@ impl Ui {
         match action {
             Action::ScreenSleep => return Effect::ScreenSleep,
             Action::ScreenWake => return Effect::ScreenWake,
+            Action::PowerShort if self.close_quick_menu(m) => return Effect::None,
             Action::PowerShort => {
                 if matches!(
                     m.playback,
@@ -80,7 +81,7 @@ impl Ui {
                 return Effect::Platform(reborn_core::PlatformTask::SleepRequest);
             }
             Action::PowerHold => {
-                self.power_hold = Some(Instant::now());
+                self.power_held(m);
                 return Effect::None;
             }
             Action::PowerHoldCancel => {

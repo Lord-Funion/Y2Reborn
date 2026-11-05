@@ -1107,28 +1107,110 @@ fn modals_trap_focus_and_show_one_focus_over_the_screen() {
 }
 
 #[test]
-fn power_hold_fills_a_ring_and_release_cancels_it_without_any_menu() {
+fn power_hold_opens_the_quick_menu_and_holding_on_still_turns_off() {
+    // Y2Linux #85: holding Power opens the Quick Menu; release keeps it open.
     let mut ui = radios();
     let mut m = app(Screen::NowPlaying);
     assert_eq!(ui.model_action(&mut m, Action::PowerHold), Effect::None);
-    assert_eq!(m.navigation.modal, None, "no Power menu, no Quick Settings");
-    assert!(ui.power_hold_progress().is_some_and(|p| p < 0.5));
+    assert_eq!(m.navigation.modal, Some(Modal::QuickMenu));
+    assert_eq!(
+        ui.power_hold_progress(),
+        None,
+        "no ring while the menu is new"
+    );
+    assert!(drawn_text(&ui.draw(&m, &m.library.tracks, false)).contains("Quick Menu"));
+    // Held on past QUICK_MENU_HOLD: the ring over the menu, then off, once.
+    ui.power_hold = Some(Instant::now() - POWER_HOLD / 3);
+    let quads = ui.draw(&m, &m.library.tracks, false);
+    assert!(drawn_text(&quads).contains("Hold to Turn Off"));
     assert_eq!(
         ui.power_hold_complete(),
         None,
         "not before the ring is full"
     );
-    ui.power_hold = Some(Instant::now() - POWER_HOLD / 3);
-    let quads = ui.draw(&m, &m.library.tracks, false);
-    assert!(drawn_text(&quads).contains("Hold to Turn Off"));
-    ui.model_action(&mut m, Action::PowerHoldCancel);
-    assert_eq!(ui.power_hold_progress(), None);
-    assert!(!drawn_text(&ui.draw(&m, &m.library.tracks, false)).contains("Hold to Turn Off"));
-    // Held to the end it turns the player off, once.
-    ui.model_action(&mut m, Action::PowerHold);
     ui.power_hold = Some(Instant::now() - POWER_HOLD);
     assert_eq!(ui.power_hold_complete(), Some(Effect::PowerOff));
     assert_eq!(ui.power_hold_complete(), None);
+    // Released early: the clock stops, the menu stays.
+    ui.model_action(&mut m, Action::PowerHold);
+    ui.model_action(&mut m, Action::PowerHoldCancel);
+    assert_eq!(ui.power_hold_progress(), None);
+    assert_eq!(m.navigation.modal, Some(Modal::QuickMenu));
+    // A short press closes it instead of sleeping.
+    assert_eq!(ui.model_action(&mut m, Action::PowerShort), Effect::None);
+    assert_eq!(m.navigation.modal, None);
+    // Over the keyboard no menu: the ring starts at once, as before.
+    let mut m = app(Screen::Wifi);
+    ui.open_wifi_keyboard("Home".into(), "", false);
+    ui.model_action(&mut m, Action::PowerHold);
+    assert_eq!(m.navigation.modal, None);
+    ui.power_hold = ui.power_hold.map(|ring| ring - Duration::from_millis(10));
+    assert!(ui.power_hold_progress().is_some());
+}
+
+#[test]
+fn the_quick_menu_switches_radios_sets_brightness_and_turns_off() {
+    let mut ui = radios();
+    let mut m = app(Screen::Albums);
+    m.platform.brightness_available = true;
+    m.settings.brightness = 60;
+    ui.model_action(&mut m, Action::PowerHold);
+    let rows = ui.modal_rows(&m, &[]);
+    let row = |key: &str| rows.iter().find(|r| r.key == key).unwrap().clone();
+    let keys: Vec<_> = rows.iter().map(|r| r.key.as_str()).collect();
+    assert_eq!(
+        keys,
+        [
+            "quick:brightness",
+            "quick:wifi",
+            "quick:bluetooth",
+            "quick:sleep",
+            "quick:restart",
+            "quick:power_off"
+        ]
+    );
+    assert_eq!(row("quick:brightness").secondary, "60%");
+    assert_eq!(row("quick:wifi").secondary, "Home");
+    assert_eq!(row("quick:bluetooth").secondary, "AirPods Pro");
+    assert_eq!(row("quick:sleep").secondary, "Off");
+    // The switches keep the menu open.
+    let select = |ui: &mut Ui, m: &mut AppModel, index: usize| {
+        m.navigation.modal_focus = index;
+        ui.model_action(m, Action::Select)
+    };
+    assert_eq!(select(&mut ui, &mut m, 1), Effect::WifiPower);
+    assert_eq!(select(&mut ui, &mut m, 2), Effect::BluetoothPower);
+    assert_eq!(m.navigation.modal, Some(Modal::QuickMenu));
+    // Brightness: Select, turn the wheel, Select again; the menu stays.
+    assert_eq!(select(&mut ui, &mut m, 0), Effect::None);
+    assert!(ui.modal_copy(&m).1.contains("Turn the wheel"));
+    let step = reborn_core::BRIGHTNESS_STEP;
+    assert_eq!(
+        ui.model_action(&mut m, Action::WheelClockwise(1)),
+        Effect::SetBrightness(60 + step)
+    );
+    assert_eq!(
+        m.navigation.modal_focus, 0,
+        "the wheel set the level, not the focus"
+    );
+    assert_eq!(ui.model_action(&mut m, Action::Select), Effect::None);
+    assert_eq!(m.navigation.modal, Some(Modal::QuickMenu));
+    assert!(ui.modal_copy(&m).1.is_empty() || ui.modal_copy(&m).1.starts_with("Battery"));
+    // The sleep timer opens its picker.
+    assert_eq!(select(&mut ui, &mut m, 3), Effect::None);
+    assert_eq!(m.navigation.modal, Some(Modal::SleepTimer));
+    // While an update installs, Restart and Power Off wait.
+    ui.model_action(&mut m, Action::Back);
+    m.platform.busy = Some(PlatformTask::UpdateStage);
+    ui.model_action(&mut m, Action::PowerHold);
+    let rows = ui.modal_rows(&m, &[]);
+    assert!(rows
+        .iter()
+        .filter(|r| r.key.starts_with("quick:p") || r.key == "quick:restart")
+        .all(|r| !r.enabled));
+    m.platform.busy = None;
+    assert_eq!(select(&mut ui, &mut m, 5), Effect::PowerOff);
+    assert_eq!(m.navigation.modal, None);
 }
 
 #[test]
@@ -2726,8 +2808,9 @@ fn power_short_sleeps_when_paused_and_blanks_during_playback() {
     }
     ui.model_action(&mut m, Action::PowerHold);
     assert_eq!(
-        m.navigation.modal, None,
-        "a hold shows the ring, never a menu"
+        m.navigation.modal,
+        Some(Modal::QuickMenu),
+        "a hold opens the Quick Menu (Y2Linux #85)"
     );
     assert!(ui.power_hold.is_some());
 }

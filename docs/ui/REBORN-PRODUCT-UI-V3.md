@@ -50,7 +50,8 @@ runtime font loader. Details: `assets/fonts/README.md`.
   toasts. Rings sweep where no progress figure exists; no percentage is ever
   invented. Crossfade
   has its own option icon on Now Playing. The Power button: a short press turns the screen off or on; a
-  **hold** fills a ring ("Hold to turn off"), release cancels. There is no menu.
+  **hold** fills a ring ("Hold to turn off"), release cancels. There is no menu. (Since Beta 9.3.14 the hold
+  opens the Quick Menu first, see [the settings map](REBORN-SETTINGS-MAP.md#the-quick-menu-hold-power).)
 
 Removed from the normal UI: Diagnostics, maintenance/rebuild, codec and LDAC
 tuning, update internals, Quick Settings, the Power menu, song info and jump to

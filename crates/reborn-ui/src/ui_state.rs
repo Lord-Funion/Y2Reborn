@@ -579,10 +579,11 @@ impl Ui {
         }
     }
 
-    /// Progress (0..=1) of the Power hold toward turning the player off.
+    /// Progress (0..=1) of the Power hold toward turning the player off; none before the ring
+    /// starts (`power_hold`, which a Quick Menu puts `QUICK_MENU_HOLD` after the press).
     pub fn power_hold_progress(&self) -> Option<f32> {
-        self.power_hold
-            .map(|since| (since.elapsed().as_secs_f32() / POWER_HOLD.as_secs_f32()).min(1.))
+        let shown = self.power_hold?.elapsed();
+        (!shown.is_zero()).then(|| (shown.as_secs_f32() / POWER_HOLD.as_secs_f32()).min(1.))
     }
 
     /// Replace the set of thumbnails the renderer holds.

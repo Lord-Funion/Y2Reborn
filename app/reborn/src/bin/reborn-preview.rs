@@ -1308,10 +1308,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ui.model_action(m, Action::Select);
     });
     // System
-    case!("37-power-hold", at(Screen::NowPlaying, ""), move |ui, _| {
+    case!("37-power-hold", at(Screen::NowPlaying, ""), move |ui, m| {
         ui.accent = orange;
+        ui.model_action(m, Action::PowerHold);
         ui.power_hold = Some(std::time::Instant::now() - std::time::Duration::from_millis(750));
     });
+    case!(
+        "37b-quick-menu",
+        at(Screen::NowPlaying, ""),
+        move |ui, m| {
+            ui.accent = orange;
+            m.platform.battery.percent = Some(72);
+            ui.model_action(m, Action::PowerHold);
+            ui.model_action(m, Action::PowerHoldCancel);
+        }
+    );
+    case!(
+        "37c-quick-menu-brightness",
+        at(Screen::NowPlaying, ""),
+        move |ui, m| {
+            ui.accent = orange;
+            ui.model_action(m, Action::PowerHold);
+            ui.model_action(m, Action::PowerHoldCancel);
+            ui.model_action(m, Action::Select);
+        }
+    );
     case!("38-battery-low", at(Screen::Home, ""), move |ui, m| {
         ui.accent = orange;
         m.platform.battery = BatteryState {

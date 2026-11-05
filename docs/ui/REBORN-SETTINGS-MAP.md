@@ -65,3 +65,25 @@ Settings
 
 Shuffle and Repeat are on Now Playing's menu, the sleep timer on Now Playing too: things you change while
 listening stay where you listen.
+
+## The Quick Menu (hold Power)
+
+Since 1.0 Beta 9.3.14 (Y2Linux #85), holding Power on any screen opens the Quick Menu; releasing keeps it
+open, Back or a short press of Power closes it. It holds what people change on the go, without walking into
+Settings, and nothing else:
+
+```
+Quick Menu                   Battery 72 % (· Charging)
+  Brightness                 60 %   Select, turn the wheel, Select: the Display card's adjustment
+  Wi-Fi                      network / Not connected / Off   Select switches it
+  Bluetooth                  device / On / Off               Select switches it
+  Sleep Timer                Off / 20 min left               the timer's picker
+  Restart
+  Power Off                  (Restart and Power Off wait while the platform works, e.g. an update)
+```
+
+Six rows, the page limit. Keep holding Power with the menu open and the "Hold to Turn Off" ring appears after
+3 s and turns the player off 1.2 s later, as a hold always did; the hardware resets the player after 10 s.
+Over the keyboard, a pairing question or a message the ring starts at once. Each row is also where it always
+was in Settings; anything added here must be a quick control that already has its place in the tree.
+Code: `crates/reborn-ui/src/quick_menu.rs`.

@@ -23,6 +23,7 @@ pub mod pages;
 pub mod playlist_index;
 mod playlists_ui;
 pub mod qr;
+mod quick_menu;
 mod reorder;
 pub use playlists_ui::{is_favorites as playlists_is_favorites, PlaylistsView};
 mod actions;
