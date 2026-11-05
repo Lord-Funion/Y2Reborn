@@ -1,5 +1,6 @@
-//! The Quick Menu: holding Power opens it on any screen (Y2Linux #85). Brightness, Wi-Fi,
-//! Bluetooth, the sleep timer, Restart and Power Off; holding on turns the player off as before.
+//! The Quick Menu: holding Power opens it on any screen (Y2Linux #85). Wi-Fi, Bluetooth,
+//! Brightness, the sleep timer, Restart and Power Off, in the wheel's order over the panel's tiles
+//! (`views_quick`); holding on turns the player off as before.
 use crate::*;
 use reborn_core::platform::ChargingState;
 
@@ -15,6 +16,12 @@ impl Ui {
         if menu {
             self.adjusting_brightness = false;
             Self::open_modal(m, Modal::QuickMenu);
+            // On Brightness, the control people come for (#85); Power Off is never first.
+            let rows = self.quick_menu_rows(m);
+            m.navigation.modal_focus = rows
+                .iter()
+                .position(|r| r.key == "quick:brightness")
+                .unwrap_or(0);
         }
         let ring = if menu {
             QUICK_MENU_HOLD
@@ -37,10 +44,6 @@ impl Ui {
     /// The menu's rows; a radio without its firmware (or not yet started) cannot be switched.
     pub(crate) fn quick_menu_rows(&self, m: &AppModel) -> Vec<Item> {
         let mut rows = Vec::new();
-        if m.platform.brightness_available {
-            let level = format!("{}%", m.settings.brightness);
-            rows.push(Item::new("Brightness", "quick:brightness").with_secondary(level));
-        }
         let wifi = match (&self.wifi, self.wifi.status.network()) {
             (w, _) if !w.available => "Unavailable".to_owned(),
             (w, _) if !w.powered => "Off".to_owned(),
@@ -65,6 +68,10 @@ impl Ui {
         let mut row = Item::new("Bluetooth", "quick:bluetooth").with_secondary(bluetooth);
         row.enabled = bt.available;
         rows.push(row);
+        if m.platform.brightness_available {
+            let level = format!("{}%", m.settings.brightness);
+            rows.push(Item::new("Brightness", "quick:brightness").with_secondary(level));
+        }
         let timer = match (m.sleep_timer, sleep_minutes_left(m)) {
             (None, _) => "Off".to_owned(),
             (Some(_), Some(left)) => format!("{} left", minutes_label(left)),
@@ -86,7 +93,7 @@ impl Ui {
     /// The title and the line under it: the battery, or how to set the brightness.
     pub(crate) fn quick_menu_copy(&self, m: &AppModel) -> (String, String) {
         if self.adjusting_brightness {
-            let hint = "Turn the wheel to set the brightness. Select when done.";
+            let hint = "Turn the wheel, then Select";
             return ("Quick Menu".into(), hint.into());
         }
         let b = m.platform.battery;

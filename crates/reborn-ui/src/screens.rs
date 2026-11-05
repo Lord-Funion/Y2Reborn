@@ -8,7 +8,7 @@ use crate::{
     skin::{self, Scene, Sheet, Skin},
     text::{self, Face},
     theme::{color, HEIGHT, WIDTH},
-    views_library, views_playing, views_settings, views_system, Alert, Item, Ui,
+    views_library, views_playing, views_quick, views_settings, views_system, Alert, Item, Ui,
 };
 use reborn_core::{platform::LowBattery, AppModel, Modal, Screen, Track};
 use reborn_graphics::Quad;
@@ -390,7 +390,7 @@ fn skinned_overlays(c: &mut Canvas, ui: &Ui, skin: &Skin, m: &AppModel, tracks: 
     if ui.alert.is_none()
         && ui.pairing.is_none()
         && ui.keyboard.is_none()
-        && m.navigation.modal.is_some()
+        && views_quick::sheet_modal(m)
     {
         let (title, body) = ui.modal_copy(m);
         let rows = ui.modal_rows_public(m, tracks);
@@ -491,7 +491,7 @@ fn skinned_overlays(c: &mut Canvas, ui: &Ui, skin: &Skin, m: &AppModel, tracks: 
         }
     }
     let at = c.draw.len();
-    views_playing::power_hold(c, ui);
+    views_quick::overlay(c, ui, m);
     skin::remap(c, at, &skin.palette, ui.cover_accent());
 }
 
@@ -573,8 +573,11 @@ fn overlays(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track]) {
         };
         components::toast(c, &ui.notice, tone);
     }
+    views_quick::draw(c, ui, m);
     views_playing::volume_line(c, ui, m);
-    views_playing::power_hold(c, ui);
+    if m.navigation.modal != Some(Modal::QuickMenu) {
+        views_playing::power_hold(c, ui);
+    }
 }
 
 fn is_problem(message: &str) -> bool {
@@ -606,24 +609,8 @@ fn modal(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track]) {
             let title = song.unwrap_or(title);
             components::action_sheet(c, &title, &subtitle, &sheet, focus);
         }
-        Some(Modal::QuickMenu) if ui.adjusting_brightness => {
-            components::action_sheet(c, &title, &body, &sheet, focus);
-            // The level as a bar in the Brightness row, the first.
-            let (y, head) = components::sheet_top(sheet.len(), body.is_empty());
-            let (from, to) = (130., WIDTH - 80.);
-            let min = f32::from(reborn_core::BRIGHTNESS_MIN);
-            let level = (f32::from(m.settings.brightness) - min) / (100. - min);
-            let bar_y = y + head + (components::SHEET_ROW - 3.) / 2. - 2.;
-            c.rrect(from, bar_y, to - from, 4., 2., color::GLASS);
-            c.rrect(
-                from,
-                bar_y,
-                (to - from) * level.clamp(0., 1.),
-                4.,
-                2.,
-                ui.accent(),
-            );
-        }
+        // Its own panel (`views_quick`), drawn with the other overlays.
+        Some(Modal::QuickMenu) => {}
         _ => components::action_sheet(c, &title, &body, &sheet, focus),
     }
 }

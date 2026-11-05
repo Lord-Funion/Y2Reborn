@@ -68,22 +68,25 @@ listening stay where you listen.
 
 ## The Quick Menu (hold Power)
 
-Since 1.0 Beta 9.3.14 (Y2Linux #85), holding Power on any screen opens the Quick Menu; releasing keeps it
+Since 1.0 Beta 9.3.15 (Y2Linux #85), holding Power on any screen opens the Quick Menu; releasing keeps it
 open, Back or a short press of Power closes it. It holds what people change on the go, without walking into
 Settings, and nothing else:
 
 ```
-Quick Menu                   Battery 72 % (· Charging)
-  Brightness                 60 %   Select, turn the wheel, Select: the Display card's adjustment
-  Wi-Fi                      network / Not connected / Off   Select switches it
-  Bluetooth                  device / On / Off               Select switches it
-  Sleep Timer                Off / 20 min left               the timer's picker
-  Restart
-  Power Off                  (Restart and Power Off wait while the platform works, e.g. an update)
+┌ Quick Menu ─────────────────────────── Battery 72 % ┐   a centred panel; it grows in over the
+│ [ Wi-Fi        network ] [ Bluetooth     device ] │   dimmed screen, the tiles one after another
+│ [ ☀ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━○──────  60 % ] │
+│ [ ☾ Sleep Timer ]  [ ↻ Restart ]  [ ⏻ Power Off ] │
+└────────────────────────────────────────────────────┘
 ```
 
-Six rows, the page limit. Keep holding Power with the menu open and the "Hold to Turn Off" ring appears after
-3 s and turns the player off 1.2 s later, as a hold always did; the hardware resets the player after 10 s.
-Over the keyboard, a pairing question or a message the ring starts at once. Each row is also where it always
-was in Settings; anything added here must be a quick control that already has its place in the tree.
-Code: `crates/reborn-ui/src/quick_menu.rs`.
+The wheel goes Wi-Fi → Bluetooth → Brightness → Sleep Timer → Restart → Power Off; the menu opens on
+Brightness. Wi-Fi and Bluetooth: Select switches them, the tile fills with the accent while on. Brightness:
+Select, turn the wheel, Select (the Display card's adjustment). Sleep Timer opens the timer's picker. Restart
+and Power Off act at once and wait while the platform works (an update). Keep holding Power with the menu
+open: after 3 s a ring fills around the Power Off tile ("Hold to Turn Off") and turns the player off 1.2 s
+later, as a hold always did; the hardware resets the player after 10 s. Over the keyboard, a pairing
+question or a message the full-screen ring starts at once. Skins get the same panel in their palette. Each
+control is also where it always was in Settings; anything added here must be a quick control that already
+has its place in the tree (six tiles fill the panel).
+Code: `crates/reborn-ui/src/quick_menu.rs` (rows, actions), `views_quick.rs` (the panel).

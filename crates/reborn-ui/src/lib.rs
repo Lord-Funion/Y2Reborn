@@ -47,6 +47,7 @@ mod views_library;
 mod views_playing;
 mod views_playlists;
 mod views_queue;
+mod views_quick;
 mod views_radio;
 mod views_search;
 mod views_settings;

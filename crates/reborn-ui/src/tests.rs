@@ -1161,14 +1161,15 @@ fn the_quick_menu_switches_radios_sets_brightness_and_turns_off() {
     assert_eq!(
         keys,
         [
-            "quick:brightness",
             "quick:wifi",
             "quick:bluetooth",
+            "quick:brightness",
             "quick:sleep",
             "quick:restart",
             "quick:power_off"
         ]
     );
+    assert_eq!(m.navigation.modal_focus, 2, "it opens on Brightness");
     assert_eq!(row("quick:brightness").secondary, "60%");
     assert_eq!(row("quick:wifi").secondary, "Home");
     assert_eq!(row("quick:bluetooth").secondary, "AirPods Pro");
@@ -1178,11 +1179,11 @@ fn the_quick_menu_switches_radios_sets_brightness_and_turns_off() {
         m.navigation.modal_focus = index;
         ui.model_action(m, Action::Select)
     };
-    assert_eq!(select(&mut ui, &mut m, 1), Effect::WifiPower);
-    assert_eq!(select(&mut ui, &mut m, 2), Effect::BluetoothPower);
+    assert_eq!(select(&mut ui, &mut m, 0), Effect::WifiPower);
+    assert_eq!(select(&mut ui, &mut m, 1), Effect::BluetoothPower);
     assert_eq!(m.navigation.modal, Some(Modal::QuickMenu));
     // Brightness: Select, turn the wheel, Select again; the menu stays.
-    assert_eq!(select(&mut ui, &mut m, 0), Effect::None);
+    assert_eq!(select(&mut ui, &mut m, 2), Effect::None);
     assert!(ui.modal_copy(&m).1.contains("Turn the wheel"));
     let step = reborn_core::BRIGHTNESS_STEP;
     assert_eq!(
@@ -1190,7 +1191,7 @@ fn the_quick_menu_switches_radios_sets_brightness_and_turns_off() {
         Effect::SetBrightness(60 + step)
     );
     assert_eq!(
-        m.navigation.modal_focus, 0,
+        m.navigation.modal_focus, 2,
         "the wheel set the level, not the focus"
     );
     assert_eq!(ui.model_action(&mut m, Action::Select), Effect::None);
