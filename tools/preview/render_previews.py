@@ -110,10 +110,14 @@ class Rasterizer:
             region = region.resize((w, h), Image.Resampling.BILINEAR)
         return ImageChops.multiply(region, Image.new("RGBA", (w, h), rgba(quad["color"])))
 
-    def cover_for(self, key: int, size: int) -> Image.Image:
-        if key not in self.covers:
-            self.covers[key] = cover(key >> 8 if key else 0)
-        return self.covers[key].resize((size, size), Image.Resampling.BILINEAR)
+    def cover_for(self, key: int, size: int, rounded: bool = True) -> Image.Image:
+        if (key, rounded) not in self.covers:
+            self.covers[key, rounded] = cover(key >> 8 if key else 0, rounded=0.085 if rounded else 0.0)
+        return self.covers[key, rounded].resize((size, size), Image.Resampling.BILINEAR)
+
+    def art_for(self, tex: str, size: int) -> Image.Image:
+        """Now Playing's picture is square under a skin (the skin rounds it), Cover Flow's is not."""
+        return self.cover_for(0, size, rounded=tex == "CollectionArt" or self.skin is None)
 
     def source(self, quad: dict, size: int) -> Image.Image:
         """The untinted texture region a quad samples, as RGBA."""
@@ -121,7 +125,7 @@ class Rasterizer:
         if tex == "Solid":
             return Image.new("RGBA", (size, size), (255, 255, 255, 255))
         if tex in ("Art", "CollectionArt"):
-            return self.cover_for(0, 180)
+            return self.art_for(tex, 180)
         if isinstance(tex, dict) and "Thumb" in tex:
             return self.cover_for(tex["Thumb"], 128)
         if tex == "Skin":
@@ -177,7 +181,7 @@ class Rasterizer:
         if tex == "Solid":
             layer = Image.new("RGBA", (w, h), tint)
         elif tex in ("Art", "CollectionArt"):
-            layer = self.cover_for(0, w).resize((w, h))
+            layer = self.art_for(tex, w).resize((w, h))
             layer.putalpha(ImageChops.multiply(layer.getchannel("A"), Image.new("L", (w, h), tint[3])))
         elif isinstance(tex, dict) and "Thumb" in tex:
             layer = self.cover_for(tex["Thumb"], w).resize((w, h))

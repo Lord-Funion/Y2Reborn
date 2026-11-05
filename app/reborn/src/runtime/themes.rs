@@ -74,6 +74,7 @@ impl Runtime {
             if let Some(renderer) = self.graphics.as_mut() {
                 let _ = renderer.skin_atlas(None);
             }
+            self.reshape_art();
             self.dirty.mark_render();
             return Ok(());
         }
@@ -130,7 +131,34 @@ impl Runtime {
             }
         }
         self.ui.skin = Some(skin);
+        self.reshape_art();
         self.dirty.mark_render();
         Ok(())
+    }
+
+    /// Show a cover or a station's logo (square, as decoded) as Now Playing's picture: rounded
+    /// in Reborn's own look, square in a skin, which rounds it itself with `radius` (Y2Reborn
+    /// #81: a skin's square frame showed the corners Reborn had cut off).
+    pub(crate) fn show_art(&mut self, rgba: Vec<u8>) {
+        self.art_square = rgba;
+        let Some(renderer) = self.graphics.as_mut() else {
+            return;
+        };
+        let mut shaped = self.art_square.clone();
+        if self.ui.skin.is_none() {
+            reborn_ui::art::round_corners(&mut shaped, reborn_graphics::ART_SIZE);
+        }
+        if renderer.artwork(&shaped).is_ok() {
+            self.art = true;
+            self.dirty.mark_render();
+        }
+    }
+
+    /// The picture shown again in the new look's shape.
+    fn reshape_art(&mut self) {
+        if self.art {
+            let rgba = std::mem::take(&mut self.art_square);
+            self.show_art(rgba);
+        }
     }
 }

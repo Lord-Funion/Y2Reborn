@@ -294,6 +294,7 @@ pub(crate) fn run() -> Result<(), String> {
         kernel_events: Arc::new(Mutex::new(Vec::new())),
         background,
         art: false,
+        art_square: Vec::new(),
         history_seen: None,
         history_track: None,
         dirty: DirtyState {
@@ -837,6 +838,7 @@ impl MainLoop {
         }
         rt.receive_chapters();
         rt.sleep_timer_tick();
+        let mut logo = None;
         if let Some(worker) = &mut rt.thumbs {
             // Upload finished thumbnails (a few per pass, so a burst never
             // stalls a frame), then queue what the last frame could not show.
@@ -852,14 +854,9 @@ impl MainLoop {
                     if reply.rgba.is_some() {
                         rt.radio_art_pending = None;
                     }
-                    if let (Some(rgba), Some(renderer)) = (reply.rgba, rt.graphics.as_mut()) {
+                    if let Some(rgba) = reply.rgba.filter(|_| rt.graphics.is_some()) {
                         rt.ui.accent = reborn_ui::art::accent_from_rgba(&rgba);
-                        let mut rounded = rgba;
-                        reborn_ui::art::round_corners(&mut rounded, reborn_graphics::ART_SIZE);
-                        if renderer.artwork(&rounded).is_ok() {
-                            rt.art = true;
-                            rt.dirty.mark_render();
-                        }
+                        logo = Some(rgba);
                     }
                     continue;
                 }
@@ -994,6 +991,9 @@ impl MainLoop {
                     }
                 }
             }
+        }
+        if let Some(rgba) = logo {
+            rt.show_art(rgba);
         }
     }
 
@@ -1363,14 +1363,7 @@ impl MainLoop {
                 } => {
                     if artwork_matches_current(&rt.model, generation, entry_id, track_id) {
                         rt.ui.accent = reborn_ui::art::accent_from_rgba(&bytes);
-                        if let Some(g) = &mut rt.graphics {
-                            let mut rounded = bytes.to_vec();
-                            reborn_ui::art::round_corners(&mut rounded, reborn_graphics::ART_SIZE);
-                            if g.artwork(&rounded).is_ok() {
-                                rt.art = true;
-                                rt.dirty.mark_render();
-                            }
-                        }
+                        rt.show_art(bytes.to_vec());
                     }
                 }
                 playback::PlaybackEvent::Core(event) => {

@@ -709,7 +709,7 @@ HEART = "#FF5A7A"
 HEARTS = {
     **{sid: {"x": 442, "y": 153, "size": 16, "color": HEART} for sid in
        ("mini-blue", "mini-gold", "mini-green", "mini-pink", "mini-silver", "nano-glass")},
-    "cassette": {"x": 428, "y": 144, "size": 16, "color": HEART},
+    "cassette": {"x": 428, "y": 156, "size": 16, "color": HEART},
     "neon": {"x": 448, "y": 175, "size": 16, "color": HEART},
     "paper": {"x": 446, "y": 170, "size": 16, "color": "text"},
     "walkman": {"x": 450, "y": 163, "size": 16, "color": "orange"},
@@ -954,7 +954,7 @@ def winamp():
           T(334, 112, 124, 26, "-{duration}", "small", "lcd_dim", "right"),
           bar(st, 12, 160, 456, 12, "progress"),
           I(12, 184, 160, 164, "panel", slice=[3, 3, 3, 3]),
-          {"type": "art", "x": 18, "y": 190, "size": 148},
+          {"type": "art", "x": 18, "y": 192, "size": 148},
           I(182, 184, 286, 164, "panel", slice=[3, 3, 3, 3]),
           T(194, 192, 262, 20, "VOLUME", "small", "lcd_dim"),
           {"type": "bar", "x": 194, "y": 214, "w": 262, "h": 8, "value": "volume", "track_image": "seek_track", "fill_image": "seek_fill", "slice": [2, 2, 2, 2]},
@@ -1058,8 +1058,9 @@ def cassette():
     d = ImageDraw.Draw(tape)
     d.rounded_rectangle([0, 0, 447, 229], 18, fill=rgba("#3B2A1E"))
     d.rounded_rectangle([14, 12, 433, 150], 8, fill=rgba("#F3EBDA"))
-    d.rectangle([14, 26, 433, 30], fill=rgba("#B8471F"))
-    for y in (70, 96, 122):
+    # The stripe runs along the label's top, above the title (Y2Reborn #82: it crossed the title).
+    d.rectangle([14, 20, 433, 24], fill=rgba("#B8471F"))
+    for y in (82, 108, 134):
         d.line([(126, y), (420, y)], fill=rgba("#CDBFA3"), width=1)
     d.rounded_rectangle([110, 160, 337, 214], 24, fill=rgba("#1E1610"))
     for cx in (150, 297):
@@ -1086,11 +1087,11 @@ def cassette():
     s.parts["title"] = [T(60, 0, 360, 32, "{screen}", "bartitle", "bar_text", "center", case="upper", tracking=2)]
     np = [P("titlebar"), T(60, 0, 360, 32, "Side A · {queue_index}/{queue_length}", "bartitle", "bar_text", "center", tracking=1),
           I(16, 44, 448, 230, "tape"),
-          {"type": "art", "x": 34, "y": 82, "size": 96},
-          T(144, 58, 300, 26, "{title}", "big", "text"),
-          T(144, 88, 300, 24, "{artist}", "detail", "muted"),
-          T(144, 114, 300, 24, "{album}", "detail", "muted"),
-          T(144, 140, 300, 24, "{quality}", "small", "dim", case="upper"),
+          {"type": "art", "x": 34, "y": 78, "size": 96},
+          T(144, 70, 300, 26, "{title}", "big", "text"),
+          T(144, 100, 300, 24, "{artist}", "detail", "muted"),
+          T(144, 126, 300, 24, "{album}", "detail", "muted"),
+          T(144, 152, 300, 24, "{quality}", "small", "dim", case="upper"),
           {"type": "bar", "x": 199, "y": 228, "w": 80, "h": 6, "value": "progress", "track": "#5A3E28", "fill": "#E9DFC9"},
           {"type": "bar", "x": 24, "y": 292, "w": 432, "h": 8, "value": "progress", "track": "track", "fill": "rust", "radius": 4},
           T(24, 304, 100, 22, "{elapsed}", "small"), T(356, 304, 100, 22, "{remaining}", "small", "text", "right"),

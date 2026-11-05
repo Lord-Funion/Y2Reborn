@@ -279,6 +279,9 @@ struct Runtime {
     kernel_events: Arc<Mutex<Vec<String>>>,
     background: background::Gate,
     art: bool,
+    /// The cover or station logo now shown, square as decoded: a skin change uploads it again in
+    /// that look's shape (`show_art`).
+    art_square: Vec<u8>,
     /// The song last seen playing (entry, library id) and its record: a
     /// change puts it in the history.
     history_seen: Option<(Option<QueueEntryId>, i64)>,
