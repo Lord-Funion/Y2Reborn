@@ -213,6 +213,14 @@ impl Runtime {
             self.fail("playback", error);
         }
     }
+    /// How long a pause holds its sink: a few seconds on Bluetooth, minutes on the wired codec.
+    pub(crate) fn hold_limit(&self) -> Duration {
+        if matches!(self.model.output, AudioOutput::Bluetooth(_)) {
+            BLUETOOTH_HOLD_LIMIT
+        } else {
+            HOLD_LIMIT
+        }
+    }
     /// Give the held pipeline back (after a long pause, before sleep).
     pub(crate) fn release_hold(&mut self) {
         self.release_hold_with(false);
@@ -288,17 +296,14 @@ impl Runtime {
         self.playback_hints.clear();
         // A file paused while it plays holds in place: resume is instant. A
         // station (live), a start in progress or a pending seek release.
-        // So does Bluetooth (F43, AirPods Pro 2 and others): a stream drained
-        // and prepared again inside BlueALSA stayed silent in the headphones,
-        // while a new stream (a skip) always played. Releasing the sink ends
-        // the stream as a phone's pause does, and Play opens a new one where
-        // the song was (about half a second).
-        let bluetooth = matches!(self.model.output, AudioOutput::Bluetooth(_));
+        // Bluetooth holds too, as a phone does: the stream stays started and
+        // carries silence (the sink thread's bridge; never drained, paused or
+        // prepared again inside BlueALSA, which left AirPods silent, F43), and
+        // `hold_limit` later releases the sink, the headphones' Suspend.
         if self.model.playback == PlaybackState::Playing
             && self.pending_reconfiguration.is_none()
             && self.seek_until.is_none()
             && self.model.current().is_some_and(|t| !t.is_radio())
-            && !bluetooth
         {
             self.playback.hold(true);
             self.held_since = Some(Instant::now());

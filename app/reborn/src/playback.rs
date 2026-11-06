@@ -685,4 +685,6 @@ impl Playback {
 }
 
 #[cfg(test)]
+mod stream_continuity_tests;
+#[cfg(test)]
 mod tests;

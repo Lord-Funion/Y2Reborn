@@ -1852,8 +1852,8 @@ fn inserted_stretch(with: &[i32], plain: &[i32]) -> usize {
     inserted
 }
 
-/// Y2Linux #96: a Bluetooth sink is kept fed with silence while no music arrives, up to 40 ms of
-/// its ring and no further; a sink that cannot tell its ring gets none.
+/// Y2Linux #96: a Bluetooth sink is kept fed with silence while no music arrives, up to 100 ms
+/// of its ring and no further; a sink that cannot tell its ring gets none.
 #[test]
 fn a_bluetooth_sink_is_topped_up_with_silence_not_left_to_run_dry() {
     struct Ring {
@@ -1887,12 +1887,12 @@ fn a_bluetooth_sink_is_topped_up_with_silence_not_left_to_run_dry() {
     };
     let frames = super::output::top_up_silence(&mut empty, PcmFormat::S16LE, 48_000);
     assert!(
-        (1920..1920 + 256).contains(&frames),
-        "40 ms at 48 kHz: {frames}"
+        (4800..4800 + 256).contains(&frames),
+        "100 ms at 48 kHz: {frames}"
     );
     assert!(empty.written.iter().all(|b| *b == 0), "silence only");
     let mut full = Ring {
-        queued: Some(4000),
+        queued: Some(6000),
         written: Vec::new(),
     };
     assert_eq!(

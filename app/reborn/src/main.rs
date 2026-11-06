@@ -47,9 +47,13 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use views::*;
-/// A pause held in place gives its sink back after this long (Bluetooth
-/// headphones and the wired codec may then rest).
+/// A pause held in place gives its sink back after this long (the wired
+/// codec may then rest).
 const HOLD_LIMIT: Duration = Duration::from_secs(180);
+/// A Bluetooth pause keeps its stream started with silence this long, then
+/// releases the sink (AVDTP Suspend, as a phone stops after a few seconds):
+/// a Play within it continues at once, a later one starts a fresh stream.
+const BLUETOOTH_HOLD_LIMIT: Duration = Duration::from_secs(3);
 /// The main loop's periodic block (battery and media observation, the
 /// automatic sleep, the diagnostic snapshot) runs after more than this.
 const PERIODIC_EVERY: Duration = Duration::from_secs(2);

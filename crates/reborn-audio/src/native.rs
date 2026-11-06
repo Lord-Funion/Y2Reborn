@@ -312,18 +312,53 @@ impl AlsaSink {
             return Err("Bluetooth PCM has no complete observed transport identity".into());
         }
         let rate = pcm.negotiated_rate()?;
-        let preferred = pcm.negotiated_format()?;
-        Self::plan_named(
-            &device,
-            output.clone(),
+        let format = pcm.negotiated_format()?;
+        // Planned from the observation alone, no probe: opening a BlueALSA PCM asks the
+        // headphones to Start and closing it to Suspend, so a probe before every Play was a
+        // Start/Suspend/Start within ~20 ms. The observed format is the only one allowed
+        // anyway, and `open_spec` refuses a PCM that opens with anything else.
+        let spec = SinkSpec {
+            output: output.clone(),
             rate,
-            wired,
-            preferred,
-            true,
-            Some(pcm),
-            log,
-            id,
-        )
+            format,
+            physical_bits: format.physical_bits(),
+            valid_bits: format.valid_bits(),
+            channels: 2,
+            layout: "stereo".into(),
+            device: device.clone(),
+            codec: pcm.codec.clone(),
+            transport_object: Some(pcm.object.clone()),
+            transport_device: Some(pcm.device.clone()),
+            transport: Some(pcm.transport.clone()),
+            mode: Some(pcm.mode.clone()),
+            transport_generation: pcm.transport_generation,
+            fallback: false,
+            fallback_reason: String::new(),
+            speaker: false,
+        };
+        spec.validate_bluetooth_observation(pcm)?;
+        let params = Parameters {
+            rate,
+            period: 1024,
+            buffer: 8192,
+            format,
+            channels: 2,
+            hardware_mixer_gain_db: None,
+            device: device.clone(),
+            fallback: false,
+            fallback_reason: String::new(),
+            hp_level_live: None,
+            level_raised: false,
+        };
+        log.emit(
+            Level::Info,
+            "alsa",
+            "enabled_format",
+            "Bluetooth sink planned from the observed transport",
+            Some(id),
+            json!({"device":device,"format":format.as_str(),"rate":rate}),
+        );
+        Ok((spec, params))
     }
     // This boundary keeps the explicit ALSA probe/transport parameters together.
     #[allow(clippy::too_many_arguments)]
@@ -548,6 +583,10 @@ impl AlsaSink {
         }
         if n == -32 || n == -86 {
             self.log.add("audio_xruns", 1.);
+            // Kept apart: a Bluetooth sink is fed with silence and should never run dry (F69).
+            if self.params.device.starts_with("bluealsa") {
+                self.log.add("bluetooth_xruns", 1.);
+            }
             self.log.emit(
                 Level::Warn,
                 "alsa",

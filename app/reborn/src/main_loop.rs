@@ -1198,7 +1198,7 @@ impl MainLoop {
         rt.apply_seek();
         if rt
             .held_since
-            .is_some_and(|since| since.elapsed() >= HOLD_LIMIT)
+            .is_some_and(|since| since.elapsed() >= rt.hold_limit())
         {
             rt.release_hold();
         }

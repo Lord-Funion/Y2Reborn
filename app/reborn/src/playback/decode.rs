@@ -130,27 +130,6 @@ impl DecodeWorker {
         if job.position > 0 && !tracks[0].is_radio() {
             decoder.seek(job.position)?;
         }
-        let artwork = if tracks[0].is_radio() {
-            None
-        } else {
-            publish_artwork(cache, &tracks[0], &mut decoder)
-        };
-        if let Some(bytes) = artwork {
-            send_stream_item(
-                pt,
-                db,
-                de,
-                job.generation,
-                Stream::Artwork {
-                    generation: job.generation,
-                    entry_id: job.entry_id,
-                    track_id: tracks[0].id,
-                    bytes,
-                },
-                0,
-                dl,
-            )?;
-        }
         let overlap_frames =
             (u64::from(job.spec.rate) * u64::from(job.dsp.crossfade_ms) / 1000) as usize;
         let mut tail = TailWindow::new(job.spec.rate, processing_format);
@@ -188,13 +167,44 @@ impl DecodeWorker {
             }
             None
         };
-        let mut preopened_index = None;
-        if job.gapless_enabled || crossfade_enabled {
-            if let Some((candidate, next)) = open_next(&tracks, 1) {
-                preopened_index = Some(candidate);
-                next_decoder = Some(next);
+        // A song's cover and the opening of the song after it wait until its first audio is
+        // queued: run first, they made a skip's sound late and ran ~10 % of gapless boundaries
+        // dry (reports 2026-11-06), on Bluetooth a stop inside the stream (F69).
+        let settle = |index: usize,
+                      decoder: &mut BoundDecoder,
+                      tracks: &[Track],
+                      entry_ids: &[QueueEntryId]|
+         -> Result<Option<(usize, BoundDecoder)>, String> {
+            if let Some(bytes) = (!tracks[index].is_radio())
+                .then(|| publish_artwork(cache, &tracks[index], decoder))
+                .flatten()
+            {
+                let (entry_id, track_id) = (entry_ids[index], tracks[index].id);
+                let generation = job.generation;
+                let item = Stream::Artwork {
+                    generation,
+                    entry_id,
+                    track_id,
+                    bytes,
+                };
+                send_stream_item(pt, db, de, generation, item, 0, dl)?;
             }
-        }
+            let next = (job.gapless_enabled || crossfade_enabled)
+                .then(|| open_next(tracks, index + 1))
+                .flatten();
+            update_media_state(
+                media_state,
+                &tracks[index],
+                decoder,
+                job,
+                processing_format,
+                next.is_some(),
+            );
+            Ok(next)
+        };
+        let cushion = u64::from(job.spec.rate) / 4;
+        let mut preopened_index = None;
+        let mut unsettled = Some(0usize);
         loop {
             dl.heartbeat("playback", heartbeat_s);
             if de.load(Ordering::Acquire) != job.generation {
@@ -214,7 +224,8 @@ impl DecodeWorker {
                     next_decoder = None;
                     next_pending.clear();
                     preopened_index = None;
-                    if job.gapless_enabled || crossfade_enabled {
+                    // A song not settled yet opens the one after it itself.
+                    if (job.gapless_enabled || crossfade_enabled) && unsettled.is_none() {
                         if let Some((candidate, next)) = open_next(&tracks, first) {
                             preopened_index = Some(candidate);
                             next_decoder = Some(next);
@@ -258,6 +269,17 @@ impl DecodeWorker {
                         dl,
                     )?;
                 }
+                if let Some(index) = unsettled.filter(|_| db.load(Ordering::Relaxed) >= cushion) {
+                    unsettled = None;
+                    (preopened_index, next_decoder) =
+                        settle(index, &mut decoder, &tracks, &entry_ids)?.unzip();
+                }
+                continue;
+            }
+            if let Some(index) = unsettled.take() {
+                // The song ended before its audio queued up: settle now, before its end.
+                (preopened_index, next_decoder) =
+                    settle(index, &mut decoder, &tracks, &entry_ids)?.unzip();
                 continue;
             }
             if next_decoder.is_none() {
@@ -322,34 +344,8 @@ impl DecodeWorker {
                 0,
                 dl,
             )?;
-            if let Some(bytes) = publish_artwork(cache, &tracks[next_index], &mut next) {
-                send_stream_item(
-                    pt,
-                    db,
-                    de,
-                    job.generation,
-                    Stream::Artwork {
-                        generation: job.generation,
-                        entry_id: entry_ids[next_index],
-                        track_id: tracks[next_index].id,
-                        bytes,
-                    },
-                    0,
-                    dl,
-                )?;
-            }
-            if let Some((candidate, following)) = open_next(&tracks, next_index + 1) {
-                preopened_index = Some(candidate);
-                next_decoder = Some(following);
-            }
-            update_media_state(
-                media_state,
-                &tracks[next_index],
-                &next,
-                job,
-                processing_format,
-                next_decoder.is_some(),
-            );
+            // Its media state with its cover, once its audio is queued (`settle`).
+            unsettled = Some(next_index);
             dl.add("audio_filter_rebuilds", 1.);
             if next.metadata.resampling {
                 dl.add("audio_resamples", 1.);

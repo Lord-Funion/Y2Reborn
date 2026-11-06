@@ -446,7 +446,11 @@ int rb_sink_open(const char *name, unsigned rate, unsigned format, int wired,
   snd_pcm_hw_params_alloca(&p);
   unsigned actual = rate;
   int dir = 0;
-  snd_pcm_uframes_t period = 512, buffer = 4096;
+  /* Bluetooth gets a deeper ring (8 x 1024 frames, ~170-186 ms): an underrun
+   * there stops and restarts the A2DP stream, a gap after which some
+   * headphones stay silent (F69). The sink thread keeps it fed with music or
+   * silence; the depth only has to cover that thread running late. */
+  snd_pcm_uframes_t period = wired ? 512 : 1024, buffer = wired ? 4096 : 8192;
   if ((r = snd_pcm_hw_params_any(s->pcm, p)) < 0)
     goto fail;
   if ((r = snd_pcm_hw_params_set_access(s->pcm, p,

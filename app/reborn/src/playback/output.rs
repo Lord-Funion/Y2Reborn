@@ -332,7 +332,14 @@ impl SinkWorker {
     /// The next block of PCM, or the end of the stream.
     fn receive(&mut self, st: &mut Playing) -> ControlFlow<Pass> {
         if st.pending.is_none() {
-            match self.pr.recv_timeout(Duration::from_millis(10)) {
+            // No music can come without a sink: clicks or a kept Bluetooth sink's silence are
+            // not kept waiting on it (they underran at a ~20 ms refill, reports 2026-11-06).
+            let wait = if st.sink.is_none() && st.idle_wait() <= Duration::from_millis(10) {
+                Duration::ZERO
+            } else {
+                Duration::from_millis(10)
+            };
+            match self.pr.recv_timeout(wait) {
                 Ok(Stream::Pcm {
                     generation: g,
                     mut block,
@@ -509,19 +516,28 @@ impl SinkWorker {
         }
     }
 
-    /// A Bluetooth stream never runs dry while music is on its way (a song's start after a skip,
-    /// a decoder catching up): an underrun stops it inside BlueALSA (xrun recovery is Drop and
-    /// Start), a gap after which AirPods stay silent until a new stream starts (Y2Linux #96:
-    /// every skip went silent where the next song took 60–280 ms, longer than the 85 ms ring).
-    /// Silence keeps it fed instead, as a phone does; never at the end of the queue (it drains).
+    /// A Bluetooth stream never runs dry while it is open: an underrun stops it inside BlueALSA
+    /// (xrun recovery is Drop and Start), a gap after which AirPods stay silent until a new
+    /// stream starts (Y2Linux #96, Y2Reborn #99, F69). Whenever no music is written (a song's
+    /// start after a skip or seek, a decoder catching up, a pause, the end of a song, the sink
+    /// kept between two streams) silence keeps it fed, as a phone's mixer does. The stream only
+    /// stops when its sink closes: a Stop, the kept sink's time running out, the pause grace.
     fn bridge(&mut self, st: &mut Playing) {
-        let bluetooth = (st.open_spec.as_ref()).is_some_and(|(spec, _)| keeps_queued_audio(spec));
-        // While held, nothing of the pending music is written either.
-        if (st.pending.is_some() && !st.held) || st.eof || !bluetooth {
-            return;
-        }
-        let Some(s) = st.sink.as_mut() else { return };
-        let written = top_up_silence(s.as_mut(), st.sink_format, st.rate);
+        let written = match (st.sink.as_mut(), st.kept.as_mut()) {
+            (Some(s), _) => {
+                let bluetooth =
+                    (st.open_spec.as_ref()).is_some_and(|(spec, _)| keeps_queued_audio(spec));
+                // While held, nothing of the pending music is written either.
+                if !bluetooth || (st.pending.is_some() && !st.held) {
+                    return;
+                }
+                top_up_silence(s.as_mut(), st.sink_format, st.rate)
+            }
+            (None, Some(k)) if keeps_queued_audio(&k.spec) => {
+                top_up_silence(k.sink.as_mut(), k.spec.format, k.spec.rate)
+            }
+            _ => return,
+        };
         if written > 0 {
             self.al.add("bluetooth_bridge_frames", written as f64);
         }
@@ -649,11 +665,15 @@ impl SinkWorker {
         }
     }
 
-    /// The stream's end: drain the sink, then report the end of the track.
+    /// The stream's end: drain the sink, then report the end of the track. A Bluetooth sink is
+    /// not drained: its last music plays on behind silence (`bridge`) while the next track starts
+    /// in it; draining it empty stopped the stream between two songs (Y2Reborn #99).
     fn drain(&mut self, st: &mut Playing) {
+        let bluetooth = (st.open_spec.as_ref()).is_some_and(|(spec, _)| keeps_queued_audio(spec));
         if st.eof
             && st.pending.is_none()
-            && (st.sink.as_ref().is_none_or(|s| s.delay() == 0)
+            && (bluetooth
+                || st.sink.as_ref().is_none_or(|s| s.delay() == 0)
                 || st.drain_start.elapsed() > Duration::from_secs(3))
         {
             self.al.add("playback_tracks_completed", 1.);
@@ -703,8 +723,9 @@ impl SinkWorker {
     }
 }
 
-/// How much a Bluetooth sink keeps queued while no music arrives (`bridge`): 40 ms of its ring.
-const BRIDGE_MS: u64 = 40;
+/// How much a Bluetooth sink keeps queued while no music arrives (`bridge`): 100 ms of its
+/// ~180 ms ring, refilled every pass of the loop (~20 ms).
+const BRIDGE_MS: u64 = 100;
 
 /// Silence written until `sink` holds `BRIDGE_MS` of audio in its ring; the frames written.
 pub(super) fn top_up_silence(sink: &mut dyn AudioSink, format: PcmFormat, rate: u32) -> u64 {
@@ -726,7 +747,8 @@ pub(super) fn top_up_silence(sink: &mut dyn AudioSink, format: PcmFormat, rate: 
 }
 
 /// Silence with the click in it, enough that a paused stream that clicked keeps playing: about
-/// 35 ms queued (a click waits at most that long), from 256-frame pieces.
+/// 46 ms queued (a click waits at most that long; 35 ms underran on a busy pass), from 256-frame
+/// pieces.
 fn click_over_silence(
     sink: &mut dyn AudioSink,
     click: &mut Click,
@@ -734,7 +756,7 @@ fn click_over_silence(
     gain: f64,
 ) -> Result<(), String> {
     const CHUNK: usize = 256;
-    const QUEUED: u64 = 1536;
+    const QUEUED: u64 = 2048;
     let mut pcm = vec![0; CHUNK * format.bytes_per_frame()];
     for _ in 0..QUEUED as usize / CHUNK {
         if sink.delay() >= QUEUED {
@@ -776,14 +798,19 @@ pub(super) struct Playing {
 
 impl Playing {
     /// How long the thread without a sink may wait for a command: until a kept sink closes (at
-    /// most a second, for the heartbeat), 10 ms while clicks play in it.
+    /// most a second, for the heartbeat), 10 ms while clicks play in it or while a kept Bluetooth
+    /// sink needs its silence (`bridge`).
     fn idle_wait(&self) -> Duration {
         let wait = self.kept.as_ref().map_or(Duration::from_secs(1), |k| {
             k.until
                 .saturating_duration_since(Instant::now())
                 .max(Duration::from_millis(10))
         });
-        if self.clicking.is_some() {
+        let feeding = self
+            .kept
+            .as_ref()
+            .is_some_and(|k| keeps_queued_audio(&k.spec));
+        if self.clicking.is_some() || feeding {
             wait.min(Duration::from_millis(10))
         } else {
             wait

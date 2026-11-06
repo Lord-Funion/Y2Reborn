@@ -203,7 +203,7 @@ impl Runtime {
                         == reborn_core::platform::ChargingState::OnBattery
             })
             .map(|dark| dark + Duration::from_secs(reborn_core::platform::WIFI_IDLE_OFF_SECS));
-        let hold = self.held_since.map(|since| since + HOLD_LIMIT);
+        let hold = self.held_since.map(|since| since + self.hold_limit());
         let timer = self.model.sleep_timer.and_then(|timer| timer.until);
         [sleep, wifi, hold, timer].into_iter().flatten()
     }
