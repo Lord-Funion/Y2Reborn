@@ -1,5 +1,19 @@
 # Current Reborn state on the Y2
 
+## 1.0.0-beta.9.3.16 — Y2Linux 1.0 Beta 9.3.16 (Baseline 224), 2026-11-06: steady Bluetooth (published)
+
+Published as `baseline-224` (Reborn `ceb4824`; work `0ed544c`, `d4298f2`, contract `e209e30`). A playing Bluetooth PCM
+is never left to run dry (F69, Y2Linux #96, Y2Reborn #99): `SinkWorker::bridge` tops a Bluetooth sink up to
+`BRIDGE_MS` 100 ms of silence whenever no music is written, also while it is the kept sink between two streams
+(`Playing::idle_wait` 10 ms, `receive` does not wait without a sink); a Bluetooth song end is `drained` once its music
+is written (no drain to empty); BlueALSA PCMs open with 8 × 1024 frames (`rb_sink_open`, wired 8 × 512). A Bluetooth
+pause holds in place (no device pause, silence) and `Runtime::hold_limit` releases it after `BLUETOOTH_HOLD_LIMIT`
+3 s. `AlsaSink::plan_bluetooth` builds the spec from the observed transport without opening the PCM. Metric
+`bluetooth_xruns`. `decode.rs` `settle`: a song's artwork, media state and the next song's preopen wait until
+≥ 250 ms of its audio is queued (or its end). Click stream 2048 frames. Tests `playback/stream_continuity_tests.rs`
+(real-time fake sink counting underruns). Y2Linux side: BlueALSA 0005/0007/0008 dropped, SBC/AAC fixed rate by
+default ([Beta 9.3.16 report](https://github.com/SchulzCode/Y2Linux/blob/main/docs/validation/Y2-LINUX-1.0-BETA-9.3.16.md)).
+
 ## 1.0.0-beta.9.3.7 — Y2Linux 1.0 Beta 9.3.7 (Baseline 215), 2026-11-03: Bluetooth as a client of the radio daemon (published)
 
 Published as `baseline-215` (Reborn `8fc6f69`); test builds 9.3–9.3.6 were never published. No Reborn code change
