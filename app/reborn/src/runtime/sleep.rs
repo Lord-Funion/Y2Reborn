@@ -47,6 +47,9 @@ impl Runtime {
         {
             return Err("sleep_preparation_busy".into());
         }
+        if !self.video_prepare_sleep() {
+            return Err("sleep_preparation_busy".into());
+        }
         if !self.background.quiesce() {
             self.background.update(
                 &self.model.settings.music_directory,
@@ -70,8 +73,8 @@ impl Runtime {
             self.db.prepare_sleep(Duration::from_secs(2))?;
             self.model.platform.snapshot.sleep.phase =
                 reborn_core::platform::SleepPhase::SleepPreparing;
-            self.model
-                .checkpoint(&self.root.join("state/session.json"))
+            self.video_checkpoint()
+                .unwrap_or_else(|| self.model.checkpoint(&self.root.join("state/session.json")))
                 .map_err(|e| e.to_string())?;
             self.held_since = None;
             self.seek_until = None;
@@ -197,6 +200,7 @@ impl Runtime {
             worker.forget_failures();
         }
         self.graphics = Some(Renderer::open(&reborn_ui::atlases(), self.log.clone())?);
+        self.video_recreate_picture();
         if let Some(skin) = self.ui.skin.clone() {
             self.upload_skin(&skin);
         }

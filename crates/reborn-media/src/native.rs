@@ -134,6 +134,14 @@ type MediaCrossfade = unsafe extern "C" fn(
     *mut c_int,
 ) -> c_int;
 
+#[path = "video.rs"]
+mod video;
+pub use video::{VideoDecoder, VideoFrame, VideoInfo};
+
+#[cfg(test)]
+#[path = "video_tests.rs"]
+mod video_tests;
+
 struct MediaApi {
     // Kept open for the whole process. Decoder contexts can outlive the call
     // which first loaded this membrane, so unloading is deliberately absent.
@@ -145,6 +153,7 @@ struct MediaApi {
     components: MediaComponents,
     error: MediaError,
     open: MediaOpen,
+    open_video_audio: MediaOpen,
     inspect: MediaInspect,
     limits: MediaLimits,
     close: MediaClose,
@@ -199,17 +208,23 @@ impl MediaApi {
             };
             // SAFETY: path is NUL-free and the handle remains open for the
             // lifetime of the returned API.
-            let handle = unsafe { libc::dlopen(name.as_ptr(), libc::RTLD_NOW | libc::RTLD_LOCAL) };
+            let (handle, detail) = unsafe {
+                let handle = libc::dlopen(name.as_ptr(), libc::RTLD_NOW | libc::RTLD_LOCAL);
+                let detail = if handle.is_null() {
+                    let error = libc::dlerror();
+                    (!error.is_null()).then(|| CStr::from_ptr(error).to_string_lossy().into_owned())
+                } else {
+                    None
+                };
+                (handle, detail)
+            };
             if handle.is_null() {
-                let detail = unsafe { libc::dlerror() };
-                if !detail.is_null() {
-                    last_error = unsafe { CStr::from_ptr(detail) }
-                        .to_string_lossy()
-                        .into_owned();
+                if let Some(detail) = detail {
+                    last_error = detail;
                 }
                 continue;
             }
-            let loaded = unsafe {
+            let loaded = (|| unsafe {
                 Ok(Self {
                     _handle: handle,
                     cancel_new: Self::symbol(handle, b"rb_cancel_new\0")?,
@@ -219,6 +234,7 @@ impl MediaApi {
                     components: Self::symbol(handle, b"rb_media_components\0")?,
                     error: Self::symbol(handle, b"rb_media_error\0")?,
                     open: Self::symbol(handle, b"rb_media_open\0")?,
+                    open_video_audio: Self::symbol(handle, b"rb_media_open_video_audio\0")?,
                     inspect: Self::symbol(handle, b"rb_media_inspect\0")?,
                     limits: Self::symbol(handle, b"rb_media_limits\0")?,
                     close: Self::symbol(handle, b"rb_media_close\0")?,
@@ -232,7 +248,7 @@ impl MediaApi {
                     convert: Self::symbol(handle, b"rb_media_convert\0")?,
                     crossfade: Self::symbol(handle, b"rb_media_crossfade\0")?,
                 })
-            };
+            })();
             match loaded {
                 Ok(api) => return Ok(api),
                 Err(error) => {
@@ -698,8 +714,11 @@ impl MediaFile {
         let api = cancel.0.api;
         let mut ptr = std::ptr::null_mut();
         // SAFETY: zeroed repr(C) POD output; all pointers live through this synchronous call.
-        let mut meta: RawMetadata = unsafe { std::mem::zeroed() };
-        let r = unsafe { (api.inspect)(name.as_ptr(), cancel.0.raw.as_ptr(), &mut ptr, &mut meta) };
+        let (r, meta) = unsafe {
+            let mut meta: RawMetadata = std::mem::zeroed();
+            let result = (api.inspect)(name.as_ptr(), cancel.0.raw.as_ptr(), &mut ptr, &mut meta);
+            (result, meta)
+        };
         if r < 0 {
             return Err(error(api, r));
         }
@@ -793,7 +812,7 @@ impl Decoder {
         }
         use std::os::unix::ffi::OsStrExt;
         let name = CString::new(path.as_os_str().as_bytes()).map_err(|_| "NUL in path")?;
-        Self::open_named(name, spec, dsp, cancel)
+        Self::open_named(name, spec, dsp, cancel, false)
     }
     /// Internet radio: decode plain audio bytes (MP3, AAC/ADTS, Ogg, FLAC)
     /// from the read end of a pipe the network fetcher writes. The decoder
@@ -807,13 +826,25 @@ impl Decoder {
     ) -> Result<Self, String> {
         use std::os::fd::AsRawFd;
         let name = CString::new(format!("rbpipe:{}", pipe.as_raw_fd())).map_err(|_| "NUL")?;
-        Self::open_named(name, spec, dsp, cancel)
+        Self::open_named(name, spec, dsp, cancel, false)
+    }
+    /// Explicit opt-in for a video session; ordinary music admission is unchanged.
+    pub fn open_video_audio(
+        path: &Path,
+        spec: OutputSpec,
+        dsp: DspConfig,
+        cancel: Cancel,
+    ) -> Result<Self, String> {
+        use std::os::unix::ffi::OsStrExt;
+        let name = CString::new(path.as_os_str().as_bytes()).map_err(|_| "NUL in path")?;
+        Self::open_named(name, spec, dsp, cancel, true)
     }
     fn open_named(
         name: CString,
         spec: OutputSpec,
         dsp: DspConfig,
         cancel: Cancel,
+        video: bool,
     ) -> Result<Self, String> {
         if !(8000..=384_000).contains(&spec.rate) {
             return Err("unsupported sink rate".into());
@@ -822,9 +853,13 @@ impl Decoder {
         let raw_dsp = dsp.raw();
         let mut ptr = std::ptr::null_mut();
         // SAFETY: output storage and path live through this synchronous call; C retains only the cancellation pointer.
-        let mut meta: RawMetadata = unsafe { std::mem::zeroed() };
-        let r = unsafe {
-            (api.open)(
+        let (r, meta) = unsafe {
+            let mut meta: RawMetadata = std::mem::zeroed();
+            let result = (if video {
+                api.open_video_audio
+            } else {
+                api.open
+            })(
                 name.as_ptr(),
                 spec.rate as c_int,
                 match spec.format {
@@ -836,7 +871,8 @@ impl Decoder {
                 cancel.0.raw.as_ptr(),
                 &mut ptr,
                 &mut meta,
-            )
+            );
+            (result, meta)
         };
         if r < 0 {
             return Err(error(api, r));

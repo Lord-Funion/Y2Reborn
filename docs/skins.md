@@ -248,3 +248,37 @@ Big Type, Cassette, Neon Night, Zune, Bunny Bow (pixel art and the Pixelify
 Sans pixel font) and Mini Silver, Pink, Blue, Green and Gold. Each is a
 complete example to copy and change. `charset` and
 `case: lower` (used by Zune) need Reborn after candidate 33.
+## Native components and video
+
+Format-1 skins may optionally add a `native` object at the manifest root:
+
+```json
+"native": {
+  "title": "menu",
+  "body": "body",
+  "caption": "small",
+  "cover_radius": 0.085,
+  "corner_scale": 1
+}
+```
+
+The three font names refer to fonts already declared in the same skin. Reborn scales those existing
+glyphs to its native text roles and uses their actual metrics for alignment and fitting. No new
+font atlas is allocated. This applies to Cover Flow and native fallback screens, controls, status
+elements and overlays. Explicit skin layouts keep their own font and geometry choices.
+
+`cover_radius` is a fraction of the cover edge, between 0 and 0.25. Zero gives square Cover Flow
+covers and thumbnails. Shape is applied to the GPU copy at upload; the disk cache stays square.
+A skin switch discards the resident shaped copies and requests them again. `corner_scale` is a
+multiplier from 0 to 2 for native rounded rectangles and outlines: zero makes their corners square.
+It does not change an explicit skin element's geometry. Omitted fields keep existing behavior,
+including third-party skins that do not declare `native` at all.
+
+The bundled keyboards now use this same native styling. Classic Cover Flow also follows its light
+palette and font roles instead of opting into the dark default component. Third-party explicit
+`recolor: false` layouts retain their existing opt-out.
+
+The `videos` screen falls back to the skin's normal page/list layouts. `video_playing` may supply
+a playback layout; without one Reborn draws its player controls using the same palette, fonts
+and corner policy. The decoded video texture keeps its original colours. A native element with
+`recolor: false` continues to request Reborn's original component styling.

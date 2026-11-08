@@ -89,7 +89,18 @@ fn corner_coverage(x: usize, y: usize, n: usize, radius: f32) -> f32 {
 
 /// Give a square RGBA picture rounded corners by clearing alpha outside them.
 pub fn round_corners(rgba: &mut [u8], edge: usize) {
-    let radius = edge as f32 * CORNER;
+    round_corners_with_radius(rgba, edge, CORNER);
+}
+
+/// Shape a square picture using a skin radius expressed as a fraction of its edge.
+pub fn round_corners_with_radius(rgba: &mut [u8], edge: usize, radius: f32) {
+    if edge == 0 || rgba.len() != edge * edge * 4 {
+        return;
+    }
+    let radius = edge as f32 * radius.clamp(0., 0.25);
+    if radius == 0. {
+        return;
+    }
     for y in 0..edge {
         for x in 0..edge {
             if x as f32 > radius
@@ -107,6 +118,13 @@ pub fn round_corners(rgba: &mut [u8], edge: usize) {
 
 /// A library thumbnail from a `THUMB_SIZE` RGBA cover: opaque, with rounded corners.
 pub fn thumbnail(cover: &[u8]) -> Option<Vec<u8>> {
+    let mut out = square_thumbnail(cover)?;
+    round_corners(&mut out, THUMB_SIZE);
+    Some(out)
+}
+
+/// Unshaped pixels in the artwork cache; shape only the resident GPU copy.
+pub fn square_thumbnail(cover: &[u8]) -> Option<Vec<u8>> {
     if cover.len() != THUMB_SIZE * THUMB_SIZE * 4 {
         return None;
     }
@@ -115,7 +133,6 @@ pub fn thumbnail(cover: &[u8]) -> Option<Vec<u8>> {
         .0
         .iter_mut()
         .for_each(|p| p[3] = 255);
-    round_corners(&mut out, THUMB_SIZE);
     Some(out)
 }
 

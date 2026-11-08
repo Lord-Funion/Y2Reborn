@@ -1488,7 +1488,7 @@
    {
     "type": "native",
     "part": "screen",
-    "recolor": false,
+    "recolor": true,
     "y": 4
    },
    {
@@ -1518,5 +1518,12 @@
     "if": "has_clock"
    }
   ]
+ },
+ "native": {
+  "title": "menu",
+  "body": "body",
+  "caption": "small",
+  "cover_radius": 0.085,
+  "corner_scale": 1
  }
 }

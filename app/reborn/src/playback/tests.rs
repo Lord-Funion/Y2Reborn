@@ -1308,7 +1308,9 @@ fn decoder_and_sink_agree_on_both_baseline_rates() {
             1,
         )
         .unwrap();
-        let until = Instant::now() + Duration::from_secs(5);
+        // A bounded completion guard, not a playback-speed assertion: emulated hosts can take
+        // longer to perform the sink's many deliberately short writes.
+        let until = Instant::now() + Duration::from_secs(15);
         loop {
             if let Ok(PlaybackEvent::Core(event)) =
                 p.events.recv_timeout(Duration::from_millis(100))

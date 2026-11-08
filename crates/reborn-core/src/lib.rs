@@ -9,9 +9,10 @@ pub mod platform;
 pub mod playlist;
 pub mod queue;
 mod screens;
-pub use screens::Screen;
 pub mod scrobble;
 pub mod sort;
+pub mod video;
+pub use screens::Screen;
 mod zones;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -1157,8 +1158,9 @@ pub const HOME_PINNABLE: [(&str, &str); 5] = [
 ];
 /// Home's own places that can be taken off Home, in Home's order: (key,
 /// label). Music stands first, the others after the pinned lists.
-pub const HOME_HIDEABLE: [(&str, &str); 4] = [
+pub const HOME_HIDEABLE: [(&str, &str); 5] = [
     ("music", "Music"),
+    ("videos", "Videos"),
     ("playlists", "Playlists"),
     ("radio", "Radio"),
     ("search", "Search"),
@@ -1761,6 +1763,7 @@ pub enum BookStart {
 /// platform handles and can be asserted in host tests without hardware.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Effect {
+    Video(video::Request),
     None,
     Platform(PlatformTask),
     WifiDisconnect,

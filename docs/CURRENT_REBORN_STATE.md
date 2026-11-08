@@ -1,5 +1,15 @@
 # Current Reborn state on the Y2
 
+## Local video and unified skins — 2026-11-07 (source candidate)
+
+This review candidate adds local video decoding, audio-clock presentation, physical controls and
+separate resume state, plus native skin typography, palettes and cover shapes. See [Videos](video.md)
+and the [host validation report](validation/video-host-validation.md). It needs the paired Y2Linux
+codec package and maintainer review of the built-in controller while the plugin host is pending.
+No production image or physical Y2 video result is available; the published baseline below retains
+its own scope. Device synchronization, sustained memory, Bluetooth, sleep and battery qualification
+remain open.
+
 ## 1.0.0-beta.9.3.16 — Y2Linux 1.0 Beta 9.3.16 (Baseline 224), 2026-11-06: steady Bluetooth (published)
 
 Published as `baseline-224` (Reborn `ceb4824`; work `0ed544c`, `d4298f2`, contract `e209e30`). A playing Bluetooth PCM

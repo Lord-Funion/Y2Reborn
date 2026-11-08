@@ -103,7 +103,7 @@ static int wait_flip(int fd, struct flip *f) {
 static _Thread_local char last_error[256];
 const char *rb_graphics_error(void) { return last_error; }
 /* Texture slots; keep in step with reborn-graphics/src/native.rs. */
-#define RB_TEXTURES 10
+#define RB_TEXTURES 11
 #define RB_SKIN_MAX 1024
 /* Runtime glyph page edge; keep in step with GLYPH_PAGE in glyphs.rs. */
 #define RB_GLYPHS 1024
@@ -346,6 +346,8 @@ static int gl_setup(RbGraphics *g, const uint8_t *const font_pages[3],
   g->tex_w[8] = g->tex_h[8] = 1;
   /* Runtime glyph page (CJK): sized by its first upload (rb_graphics_glyphs),
    * so a UI that never shows such text holds no video memory for it. */
+  g->tex[10] = texture(1, 1, white);
+  g->tex_w[10] = g->tex_h[10] = 1;
   g->tex[9] = texture(1, 1, white);
   g->tex_w[9] = g->tex_h[9] = 1;
   for (int i = 5; i < RB_TEXTURES; i++) {
@@ -523,7 +525,7 @@ void rb_graphics_begin(RbGraphics *g) {
   glClear(GL_COLOR_BUFFER_BIT);
 }
 /* `tex` selects the texture (0 white, 1..3 glyph pages, 4 masks, 5 artwork,
- * 6 collection artwork, 7 thumbnails, 8 skin atlas, 9 runtime glyph page);
+ * 6 collection artwork, 7 thumbnails, 8 skin atlas, 9 runtime glyph page, 10 video);
  * (sx, sy, sw, sh) is the source rectangle
  * in texels of a mask/glyph/thumbnail texture, and of an artwork texture
  * unless empty (the whole texture). Ignored for 0 (white). */
@@ -531,7 +533,7 @@ void rb_graphics_begin(RbGraphics *g) {
 static void source_uv(RbGraphics *g, int tex, int sx, int sy, int sw, int sh,
                       float uv[4]) {
   uv[0] = 0; uv[1] = 0; uv[2] = 1; uv[3] = 1;
-  if ((tex >= 1 && tex <= 4) || tex >= 7 ||
+  if ((tex >= 1 && tex <= 4) || (tex >= 7 && tex <= 9) ||
       ((tex == 5 || tex == 6) && sw > 0 && sh > 0)) {
     uv[0] = (float)sx / g->tex_w[tex];
     uv[1] = (float)sy / g->tex_h[tex];
@@ -779,4 +781,19 @@ failed:
   if (handoff >= 0) close(handoff);
   g->failed = true;
   return error;
+}
+
+/* A persistent video texture: replace storage only when its size changes. */
+int rb_graphics_video(RbGraphics *g, const uint8_t *p, int w, int h) {
+  if (!p || w < 1 || h < 1 || w > 480 || h > 360) return -EINVAL;
+  glBindTexture(GL_TEXTURE_2D, g->tex[10]);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+  if (g->tex_w[10] == w && g->tex_h[10] == h)
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, p);
+  else
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, p);
+  if (glGetError() != GL_NO_ERROR) return -EIO;
+  g->tex_w[10] = w;
+  g->tex_h[10] = h;
+  return 0;
 }

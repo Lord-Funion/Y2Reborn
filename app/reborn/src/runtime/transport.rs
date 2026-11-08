@@ -10,7 +10,10 @@ impl Runtime {
         if self.playback.has_pending_start() || self.pending_reconfiguration.is_some() {
             return;
         }
-        if let Err(e) = self.model.checkpoint(&self.root.join("state/session.json")) {
+        let saved = self
+            .video_checkpoint()
+            .unwrap_or_else(|| self.model.checkpoint(&self.root.join("state/session.json")));
+        if let Err(e) = saved {
             self.dirty.checkpoint_failed();
             self.log.emit(
                 Level::Warn,
@@ -70,7 +73,7 @@ impl Runtime {
         // A station is never pre-opened for gapless playback: that would start
         // a second network transfer.
         // (`upcoming` leaves stations and Repeat One without a next song.)
-        let (queue, queue_entry_ids) = self.model.upcoming(UPCOMING);
+        let (queue, queue_entry_ids) = self.video.upcoming(&self.model);
         let eq = self.model.settings.active_eq();
         let loaded = (self.model.settings.replay_gain, eq.clone());
         let fade_in = dsp_rise_fades(self.loaded_dsp.as_ref(), &loaded);
@@ -81,7 +84,7 @@ impl Runtime {
             preamp_db: eq.as_ref().map_or(0.0, |(preamp, _)| *preamp),
             eq_bands: eq.map(|(_, bands)| bands).unwrap_or_default(),
             // A book's parts follow each other without a crossfade.
-            crossfade_ms: if self.model.book_part().is_some() {
+            crossfade_ms: if self.model.book_part().is_some() || self.video.active() {
                 0
             } else {
                 self.model.settings.crossfade_ms
@@ -97,7 +100,7 @@ impl Runtime {
             self.model.position_ms,
             generation,
             dsp,
-            self.model.settings.gapless_enabled,
+            self.video.gapless(&self.model),
             self.log.correlation(),
             fade_in,
         );
@@ -381,6 +384,10 @@ impl Runtime {
         self.with_model_action(Self::finish_track_inner)
     }
     pub(crate) fn finish_track_inner(&mut self) -> Result<(), String> {
+        if self.video.active() {
+            self.stop_playback();
+            return Ok(());
+        }
         // A book plays its parts in order once, whatever Repeat says.
         if let Some(result) = self.finish_book_part() {
             return result;
@@ -604,5 +611,12 @@ impl Runtime {
         self.checkpoint();
         self.dirty.mark_render();
         Ok(())
+    }
+}
+
+impl Runtime {
+    pub(crate) fn stop_playback(&mut self) {
+        self.pause();
+        self.model.playback = PlaybackState::Stopped;
     }
 }

@@ -6,7 +6,7 @@ use crate::{
     components::{self, art_key},
     flow::{self, TransitionKind},
     screens::screen_title,
-    text::{self, Face},
+    text::Face,
     theme::{alpha, color, fade, mix, HEIGHT, WIDTH},
     Ui,
 };
@@ -146,7 +146,7 @@ pub fn albums(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interacti
         c.text_center(
             x,
             270. + Face::S20.mid_offset(),
-            &text::fit(Face::S20, &row.label, 440.),
+            &c.fit_text(Face::S20, &row.label, 440.),
             Face::S20,
             fade(color::TEXT, shown),
         );
@@ -158,7 +158,7 @@ pub fn albums(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interacti
         c.text_center(
             x,
             298. + Face::R15.mid_offset(),
-            &text::fit(Face::R15, &artist, 440.),
+            &c.fit_text(Face::R15, &artist, 440.),
             Face::R15,
             fade(color::MUTED, shown),
         );

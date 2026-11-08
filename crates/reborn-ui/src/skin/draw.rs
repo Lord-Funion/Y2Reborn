@@ -445,10 +445,10 @@ fn builtin_for(px: f32) -> Face {
     .unwrap_or(Face::R15)
 }
 
-struct Writer<'a> {
-    font: FontRef,
-    fonts: &'a [Font],
-    tracking: f32,
+pub(super) struct Writer<'a> {
+    pub(super) font: FontRef,
+    pub(super) fonts: &'a [Font],
+    pub(super) tracking: f32,
 }
 
 impl Writer<'_> {
@@ -470,7 +470,7 @@ impl Writer<'_> {
         }
         text::advance(self.fallback(), ch)
     }
-    fn width(&self, s: &str) -> f32 {
+    pub(super) fn width(&self, s: &str) -> f32 {
         let mut total = 0.;
         let mut n = 0.;
         for ch in s.chars().filter(|c| !c.is_control()) {
@@ -479,7 +479,7 @@ impl Writer<'_> {
         }
         total + self.tracking * (n - 1f32).max(0.)
     }
-    fn mid(&self) -> f32 {
+    pub(super) fn mid(&self) -> f32 {
         match self.font {
             FontRef::Builtin(f) => f.mid_offset(),
             FontRef::Skin(_) => self.skin().map_or(6., |f| f.mid),
@@ -491,7 +491,7 @@ impl Writer<'_> {
             FontRef::Skin(_) => self.skin().map_or(20., |f| f.line),
         }
     }
-    fn fit(&self, s: &str, max: f32) -> String {
+    pub(super) fn fit(&self, s: &str, max: f32) -> String {
         let clean: String = s.chars().filter(|c| !c.is_control()).take(1024).collect();
         if max <= 0. || self.width(&clean) <= max {
             return clean;
@@ -513,7 +513,7 @@ impl Writer<'_> {
             out
         }
     }
-    fn wrap(&self, s: &str, max: f32, lines: usize) -> Vec<String> {
+    pub(super) fn wrap(&self, s: &str, max: f32, lines: usize) -> Vec<String> {
         let mut out = vec![];
         let mut rest = s.trim();
         while !rest.is_empty() && out.len() < lines {
@@ -542,7 +542,7 @@ impl Writer<'_> {
         }
         out
     }
-    fn draw(&self, c: &mut Canvas, x: f32, baseline: f32, s: &str, color: u32) {
+    pub(super) fn draw(&self, c: &mut Canvas, x: f32, baseline: f32, s: &str, color: u32) {
         if color & 0xFF == 0 {
             return;
         }
@@ -911,35 +911,7 @@ fn element(c: &mut Canvas, s: &Scene, el: &El, ox: f32, oy: f32, row: Option<&Ro
             dx,
             dy,
             recolor,
-        } => {
-            let start = c.draw.len();
-            match part {
-                NativePart::Screen => {
-                    if let Some(native) = s.native {
-                        native(c);
-                    }
-                }
-                NativePart::Status => {
-                    components::status_cluster(c, s.ui, s.m, color::MUTED, false);
-                }
-            }
-            if *recolor {
-                remap(c, start, &s.skin.palette, s.ui.cover_accent());
-            }
-            for q in &mut c.draw[start..] {
-                q.x += ox + dx;
-                q.y += oy + dy;
-                if let Some(w) = &mut q.warp {
-                    for p in &mut w.corners {
-                        p[0] += ox + dx;
-                        p[1] += oy + dy;
-                    }
-                }
-                if s.opacity < 1. {
-                    q.color = crate::theme::fade(q.color, s.opacity);
-                }
-            }
-        }
+        } => native(c, s, *part, [ox + dx, oy + dy], *recolor),
     }
 }
 
@@ -981,8 +953,10 @@ fn indicators(c: &mut Canvas, s: &Scene, right: f32, top: f32, look: IndicatorLo
 }
 
 pub(crate) fn draw_layout(c: &mut Canvas, s: &Scene, layout: &[Node]) {
+    let native_skin = c.native_skin.take();
     let start = c.draw.len();
     nodes(c, s, layout, 0., 0., None);
+    c.native_skin = native_skin;
     let mut seen = false;
     for q in &mut c.draw[start..] {
         if q.focus_target {
@@ -997,7 +971,7 @@ pub(crate) fn draw_layout(c: &mut Canvas, s: &Scene, layout: &[Node]) {
 /// Pictures (artwork, thumbnails, skin images) keep their colours.
 /// The greys come from the theme, so a new value there stays recoloured
 /// (9.2.3's brighter greys were not, and stayed light on light skins, Y2Reborn #76).
-pub(crate) fn remap(c: &mut Canvas, start: usize, p: &Palette, accent: u32) {
+pub(super) fn remap_color(c: u32, p: &Palette, accent: u32) -> u32 {
     let table: [(u32, u32); 16] = [
         (0x06070A, p.bg),
         (0x000000, p.scrim),
@@ -1017,27 +991,29 @@ pub(crate) fn remap(c: &mut Canvas, start: usize, p: &Palette, accent: u32) {
         (0xFFBE3C, p.warning),
     ];
     let default_accent = color::ACCENT >> 8;
-    let map = |c: u32| -> u32 {
-        let (rgb, a) = (c >> 8, c & 0xFF);
-        // Reborn draws controls in its fixed accent; a skin keeps its own
-        // (or, without one, the cover's) as before UI v4.
-        let to = if rgb == default_accent {
-            Some(accent)
-        } else {
-            table
-                .iter()
-                .find(|(from, _)| *from == rgb)
-                .map(|(_, to)| *to)
-        };
-        match to {
-            Some(to) => (to & 0xFFFF_FF00) | ((a * (to & 0xFF) + 127) / 255),
-            None => c,
-        }
+    let (rgb, a) = (c >> 8, c & 0xFF);
+    // Reborn draws controls in its fixed accent; a skin keeps its own
+    // (or, without one, the cover's) as before UI v4.
+    let to = if rgb == default_accent {
+        Some(accent)
+    } else {
+        table
+            .iter()
+            .find(|(from, _)| *from == rgb)
+            .map(|(_, to)| *to)
     };
+    match to {
+        Some(to) => (to & 0xFFFF_FF00) | ((a * (to & 0xFF) + 127) / 255),
+        None => c,
+    }
+}
+
+pub(crate) fn remap(c: &mut Canvas, start: usize, p: &Palette, accent: u32) {
+    let map = |color| remap_color(color, p, accent);
     for q in &mut c.draw[start..] {
         if matches!(
             q.tex,
-            Tex::Art | Tex::CollectionArt | Tex::Thumb(_) | Tex::Skin
+            Tex::Art | Tex::CollectionArt | Tex::Thumb(_) | Tex::Skin | Tex::Video
         ) {
             continue;
         }
@@ -1046,6 +1022,39 @@ pub(crate) fn remap(c: &mut Canvas, start: usize, p: &Palette, accent: u32) {
         // fades into the background, Y2Reborn #57; the progress ribbon).
         if let Some(w) = &mut q.warp {
             w.colors = w.colors.map(map);
+        }
+    }
+}
+
+fn native(c: &mut Canvas, s: &Scene, part: NativePart, offset: [f32; 2], recolor: bool) {
+    let native_skin = c.native_skin.take();
+    c.native_skin = if recolor { s.ui.skin.clone() } else { None };
+    let start = c.draw.len();
+    match part {
+        NativePart::Screen => {
+            if let Some(native) = s.native {
+                native(c);
+            }
+        }
+        NativePart::Status => {
+            components::status_cluster(c, s.ui, s.m, color::MUTED, false);
+        }
+    }
+    c.native_skin = native_skin;
+    if recolor {
+        remap(c, start, &s.skin.palette, s.ui.cover_accent());
+    }
+    for q in &mut c.draw[start..] {
+        q.x += offset[0];
+        q.y += offset[1];
+        if let Some(w) = &mut q.warp {
+            for p in &mut w.corners {
+                p[0] += offset[0];
+                p[1] += offset[1];
+            }
+        }
+        if s.opacity < 1. {
+            q.color = crate::theme::fade(q.color, s.opacity);
         }
     }
 }

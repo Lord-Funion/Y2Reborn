@@ -13,6 +13,8 @@ use crate::{
 use reborn_core::{platform::LowBattery, AppModel, Modal, Screen, Track};
 use reborn_graphics::Quad;
 
+const VIDEO_PLAYING_LAYOUT: &str = "video_playing";
+
 /// Rows visible in one window for a screen's list area.
 pub fn visible_rows_for(screen: Screen) -> usize {
     match screen {
@@ -73,6 +75,7 @@ fn native_screen(
         Screen::NowPlaying if m.current().is_some() => {
             views_playing::now_playing(c, ui, m, tracks, has_art, interactive)
         }
+        Screen::VideoPlaying => crate::video::playing(c, ui, m),
         Screen::Home => views_library::home(c, ui, m, tracks, has_art, interactive),
         Screen::Music => views_library::music(c, ui, m, tracks, interactive),
         Screen::Albums
@@ -147,6 +150,8 @@ fn layout_keys(m: &AppModel, page: Option<&Page>, empty: bool) -> &'static [&'st
         Screen::TextEntry | Screen::Pairing => &[],
         Screen::ValueDetail => &["value", "page"],
         Screen::Music => keys!("music"),
+        Screen::Videos => keys!("videos"),
+        Screen::VideoPlaying => &[VIDEO_PLAYING_LAYOUT],
         Screen::NowPlaying => keys!("now_playing"),
         Screen::TrackInfo => keys!("song_info"),
         Screen::Settings => keys!("settings"),
@@ -251,6 +256,8 @@ pub(crate) fn skin_layout<'s>(
 
 fn skinned(ui: &Ui, skin: &Skin, m: &AppModel, tracks: &[Track], has_art: bool) -> Vec<Quad> {
     let mut c = Canvas::new();
+    c.native_skin = ui.skin.clone();
+    c.native_accent = ui.cover_accent();
     c.rect(0., 0., WIDTH, HEIGHT, skin.bg());
     if matches!(
         m.platform.busy,
@@ -300,6 +307,24 @@ fn skinned(ui: &Ui, skin: &Skin, m: &AppModel, tracks: &[Track], has_art: bool) 
     }
     skinned_overlays(&mut c, ui, skin, m, tracks);
     c.finish()
+}
+
+/// One palette pass for native keys, including legacy layouts that opt out of native styling.
+fn skinned_keyboard(
+    c: &mut Canvas,
+    ui: &Ui,
+    skin: &Skin,
+    m: &AppModel,
+    tracks: &[Track],
+    keyboard: &crate::keyboard::Keyboard,
+) {
+    let at = c.draw.len();
+    let styled = c.native_skin.is_some();
+    crate::keyboard::draw_body(c, ui, m, tracks, keyboard);
+    // Styled native elements convert after the callback. Legacy keyboards converted here.
+    if !styled {
+        skin::remap(c, at, &skin.palette, ui.cover_accent());
+    }
 }
 
 /// `overlays` for a skin: its sheet, dialog, toast and volume layouts where
@@ -359,11 +384,7 @@ fn skinned_overlays(c: &mut Canvas, ui: &Ui, skin: &Skin, m: &AppModel, tracks: 
             // The skin's title bar over Reborn's keys in the skin's colours.
             Some(layout) => {
                 let title = k.purpose.title();
-                let body = |c: &mut Canvas| {
-                    let at = c.draw.len();
-                    crate::keyboard::draw_body(c, ui, m, tracks, k);
-                    skin::remap(c, at, &skin.palette, ui.cover_accent());
-                };
+                let body = |c: &mut Canvas| skinned_keyboard(c, ui, skin, m, tracks, k);
                 let s = Scene {
                     native: Some(&body),
                     sheet: Some(Sheet {
@@ -663,6 +684,8 @@ pub(crate) fn context_song(ui: &Ui, m: &AppModel, tracks: &[Track]) -> (Option<S
 pub fn screen_title(m: &AppModel) -> String {
     match m.screen {
         Screen::Home => String::new(),
+        Screen::Videos => "Videos".into(),
+        Screen::VideoPlaying => "Video".into(),
         Screen::Music => "Music".into(),
         Screen::Albums => match m.navigation.filter.strip_prefix("genre:") {
             Some("") => "No Genre".into(),

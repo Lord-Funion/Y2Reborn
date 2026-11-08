@@ -156,6 +156,11 @@ impl Runtime {
 
     /// The picture shown again in the new look's shape.
     fn reshape_art(&mut self) {
+        if let Some(renderer) = &mut self.graphics {
+            renderer.clear_thumbs();
+        }
+        self.ui.collection_art.set(None);
+        self.ui.clear_cover_request();
         if self.art {
             let rgba = std::mem::take(&mut self.art_square);
             self.show_art(rgba);

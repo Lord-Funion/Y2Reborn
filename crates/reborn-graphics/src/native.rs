@@ -62,6 +62,7 @@ unsafe extern "C" {
     ) -> c_int;
     fn rb_graphics_skin(p: *mut c_void, b: *const u8, w: c_int, h: c_int) -> c_int;
     fn rb_graphics_glyphs(p: *mut c_void, y: c_int, rows: c_int, a8: *const u8) -> c_int;
+    fn rb_graphics_video(p: *mut c_void, b: *const u8, w: c_int, h: c_int) -> c_int;
     fn rb_graphics_test(p: *mut c_void) -> c_int;
     fn rb_graphics_readback(p: *mut c_void, pixels: *mut u8) -> c_int;
     fn rb_graphics_present(p: *mut c_void) -> c_int;
@@ -139,25 +140,23 @@ impl Renderer {
         let mut p = std::ptr::null_mut();
         // SAFETY: every page has the checked one-byte-per-texel length; the
         // constructor copies them into GL and returns uniquely owned handles.
-        let r = unsafe {
-            rb_graphics_open(
+        let (raw, info, width, height) = unsafe {
+            let r = rb_graphics_open(
                 &mut p,
                 pages.as_ptr(),
                 heights.as_ptr(),
                 atlases.masks.as_ptr(),
                 mask_w as c_int,
                 mask_h as c_int,
-            )
-        };
-        if r < 0 {
-            // SAFETY: thread-local C diagnostic string has static storage on this UI thread.
-            let detail = unsafe { CStr::from_ptr(rb_graphics_error()) }.to_string_lossy();
-            return Err(format!("DRM/GBM/EGL initialization failed: {r}, {detail}"));
-        }
-        let raw = NonNull::new(p).ok_or("null graphics context")?;
-        // SAFETY: initialized context retains info string and dimensions until Drop; all access stays on owner UI thread.
-        let (info, width, height) = unsafe {
+            );
+            if r < 0 {
+                // SAFETY: thread-local C diagnostic string has static storage on this UI thread.
+                let detail = CStr::from_ptr(rb_graphics_error()).to_string_lossy();
+                return Err(format!("DRM/GBM/EGL initialization failed: {r}, {detail}"));
+            }
+            let raw = NonNull::new(p).ok_or("null graphics context")?;
             (
+                raw,
                 CStr::from_ptr(rb_graphics_info(p))
                     .to_string_lossy()
                     .into_owned(),
@@ -230,6 +229,7 @@ impl Renderer {
                     Tex::Art => (5, level_source(ART_SIZE, drawn_edge(q))),
                     Tex::CollectionArt => (6, level_source(ART_SIZE, drawn_edge(q))),
                     Tex::Skin => (8, q.src),
+                    Tex::Video => (10, [0; 4]),
                     // Not drawn while the page failed to upload.
                     Tex::Glyphs if !self.glyphs_resident => continue,
                     Tex::Glyphs => (9, q.src),
@@ -389,6 +389,10 @@ impl Renderer {
     pub fn missing_thumbs(&self) -> &[u64] {
         &self.missing
     }
+    /// Forget shaped thumbnails so subsequent requests upload the selected skin's shape.
+    pub fn clear_thumbs(&mut self) {
+        self.thumbs.clear();
+    }
     /// Keys of every thumbnail the atlas currently holds.
     pub fn resident_thumbs(&self) -> impl Iterator<Item = u64> + '_ {
         self.thumbs.keys().copied()
@@ -444,6 +448,31 @@ impl Renderer {
         );
         self.log.add("thumbnail_uploads", 1.);
         Ok(())
+    }
+    /// Reuse one texture allocation while dimensions stay the same.
+    pub fn video(&mut self, rgba: &[u8], width: u32, height: u32) -> Result<(), String> {
+        if width == 0
+            || height == 0
+            || width > 480
+            || height > 360
+            || rgba.len() != width as usize * height as usize * 4
+        {
+            return Err("invalid video picture dimensions".into());
+        }
+        // SAFETY: exact checked RGBA extent, exclusively owned live GL context; synchronous copy.
+        let result = unsafe {
+            rb_graphics_video(
+                self.raw.as_ptr(),
+                rgba.as_ptr(),
+                width as c_int,
+                height as c_int,
+            )
+        };
+        if result < 0 {
+            Err(format!("video texture upload {result}"))
+        } else {
+            Ok(())
+        }
     }
     pub fn artwork(&mut self, rgba: &[u8]) -> Result<(), String> {
         self.upload_art(rgba, false)

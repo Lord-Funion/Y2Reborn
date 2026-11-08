@@ -33,6 +33,7 @@ Indexed pages: **66**. Explicit historical/contract scope notices:
 | [Reborn FFmpeg 9 audio stack](architecture/reborn-audio-stack-ffmpeg9.md) | Source contract |
 | [Reborn physical input audit](architecture/reborn-input-audit.md) | Historical design / runbook |
 | [Reborn skins](skins.md) | Author guide / source contract |
+| [Local video](video.md) | Source candidate: controls, formats, implementation and hardware qualification limits |
 | [Reborn UI reset architecture](architecture/reborn-premium-overhaul.md) | Historical design / runbook |
 
 ## Validation
@@ -45,6 +46,7 @@ Indexed pages: **66**. Explicit historical/contract scope notices:
 | [Platform v1 application integration](validation/PLATFORM-V1-INTEGRATION.md) | Scoped validation record |
 | [Platform 1.0 FFmpeg, metadata and library ingest](validation/REBORN-PLATFORM-V1-FFMPEG-METADATA.md) | Scoped validation record |
 | [Reborn Platform 1.0 performance and responsiveness](validation/REBORN-PLATFORM-V1-PERFORMANCE.md) | Scoped validation record |
+| [Video and unified-skin host validation](validation/video-host-validation.md) | Host-only validation; no production image or physical Y2 qualification |
 | [Physical Y2 wired precision completion](validation/REBORN-Y2-WIRED-PRECISION-COMPLETION.md) | Scoped validation record |
 | [REBORN-BASELINE-01 — first implementation handoff](validation/REBORN-BASELINE-01.md) | Scoped validation record |
 | [REBORN-RADIO-UI-01 — scan feedback correction](validation/REBORN-RADIO-UI-01.md) | Scoped validation record |

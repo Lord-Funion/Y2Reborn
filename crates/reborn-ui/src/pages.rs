@@ -131,6 +131,8 @@ pub fn page(ui: &Ui, m: &AppModel, tracks: &[Track]) -> Page {
     match m.screen {
         Screen::Home => Page::rows(home_rows(&m.settings, tracks)),
         Screen::Music => Page::rows(music(ui, m, tracks)),
+        Screen::Videos => crate::video::library(ui),
+        Screen::VideoPlaying => Page::default(),
         Screen::HomeMenu => home_menu(ui, m),
         Screen::NowPlaying if m.current().is_none() => Page::hero(
             "Nothing Playing",

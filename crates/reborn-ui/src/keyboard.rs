@@ -482,7 +482,7 @@ fn draw_with(
         c.text(
             LEFT + 4.,
             58. + Face::R13.mid_offset(),
-            &text::fit(Face::R13, &k.purpose.prompt(), 10. * UNIT - 8.),
+            &c.fit_text(Face::R13, &k.purpose.prompt(), 10. * UNIT - 8.),
             Face::R13,
             color::MUTED,
         );
@@ -583,7 +583,7 @@ pub(crate) fn field(
         c.text(
             x + 22.,
             mid + Face::R15.mid_offset(),
-            &text::fit(Face::R15, placeholder, room),
+            &c.fit_text(Face::R15, placeholder, room),
             Face::R15,
             color::DIM,
         );
@@ -664,7 +664,7 @@ fn draw_results(
         c.text_mid_right(
             LEFT + 10. * UNIT - 12.,
             y + RESULT_H / 2.,
-            &text::fit(Face::R11, &item.secondary, sub_w + 1.),
+            &c.fit_text(Face::R11, &item.secondary, sub_w + 1.),
             Face::R11,
             color::MUTED,
         );

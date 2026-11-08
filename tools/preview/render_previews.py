@@ -87,6 +87,8 @@ class Rasterizer:
         self.covers: dict[int, Image.Image] = {}
         self.skin: Image.Image | None = None
         self.glyphs: Image.Image | None = None
+        self.video: Image.Image | None = None
+        self.cover_radius = 0.085
 
     def load_glyphs(self, preview_dir: Path) -> None:
         """The runtime (CJK) glyph page reborn-preview wrote, if any."""
@@ -96,6 +98,14 @@ class Rasterizer:
 
     def load_skin(self, preview_dir: Path) -> None:
         """The skin atlas reborn-preview wrote for `--skin`, if any."""
+        style = preview_dir / "cover-style.json"
+        if style.exists():
+            self.cover_radius = json.loads(style.read_text())["radius"]
+        video = preview_dir / "video-frame.json"
+        if video.exists():
+            info = json.loads(video.read_text())
+            self.video = Image.frombytes("RGBA", (info["width"], info["height"]),
+                                         (preview_dir / "video-frame.rgba").read_bytes())
         meta = preview_dir / "skin-atlas.json"
         if meta.exists():
             size = json.loads(meta.read_text())
@@ -112,7 +122,7 @@ class Rasterizer:
 
     def cover_for(self, key: int, size: int, rounded: bool = True) -> Image.Image:
         if (key, rounded) not in self.covers:
-            self.covers[key, rounded] = cover(key >> 8 if key else 0, rounded=0.085 if rounded else 0.0)
+            self.covers[key, rounded] = cover(key >> 8 if key else 0, rounded=self.cover_radius if rounded else 0.0)
         return self.covers[key, rounded].resize((size, size), Image.Resampling.BILINEAR)
 
     def art_for(self, tex: str, size: int) -> Image.Image:
@@ -128,6 +138,8 @@ class Rasterizer:
             return self.art_for(tex, 180)
         if isinstance(tex, dict) and "Thumb" in tex:
             return self.cover_for(tex["Thumb"], 128)
+        if tex == "Video":
+            return self.video.copy()
         if tex == "Skin":
             sx, sy, sw, sh = quad["src"]
             return self.skin.crop((sx, sy, sx + sw, sy + sh))
@@ -186,6 +198,10 @@ class Rasterizer:
         elif isinstance(tex, dict) and "Thumb" in tex:
             layer = self.cover_for(tex["Thumb"], w).resize((w, h))
             layer.putalpha(ImageChops.multiply(layer.getchannel("A"), Image.new("L", (w, h), tint[3])))
+        elif tex == "Video":
+            if self.video is None:
+                return
+            layer = self.video.resize((w, h), Image.Resampling.BILINEAR)
         elif tex == "Skin":
             if quad["src"][2] == 0 or quad["src"][3] == 0:
                 return

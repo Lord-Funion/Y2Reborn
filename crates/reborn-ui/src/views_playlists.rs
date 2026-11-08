@@ -144,7 +144,7 @@ fn home(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interactive: bo
         None
     };
     if let Some(hint) = hint {
-        for (n, line) in text::wrap(Face::R13, hint, 400., 2).iter().enumerate() {
+        for (n, line) in c.wrap_text(Face::R13, hint, 400., 2).iter().enumerate() {
             c.text_center(
                 240.,
                 140. + n as f32 * 20. + Face::R13.mid_offset(),
@@ -293,7 +293,7 @@ fn page(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interactive: bo
             );
         }
         if p.entries.is_empty() {
-            for (n, line) in text::wrap(
+            for (n, line) in c.wrap_text(
                 Face::R13,
                 "Empty. Hold Select on any song, album or Now Playing and choose Add to Playlist.",
                 420.,

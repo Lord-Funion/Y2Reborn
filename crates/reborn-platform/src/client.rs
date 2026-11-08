@@ -2043,17 +2043,33 @@ mod tests {
     #[test]
     fn cancel_stops_an_abortable_download_and_reports_its_answer() {
         // Stands in for `update stage`: SIGTERM makes it answer and exit.
+        let ready = std::env::temp_dir().join(format!("reborn-abort-ready-{}", std::process::id()));
+        let marker = ready.clone();
         let script = "trap 'printf \"{\\\"state\\\":\\\"Failed\\\",\\\"failure\\\":\\\"download_cancelled\\\"}\"; exit 1' TERM; \
-                      sleep 5 >/dev/null & wait";
-        let started = Instant::now();
-        let abort = thread::spawn(|| {
-            thread::sleep(Duration::from_millis(150));
+                      : > \"$1\"; sleep 5 >/dev/null & wait";
+        let abort = thread::spawn(move || {
+            let deadline = Instant::now() + Duration::from_secs(5);
+            while !marker.exists() {
+                assert!(
+                    Instant::now() < deadline,
+                    "fixture did not install its TERM trap"
+                );
+                thread::sleep(Duration::from_millis(5));
+            }
+            let cancelled = Instant::now();
             abort_download();
+            cancelled
         });
-        let result = run("/bin/sh", &["-c", script], Duration::from_secs(10), true);
-        abort.join().unwrap();
+        let result = run(
+            "/bin/sh",
+            &["-c", script, "abort-fixture", ready.to_str().unwrap()],
+            Duration::from_secs(10),
+            true,
+        );
+        let cancelled = abort.join().unwrap();
+        fs::remove_file(ready).unwrap();
         assert_eq!(result.unwrap_err(), "download_cancelled");
-        assert!(started.elapsed() < Duration::from_secs(4));
+        assert!(cancelled.elapsed() < Duration::from_secs(4));
         assert!(!ABORT_DOWNLOAD.load(Ordering::SeqCst));
     }
 

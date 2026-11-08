@@ -3,6 +3,7 @@
 use super::*;
 use crate::{Item, Ui};
 use reborn_core::{AppModel, Effect, PlaybackState, Screen, Source, Track};
+use reborn_graphics::Tex;
 use std::collections::HashMap;
 
 /// A skin package in memory. Pictures are PNG files (read by size, filled
@@ -156,6 +157,84 @@ fn skinned(skin: Skin) -> Ui {
     Ui {
         skin: Some(std::rc::Rc::new(skin)),
         ..Default::default()
+    }
+}
+
+#[test]
+fn native_video_and_cover_flow_use_skin_fonts_and_switch_palettes() {
+    let mut ui = skinned(classic());
+    let mut m = model(Screen::VideoPlaying);
+    m.queue = library(1);
+    m.position_ms = 30_000;
+    ui.video.title = "Motion test".into();
+    ui.video.detail = "H.264".into();
+    ui.video.picture = Some((480, 270));
+    let first = ui.draw(&m, &[], false);
+    let palette = &ui.skin.as_ref().unwrap().palette;
+    assert!(first
+        .iter()
+        .any(|q| q.tex == Tex::Video && q.color == 0xFFFFFFFF));
+    assert!(first
+        .iter()
+        .any(|q| q.tex == Tex::Skin && q.color == palette.text));
+    assert!(!first.iter().any(|q| matches!(q.tex, Tex::Font(_))));
+    let mut next = classic();
+    next.palette.text = 0x3DFF6EFF;
+    next.palette.bg = 0x050805FF;
+    next.palette.accent = Some(0xFF3EA5FF);
+    ui.skin = Some(std::rc::Rc::new(next));
+    let second = ui.draw(&m, &[], false);
+    assert!(second
+        .iter()
+        .any(|q| q.tex == Tex::Skin && q.color == 0x3DFF6EFF));
+    assert!(second
+        .iter()
+        .any(|q| q.tex == Tex::Video && q.color == 0xFFFFFFFF));
+    m.screen = Screen::Albums;
+    let tracks = library(4);
+    let flow = ui.draw(&m, &tracks, false);
+    assert!(flow.iter().any(|q| q.warp.is_some()));
+    assert!(!flow.iter().any(|q| matches!(q.tex, Tex::Font(_))));
+}
+
+#[test]
+fn native_typography_is_optional_and_fits_using_the_selected_font_metrics() {
+    let legacy = compile_test(r#"{"list": []}"#).unwrap();
+    assert!(legacy.native_width("A title", Face::S20, 0.).is_none());
+    let skin = classic();
+    let long = "A very long album title with wide letters WWWWWW";
+    let fitted = skin.native_fit(long, Face::S20, 140.).unwrap();
+    assert!(skin.native_width(&fitted, Face::S20, 0.).unwrap() <= 140.1);
+    assert!(fitted.ends_with('…'));
+    let mut square = vec![255; 32 * 32 * 4];
+    crate::art::round_corners_with_radius(&mut square, 32, 0.);
+    assert_eq!(square[3], 255);
+    crate::art::round_corners_with_radius(&mut square, 32, 0.085);
+    assert!(square[3] < 255);
+}
+
+#[test]
+fn classic_cover_flow_and_keyboard_keep_the_light_skin_background() {
+    let mut ui = skinned(classic());
+    let tracks = library(4);
+    for screen in [Screen::Albums, Screen::TextEntry] {
+        let m = model(screen);
+        if screen == Screen::TextEntry {
+            ui.keyboard = Some(crate::keyboard::Keyboard::new(
+                crate::keyboard::Purpose::RadioSearch,
+                "Blue water",
+            ));
+        }
+        let quads = ui.draw(&m, &tracks, false);
+        let backgrounds: Vec<_> = quads
+            .iter()
+            .filter(|q| q.tex == Tex::Solid && q.w >= 480. && q.h >= 100.)
+            .collect();
+        assert!(!backgrounds.is_empty());
+        assert!(
+            backgrounds.iter().all(|q| q.color == 0xFFFFFFFF),
+            "{screen:?} uses Classic's background"
+        );
     }
 }
 

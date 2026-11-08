@@ -324,7 +324,7 @@ fn info(c: &mut Canvas, ui: &Ui, m: &AppModel, rows: &[Item], interactive: bool)
         live_pill(c, x, y, "LIVE");
         y += 22.;
     }
-    for line in text::wrap(Face::S20, &s.name, room, 2) {
+    for line in c.wrap_text(Face::S20, &s.name, room, 2) {
         c.text(x, y + 14., &line, Face::S20, color::TEXT);
         y += 25.;
     }

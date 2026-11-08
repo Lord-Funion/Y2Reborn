@@ -1331,12 +1331,12 @@
     "y": 0,
     "w": 480,
     "h": 360,
-    "color": "#06070A"
+    "color": "bg"
    },
    {
     "type": "native",
     "part": "screen",
-    "recolor": false
+    "recolor": true
    },
    {
     "type": "part",
@@ -1369,7 +1369,7 @@
    {
     "type": "native",
     "part": "screen",
-    "recolor": false
+    "recolor": true
    },
    {
     "type": "part",
@@ -1398,5 +1398,12 @@
     "if": "has_clock"
    }
   ]
+ },
+ "native": {
+  "title": "menu",
+  "body": "body",
+  "caption": "small",
+  "cover_radius": 0.0,
+  "corner_scale": 0
  }
 }

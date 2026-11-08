@@ -21,7 +21,17 @@ const PLATFORM_LITERALS: [&str; 9] = [
 ];
 
 /// Justified exceptions outside the platform crate: (file, literal, reason).
-const ALLOWED: [(&str, &str, &str); 10] = [
+const ALLOWED: [(&str, &str, &str); 12] = [
+    (
+        "crates/reborn-media/src/video_tests.rs",
+        "\"/proc/",
+        "test-only own-descriptor inventory verifies failed video opens release their input",
+    ),
+    (
+        "crates/reborn-media/examples/video_probe.rs",
+        "\"/proc/",
+        "explicit decoder qualification tool reads its own peak RSS; never installed as UI",
+    ),
     (
         "app/reborn/src/artwork.rs",
         "\"/proc/",

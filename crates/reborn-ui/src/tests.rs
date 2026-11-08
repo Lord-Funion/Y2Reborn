@@ -328,6 +328,7 @@ fn pinned_music_lists_stand_after_music_on_home() {
         [
             "Now Playing",
             "Music",
+            "Videos",
             "Albums",
             "Genres",
             "Playlists",
@@ -336,11 +337,11 @@ fn pinned_music_lists_stand_after_music_on_home() {
             "Settings"
         ]
     );
-    // Every state of Home draws with one focus target, eleven rows included.
+    // Every state of Home draws with one focus target, twelve rows included.
     for key in ["artists", "tracks", "folders"] {
         m.settings.pin_home(key, true);
     }
-    m.navigation.focus = 10;
+    m.navigation.focus = 11;
     let quads = ui.draw(&m, &m.library.tracks, false);
     assert_eq!(crate::focus_target_count(&quads), 1);
 }
@@ -356,13 +357,14 @@ fn home_menu_switches_pin_and_unpin_from_customize() {
     ui.action(&mut m, &tracks, Action::Select);
     assert_eq!(m.screen, Screen::HomeMenu);
     // Every place Home can show, in Home's order (#52, #55): Music,
-    // Audiobooks (Beta 8.19), the Music lists, Playlists, Radio, Search.
+    // Videos, Audiobooks (Beta 8.19), the Music lists, Playlists, Radio, Search.
     let rows = ui.rows(&m, &tracks);
     let keys: Vec<_> = rows.iter().map(|r| r.key.as_str()).collect();
     assert_eq!(
         keys,
         [
             "home_show:music",
+            "home_show:videos",
             "home_audiobooks",
             "home_pin:artists",
             "home_pin:albums",
@@ -374,27 +376,27 @@ fn home_menu_switches_pin_and_unpin_from_customize() {
             "home_show:search"
         ]
     );
-    assert_eq!(rows[1].kind, crate::RowKind::Toggle(true));
-    assert_eq!(rows[2].kind, crate::RowKind::Toggle(false));
-    assert_eq!(rows[8].kind, crate::RowKind::Toggle(true));
-    m.navigation.focus = 2;
+    assert_eq!(rows[2].kind, crate::RowKind::Toggle(true));
+    assert_eq!(rows[3].kind, crate::RowKind::Toggle(false));
+    assert_eq!(rows[9].kind, crate::RowKind::Toggle(true));
+    m.navigation.focus = 3;
     assert_eq!(
         ui.action(&mut m, &tracks, Action::Select),
         Effect::SetHomePin("artists".into(), true)
     );
     m.settings.pin_home("artists", true);
-    assert_eq!(ui.rows(&m, &tracks)[2].kind, crate::RowKind::Toggle(true));
+    assert_eq!(ui.rows(&m, &tracks)[3].kind, crate::RowKind::Toggle(true));
     assert_eq!(
         ui.action(&mut m, &tracks, Action::Select),
         Effect::SetHomePin("artists".into(), false)
     );
-    m.navigation.focus = 8;
+    m.navigation.focus = 9;
     assert_eq!(
         ui.action(&mut m, &tracks, Action::Select),
         Effect::SetHomeShown("radio".into(), false)
     );
     m.settings.show_on_home("radio", false);
-    assert_eq!(ui.rows(&m, &tracks)[8].kind, crate::RowKind::Toggle(false));
+    assert_eq!(ui.rows(&m, &tracks)[9].kind, crate::RowKind::Toggle(false));
     assert_eq!(
         ui.action(&mut m, &tracks, Action::Select),
         Effect::SetHomeShown("radio".into(), true)
@@ -420,6 +422,7 @@ fn home_places_can_be_hidden_but_now_playing_and_settings_stay() {
     assert_eq!(summary(&mut m), "Standard");
     for key in [
         "music",
+        "videos",
         "playlists",
         "radio",
         "search",
@@ -429,18 +432,22 @@ fn home_places_can_be_hidden_but_now_playing_and_settings_stay() {
         m.settings.show_on_home(key, false);
     }
     assert_eq!(keys(&m), ["now_playing", "settings"]);
-    assert_eq!(summary(&mut m), "4 hidden");
+    assert_eq!(summary(&mut m), "5 hidden");
     // Pinned lists still stand on Home without Music.
     m.settings.pin_home("albums", true);
     assert_eq!(keys(&m), ["now_playing", "albums", "settings"]);
-    assert_eq!(summary(&mut m), "1 added, 4 hidden");
+    assert_eq!(summary(&mut m), "1 added, 5 hidden");
     let quads = ui.draw(&m, &tracks, false);
     assert_eq!(crate::focus_target_count(&quads), 1);
     // Playlists and Search taken off Home are kept at hand in Music.
     m.settings.show_on_home("music", true);
     m.settings.show_on_home("radio", true);
+    m.settings.show_on_home("videos", true);
     m.settings.pin_home("albums", false);
-    assert_eq!(keys(&m), ["now_playing", "music", "radio", "settings"]);
+    assert_eq!(
+        keys(&m),
+        ["now_playing", "music", "videos", "radio", "settings"]
+    );
     assert_eq!(summary(&mut m), "Playlists, Search hidden");
     m.screen = Screen::Music;
     assert_eq!(
@@ -463,6 +470,7 @@ fn home_places_can_be_hidden_but_now_playing_and_settings_stay() {
         [
             "now_playing",
             "music",
+            "videos",
             "playlists",
             "radio",
             "search",
@@ -482,7 +490,7 @@ fn back_to_home_after_a_home_menu_change_keeps_the_place_focused() {
     select_key(&mut ui, &mut m, "settings");
     select_key(&mut ui, &mut m, "customize");
     select_key(&mut ui, &mut m, "home_menu");
-    // Hide Radio, pin Albums and Songs: Settings moves from 5 to 6.
+    // Hide Radio, pin Albums and Songs: Settings moves from 6 to 7.
     for (key, effect) in [
         (
             "home_show:radio",
@@ -503,7 +511,7 @@ fn back_to_home_after_a_home_menu_change_keeps_the_place_focused() {
     }
     assert_eq!(m.screen, Screen::Home);
     assert_eq!(home(&ui, &m)[m.navigation.focus], "settings");
-    assert_eq!(home(&ui, &m).len(), 7);
+    assert_eq!(home(&ui, &m).len(), 8);
 }
 
 /// The library plus "Momo", three 60-s parts in a Hörbücher folder.
@@ -541,7 +549,10 @@ fn audiobooks_stand_on_home_once_there_is_a_book_and_can_be_switched_off() {
     );
     with_book(&mut m);
     ui.invalidate_catalog();
-    assert_eq!(keys(&ui, &m)[..3], ["now_playing", "music", "audiobooks"]);
+    assert_eq!(
+        keys(&ui, &m)[..4],
+        ["now_playing", "music", "videos", "audiobooks"]
+    );
     m.screen = Screen::HomeMenu;
     assert_eq!(
         select_key(&mut ui, &mut m, "home_audiobooks"),
@@ -838,6 +849,7 @@ fn root_is_a_small_music_player_menu() {
         [
             "Now Playing",
             "Music",
+            "Videos",
             "Playlists",
             "Radio",
             "Search",
@@ -6976,15 +6988,15 @@ fn home_menu_moves_a_place_and_home_follows_its_order() {
         m.navigation.modal.is_none(),
         "no menu: the place is carried"
     );
-    for _ in 0..9 {
+    for _ in 0..10 {
         ui.model_action(&mut m, Action::WheelClockwise(1));
     }
     assert_eq!(
-        keys(&ui, &m)[9],
+        keys(&ui, &m)[10],
         "home_show:music",
         "drawn at its new place"
     );
-    assert_eq!(m.navigation.focus, 9);
+    assert_eq!(m.navigation.focus, 10);
     let Effect::SetHomeOrder(order) = ui.model_action(&mut m, Action::Select) else {
         panic!("Select places it");
     };
@@ -6998,6 +7010,7 @@ fn home_menu_moves_a_place_and_home_follows_its_order() {
         home,
         [
             "now_playing",
+            "videos",
             "playlists",
             "radio",
             "search",
@@ -7011,7 +7024,7 @@ fn home_menu_moves_a_place_and_home_follows_its_order() {
     ui.model_action(&mut m, Action::WheelClockwise(1));
     assert_eq!(ui.model_action(&mut m, Action::Back), Effect::None);
     assert_eq!(m.screen, Screen::HomeMenu);
-    assert_eq!(keys(&ui, &m)[0], "home_audiobooks");
+    assert_eq!(keys(&ui, &m)[0], "home_show:videos");
 }
 
 #[test]

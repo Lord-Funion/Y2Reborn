@@ -41,6 +41,7 @@ pub mod theme;
 mod time_zone;
 mod ui_state;
 mod up_next;
+pub mod video;
 mod views_books;
 mod views_coverflow;
 mod views_library;
@@ -549,6 +550,7 @@ pub struct Ui {
     pub skin: Option<std::rc::Rc<skin::Skin>>,
     /// Installed skins, as last scanned for the picker.
     pub themes: Vec<skin::SkinInfo>,
+    pub video: video::View,
     /// Headphone profile files, as last scanned for the profile list.
     pub eq_profiles: Vec<reborn_core::eq::ProfileFile>,
 }

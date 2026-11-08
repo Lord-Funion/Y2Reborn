@@ -25,10 +25,11 @@ try:
  assert runtime and ffmpeg_version in runtime['version'],runtime
  assert runtime['libraries']=={'libavutil':'61.1.102','libavcodec':'63.1.102','libavformat':'63.1.102','libavfilter':'12.1.102','libswresample':'7.1.102','libswscale':'10.1.102'},runtime
  required={
-  'demuxers':{'flac','mp3','mov','ogg','wav','aac','aiff','ape','wv'},
+  'demuxers':{'flac','mp3','mov','ogg','wav','aac','aiff','ape','wv','matroska'},
   'audio_decoders':{'flac','mp3','mp3float','aac','alac','vorbis','opus','ape','wavpack','pcm_s16le','pcm_s16be','pcm_s24le','pcm_s24be','pcm_s32le','pcm_s32be','pcm_f32le','pcm_f32be'},
   'artwork_decoders':{'mjpeg','png','webp'},
-  'parsers':{'flac','mpegaudio','aac','opus','vorbis'},
+  'video_decoders':{'h264','vp8'},
+  'parsers':{'flac','mpegaudio','aac','opus','vorbis','h264','vp8'},
   'filters':{'abuffer','abuffersink','aformat','aresample','volume','equalizer','lowshelf','highshelf','alimiter','acrossfade','amix','atrim','afade','asetnsamples','atempo'},
  }
  for field,names in required.items(): assert names.issubset(set(runtime[field])),(field,names-set(runtime[field]))

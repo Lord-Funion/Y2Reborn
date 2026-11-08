@@ -160,7 +160,7 @@ fn root(c: &mut Canvas, ui: &Ui, page: &Page, focus: usize, interactive: bool) {
         c.text_mid_right(
             WIDTH - 42.,
             mid,
-            &text::fit(Face::R11, &row.secondary, 150.),
+            &c.fit_text(Face::R11, &row.secondary, 150.),
             Face::R11,
             color::MUTED,
         );
@@ -202,7 +202,7 @@ fn group(
             }
             RowKind::Check(on) => {
                 // A short value (a zone's region and offset) left of the check.
-                let value = text::fit(Face::R11, &row.secondary, 150.);
+                let value = c.fit_text(Face::R11, &row.secondary, 150.);
                 let mut room = 340.;
                 if !value.is_empty() {
                     room -= text::width(Face::R11, &value) + 16.;
@@ -214,7 +214,7 @@ fn group(
                 }
             }
             RowKind::Chevron | RowKind::Plain => {
-                let value = text::fit(Face::R11, &row.secondary, 170.);
+                let value = c.fit_text(Face::R11, &row.secondary, 170.);
                 let right = if row.kind == RowKind::Chevron {
                     WIDTH - 40.
                 } else {
@@ -275,7 +275,7 @@ pub(crate) fn group_page(
         c.text_mid_right(
             WIDTH - 28.,
             y + 12.,
-            &text::fit(Face::R13, value, 270.),
+            &c.fit_text(Face::R13, value, 270.),
             Face::R13,
             color::TEXT,
         );
@@ -334,7 +334,7 @@ pub(crate) fn hero_mark(m: &AppModel) -> components::Mark {
 /// A headline and explanation, left-aligned; returns the y below them.
 pub fn message(c: &mut Canvas, title: &str, body: &str, y: f32) -> f32 {
     let mut cy = y + 14.;
-    for line in text::wrap(Face::S20, title, 432., 2) {
+    for line in c.wrap_text(Face::S20, title, 432., 2) {
         c.text(
             24.,
             cy + Face::S20.mid_offset(),
@@ -346,7 +346,7 @@ pub fn message(c: &mut Canvas, title: &str, body: &str, y: f32) -> f32 {
     }
     if !body.is_empty() {
         cy += 2.;
-        for line in text::wrap(Face::R13, body, 432., 3) {
+        for line in c.wrap_text(Face::R13, body, 432., 3) {
             c.text(
                 24.,
                 cy + Face::R13.mid_offset(),
@@ -923,7 +923,7 @@ fn storage(c: &mut Canvas, m: &AppModel, page: &Page, focus: usize, interactive:
             face,
             if row.enabled { color::TEXT } else { color::DIM },
         );
-        let value = text::fit(Face::R11, &row.secondary, 190.);
+        let value = c.fit_text(Face::R11, &row.secondary, 190.);
         c.text_mid_right(WIDTH - 40., y + 22., &value, Face::R11, color::MUTED);
         components::chevron(c, WIDTH - 22., y + 22.);
     }
@@ -1269,7 +1269,7 @@ fn update(c: &mut Canvas, ui: &Ui, m: &AppModel, page: &Page, focus: usize, inte
     c.disc(46., 81., 18., tint);
     c.icon(icon, 46., 81., 20., color::INK);
     c.text_mid(76., 62., 360., &title, Face::S17, color::TEXT);
-    for (i, line) in text::wrap(Face::R11, &body, 360., 3).iter().enumerate() {
+    for (i, line) in c.wrap_text(Face::R11, &body, 360., 3).iter().enumerate() {
         c.text_mid(
             76.,
             84. + i as f32 * 15.,

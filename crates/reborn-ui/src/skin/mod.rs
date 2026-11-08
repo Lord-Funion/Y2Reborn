@@ -14,6 +14,7 @@
 pub(crate) mod atlas;
 mod compile;
 mod draw;
+mod native;
 
 use crate::{canvas::Icon, text::Face, theme};
 use serde::Deserialize;
@@ -570,6 +571,8 @@ pub const LAYOUTS: &[&str] = &[
     "page",
     // One screen; takes precedence over its category.
     "music",
+    "videos",
+    "video_playing",
     "artists",
     "albums",
     "cover_flow",
@@ -633,6 +636,7 @@ pub struct Skin {
     pub id: String,
     pub name: String,
     pub(crate) palette: Palette,
+    pub(crate) native_style: native::Style,
     pub(crate) layouts: HashMap<&'static str, Vec<Node>>,
     pub(crate) fonts: Vec<atlas::Font>,
     pub atlas: Vec<u8>,

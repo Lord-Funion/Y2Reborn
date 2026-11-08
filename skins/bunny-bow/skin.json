@@ -2087,7 +2087,7 @@
    {
     "type": "native",
     "part": "screen",
-    "recolor": false
+    "recolor": true
    },
    {
     "type": "part",
@@ -2105,5 +2105,12 @@
     "align": "center"
    }
   ]
+ },
+ "native": {
+  "title": "menu",
+  "body": "body",
+  "caption": "small",
+  "cover_radius": 0.085,
+  "corner_scale": 1
  }
 }

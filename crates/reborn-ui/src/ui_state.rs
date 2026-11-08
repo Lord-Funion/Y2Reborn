@@ -300,6 +300,19 @@ impl Ui {
         self.cover_request.take()
     }
 
+    /// Native covers use the selected skin's shape. Format-1 packages without this option
+    /// keep the existing rounded Cover Flow and library thumbnails.
+    pub fn cover_radius(&self) -> f32 {
+        self.skin
+            .as_ref()
+            .and_then(|skin| skin.native_style.cover_radius)
+            .unwrap_or(0.085)
+    }
+
+    pub fn clear_cover_request(&self) {
+        self.cover_request.set(None);
+    }
+
     /// The download bar's fill for this frame: it glides toward the reported
     /// value (reports come four times a second), and starts from empty when
     /// the step changes from download to check.
@@ -618,5 +631,11 @@ impl Ui {
     /// index that carries each cover.
     pub fn take_wanted_thumbs(&self) -> Vec<(u64, usize)> {
         std::mem::take(&mut self.wanted.borrow_mut())
+    }
+}
+
+impl Ui {
+    pub fn shape_cover(&self, rgba: &mut [u8], edge: usize) {
+        crate::art::round_corners_with_radius(rgba, edge, self.cover_radius());
     }
 }

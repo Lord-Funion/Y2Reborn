@@ -252,7 +252,7 @@ fn action_tile(c: &mut Canvas, ui: &Ui, row: &Item) {
     let ly = if detail { y + 53. } else { y + 60. };
     c.text_center(cx, ly + face.mid_offset(), label, face, ink);
     if detail {
-        let shown = crate::text::fit(Face::R11, &row.secondary, w - 16.);
+        let shown = c.fit_text(Face::R11, &row.secondary, w - 16.);
         c.text_center(
             cx,
             y + 70. + Face::R11.mid_offset(),

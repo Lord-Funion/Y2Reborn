@@ -153,6 +153,8 @@ fn radius_slot(r: f32) -> usize {
 }
 
 pub struct Canvas {
+    pub(crate) native_skin: Option<std::rc::Rc<crate::skin::Skin>>,
+    pub(crate) native_accent: u32,
     pub draw: Vec<Quad>,
     /// Where shared components drew things that move (Beta 7.2); one pass
     /// eases them once the frame is built (`motion::apply`).
@@ -238,12 +240,16 @@ impl Canvas {
         Self {
             draw: Vec::with_capacity(1200),
             moving: Vec::new(),
+            native_skin: None,
+            native_accent: crate::theme::color::ACCENT,
         }
     }
     pub fn from_quads(draw: Vec<Quad>) -> Self {
         Self {
             draw,
             moving: Vec::new(),
+            native_skin: None,
+            native_accent: crate::theme::color::ACCENT,
         }
     }
     /// Note quads that move (see `Moving`).
@@ -274,9 +280,19 @@ impl Canvas {
 
     // ----------------------------------------------------------------- shapes
 
+    fn styled_radius(&self, radius: f32) -> f32 {
+        radius
+            * self
+                .native_skin
+                .as_ref()
+                .and_then(|skin| skin.native_style.corner_scale)
+                .unwrap_or(1.)
+    }
+
     /// Filled rounded rectangle built from non-overlapping pieces, so
     /// translucent colours blend once everywhere.
     pub fn rrect(&mut self, x: f32, y: f32, w: f32, h: f32, r: f32, color: u32) {
+        let r = self.styled_radius(r);
         let (x, y, w, h) = (x.round(), y.round(), w.round(), h.round());
         let r = r.min(w / 2.).min(h / 2.).floor();
         if r < 2. {
@@ -313,6 +329,7 @@ impl Canvas {
         width: f32,
         color: u32,
     ) {
+        let r = self.styled_radius(r);
         let (x, y, w, h) = (x.round(), y.round(), w.round(), h.round());
         let t = width.round().clamp(1., 3.);
         let r = r.min(w / 2.).min(h / 2.).floor();
@@ -347,6 +364,10 @@ impl Canvas {
     /// Hide the corners of the square at (x, y, size) behind `bg`, turning a
     /// picture drawn there into a rounded one. `bg` must be what lies behind.
     pub fn round_off(&mut self, x: f32, y: f32, size: f32, r: f32, bg: u32) {
+        let r = self.styled_radius(r);
+        if r <= 0. {
+            return;
+        }
         let slot = radius_slot(r.min(size / 2.));
         let r = f32::from(mask::CORNER_RADII[slot]);
         let c = &mask::INVERSE_CORNERS[slot];
@@ -439,6 +460,24 @@ impl Canvas {
 
     /// Draw `text` with its baseline at `baseline`, starting at `x`. Returns
     /// the pen advance, so callers can place trailing content.
+    pub(crate) fn text_width(&self, face: Face, text: &str, tracking: f32) -> f32 {
+        self.native_skin
+            .as_ref()
+            .and_then(|s| s.native_width(text, face, tracking))
+            .unwrap_or_else(|| text::width_tracked(face, text, tracking))
+    }
+    pub(crate) fn fit_text(&self, face: Face, text: &str, max: f32) -> String {
+        self.native_skin
+            .as_ref()
+            .and_then(|s| s.native_fit(text, face, max))
+            .unwrap_or_else(|| text::fit(face, text, max))
+    }
+    pub(crate) fn wrap_text(&self, face: Face, text: &str, max: f32, lines: usize) -> Vec<String> {
+        self.native_skin
+            .as_ref()
+            .and_then(|s| s.native_wrap(text, face, max, lines))
+            .unwrap_or_else(|| text::wrap(face, text, max, lines))
+    }
     pub fn text(&mut self, x: f32, baseline: f32, text: &str, face: Face, color: u32) -> f32 {
         self.text_tracked(x, baseline, text, face, color, 0.)
     }
@@ -452,6 +491,13 @@ impl Canvas {
         color: u32,
         tracking: f32,
     ) -> f32 {
+        if let Some(skin) = self.native_skin.take() {
+            let result = skin.native_text(self, [x, baseline], text, face, color, tracking);
+            self.native_skin = Some(skin);
+            if let Some(width) = result {
+                return width;
+            }
+        }
         if color & 0xFF == 0 {
             return text::width_tracked(face, text, tracking);
         }
@@ -510,12 +556,12 @@ impl Canvas {
     }
 
     pub fn text_right(&mut self, right: f32, baseline: f32, text: &str, face: Face, color: u32) {
-        let w = text::width(face, text);
+        let w = self.text_width(face, text, 0.);
         self.text(right - w, baseline, text, face, color);
     }
 
     pub fn text_center(&mut self, cx: f32, baseline: f32, text: &str, face: Face, color: u32) {
-        let w = text::width(face, text);
+        let w = self.text_width(face, text, 0.);
         self.text(cx - w / 2., baseline, text, face, color);
     }
 
@@ -528,7 +574,7 @@ impl Canvas {
         color: u32,
         tracking: f32,
     ) {
-        let w = text::width_tracked(face, text, tracking);
+        let w = self.text_width(face, text, tracking);
         self.text_tracked(cx - w / 2., baseline, text, face, color, tracking);
     }
 
@@ -542,7 +588,7 @@ impl Canvas {
         face: Face,
         color: u32,
     ) {
-        let shown = text::fit(face, text, max_width);
+        let shown = self.fit_text(face, text, max_width);
         self.text(x, cy + face.mid_offset(), &shown, face, color);
     }
 

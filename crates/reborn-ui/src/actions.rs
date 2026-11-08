@@ -35,8 +35,8 @@ impl Ui {
         tracks: &[Track],
         action: Action,
     ) -> Effect {
-        if !m.screen_off {
-            self.normalize(m, tracks);
+        if let Some(effect) = self.screen_action(m, tracks, action) {
+            return effect;
         }
         // The one-step update owns the screen until it restarts the player
         // or ends; Select is its Cancel while the download runs.
@@ -447,9 +447,8 @@ impl Ui {
     }
 
     pub(crate) fn select_row(&mut self, m: &mut AppModel, tracks: &[Track], key: &str) -> Effect {
-        if key == "back" {
-            Self::back(m);
-            return Effect::None;
+        if let Some(effect) = self.location_select(m, key) {
+            return effect;
         }
         if let Some(book) = key.strip_prefix("book:") {
             Self::go(m, Screen::Book, book);
@@ -469,10 +468,6 @@ impl Ui {
                 Self::go(m, Screen::NowPlaying, "");
                 return Effect::PlayBook(book, start);
             }
-        }
-        if key == "home" {
-            Self::home(m);
-            return Effect::None;
         }
         if key.starts_with("value:") {
             Self::go(m, Screen::ValueDetail, key.trim_start_matches("value:"));

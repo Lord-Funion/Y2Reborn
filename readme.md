@@ -28,6 +28,13 @@ skins. Written in Rust, it decodes with FFmpeg, draws with OpenGL ES on the Y2's
 - **Playlists** (`.m3u`/`.m3u8`) made and changed on the player or copied from a computer, and Favorites with a
   heart. Changes are written back into the playlist file.
 
+**Videos (source candidate)**
+- Home → Videos finds local MP4/M4V, MKV and WebM candidates on Internal Storage and the SD card. The player
+  decodes moving video, uses the existing audio output and audible-position clock, and supports click-wheel
+  seeking, play/pause, restart and saved resume positions. Controls follow the selected skin.
+- Requires the paired Y2Linux FFmpeg codec build. No physical Y2 video performance is qualified for this
+  contribution; see [formats, controls and limits](docs/video.md).
+
 **Listening**
 - Gapless playback, crossfade up to 12 s, shuffle by song or by album, repeat and a sleep timer.
 - A five-band equalizer with presets, headphone profiles for 47 headphones and IEMs (AutoEq) plus your own AutoEq
@@ -97,9 +104,13 @@ player's side) and `crates/reborn-ui/src/qr.rs` (QR codes).
 
 Use Rust **1.99.0**; `rust-toolchain.toml` pins it together with the `armv7-unknown-linux-gnueabihf` target. All
 crates are vendored in `vendor/`, so builds work offline. Host builds link the system's development libraries through
-`pkg-config`: FFmpeg (`libavformat`, `libavcodec`, `libavutil`, `libavfilter`, `libswresample`, `libswscale`), ALSA,
+`pkg-config`: FFmpeg 9 (`libavformat`, `libavcodec`, `libavutil`, `libavfilter`, `libswresample`, `libswscale`), ALSA,
 D-Bus, SQLite, libdrm, GBM, EGL and GLES v2. Code follows Y2Linux's
 [coding standard](https://github.com/SchulzCode/Y2Linux/blob/main/docs/CODING-STANDARD.md).
+
+The GLES integration test needs Mesa's surfaceless software renderer and its drivers (for example,
+`libgl1-mesa-dri` on Debian), a C compiler and its UndefinedBehaviorSanitizer runtime. It exercises
+the production video upload and shader without DRM hardware. PNG preview rendering needs Pillow.
 
 ```sh
 cargo fmt --all -- --check
@@ -113,6 +124,16 @@ UI previews render the production drawing code on the host with sample data:
 cargo run --release --bin reborn-preview -- OUT [--skin skins/classic]
 python3 tools/preview/render_previews.py OUT --output PNG_DIR
 ```
+
+Video and Cover Flow previews use a decoded synthetic video picture:
+
+```sh
+cargo run --bin reborn-video-preview -- OUT --skin skins/neon
+python3 tools/preview/render_previews.py OUT --output PNG_DIR
+cargo run -p reborn-media --example video_probe -- assets/fixtures/video-h264-aac.mp4
+```
+
+The probe measures decoding on the machine where it runs; it is not a real-time playback or Y2 qualification.
 
 The ARM binary is built only through Y2Linux's Buildroot, which provides the cross toolchain, sysroot, FFmpeg,
 SQLite, ALSA, D-Bus and Mesa. Check out this repository **next to** Y2Linux (`../Y2Reborn`);

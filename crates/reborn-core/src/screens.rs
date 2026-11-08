@@ -10,6 +10,8 @@ pub enum Screen {
     #[serde(alias = "main")]
     Home,
     Music,
+    Videos,
+    VideoPlaying,
     Artists,
     Albums,
     /// Genres from the files' tags; each opens its albums.

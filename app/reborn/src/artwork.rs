@@ -448,7 +448,7 @@ fn run(shared: &(Mutex<Shared>, Condvar), tx: &Sender<Reply>) {
         let (rgba, cache_hit) = match hit {
             Some(bytes) => {
                 touch(&path);
-                (reborn_ui::art::thumbnail(&decode_420(&bytes)), true)
+                (reborn_ui::art::square_thumbnail(&decode_420(&bytes)), true)
             }
             None => {
                 let cancel = Cancel::new().ok();
@@ -458,7 +458,7 @@ fn run(shared: &(Mutex<Shared>, Condvar), tx: &Sender<Reply>) {
                         .ok()
                         .flatten()
                 });
-                let rgba = cover.as_deref().and_then(reborn_ui::art::thumbnail);
+                let rgba = cover.as_deref().and_then(reborn_ui::art::square_thumbnail);
                 if let (Some(cover), Some(_)) = (&cover, &rgba) {
                     if cached >= CACHE_LIMIT {
                         cached -= evict(&job.cache, CACHE_EVICT).min(cached);
@@ -573,9 +573,14 @@ mod tests {
             worker.want(vec![job(&root, &track, 7)]);
             std::thread::sleep(std::time::Duration::from_millis(4));
         }
-        std::thread::sleep(std::time::Duration::from_millis(300));
+        // Wait for publication, retaining unread accounting until the assertion below. The worker
+        // increments that count before sending, so polling it could race the channel send.
+        let first = worker
+            .replies
+            .recv_timeout(std::time::Duration::from_secs(10))
+            .unwrap();
         assert_eq!(unread(&worker), 1, "one reply, not one per request");
-        assert!(worker.try_reply().is_some());
+        worker.taken(&first);
         assert!(worker.try_reply().is_none());
         assert_eq!(unread(&worker), 0);
         // Once taken it may be asked for again (now from the disk cache).
@@ -620,7 +625,10 @@ mod tests {
         assert_eq!(cached, [CACHED_BYTES as u64], "one 4:2:0 file");
         let rgba = first.rgba.expect("embedded cover decodes");
         assert_eq!(rgba.len(), THUMB_SIZE * THUMB_SIZE * 4);
-        assert_eq!(rgba[3], 0, "rounded corner is transparent");
+        assert_eq!(
+            rgba[3], 255,
+            "cached corners are shaped by the selected skin at upload"
+        );
         assert!(!first.cache_hit);
         let again = reply(&mut worker, job(&root, &track, 7));
         assert!(again.cache_hit);

@@ -239,7 +239,9 @@ pub(crate) fn run() -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
     let background = background::Gate::new(&model.settings.music_directory, &model.sources);
+    let video = video::Controller::new(root.join("state/video-resume.json"));
     let mut rt = Runtime {
+        video,
         queued_platform: None,
         update_idle_since: None,
         zone_lookup_again: false,
@@ -810,6 +812,7 @@ impl MainLoop {
         self.ui_and_jack(rt);
         self.input(rt);
         self.playback_events(rt);
+        rt.video_tick();
         self.scan_results(rt);
         self.query_results(rt);
         self.wifi_and_replies(rt);
@@ -862,7 +865,7 @@ impl MainLoop {
                 if reply.full {
                     // Cover Flow's centre cover at full resolution.
                     if let (Some(mut rgba), Some(renderer)) = (reply.rgba, rt.graphics.as_mut()) {
-                        reborn_ui::art::round_corners(&mut rgba, reborn_graphics::ART_SIZE);
+                        rt.ui.shape_cover(&mut rgba, reborn_graphics::ART_SIZE);
                         if renderer.collection_artwork(&rgba).is_ok() {
                             rt.ui.collection_art.set(Some(reply.thumb));
                             rt.dirty.mark_render();
@@ -872,7 +875,7 @@ impl MainLoop {
                 }
                 match (reply.rgba, rt.graphics.as_mut()) {
                     (Some(rgba), Some(renderer)) => {
-                        if renderer.upload_thumb(reply.thumb, &rgba).is_ok() {
+                        if shaped_thumb(renderer, &rt.ui, reply.thumb, rgba).is_ok() {
                             rt.dirty.mark_render();
                         }
                     }
@@ -2217,6 +2220,11 @@ fn bluetooth_service(
         preference: model.settings.codec_preference,
     });
     Ok(bt)
+}
+
+fn shaped_thumb(g: &mut Renderer, ui: &Ui, key: u64, mut rgba: Vec<u8>) -> Result<(), String> {
+    ui.shape_cover(&mut rgba, reborn_graphics::THUMB_SIZE);
+    g.upload_thumb(key, &rgba)
 }
 
 impl MainLoop {

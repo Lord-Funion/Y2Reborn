@@ -566,7 +566,7 @@ pub fn action_sheet(c: &mut Canvas, title: &str, subtitle: &str, rows: &[SheetRo
         let detail = if row.detail.is_empty() {
             String::new()
         } else {
-            text::fit(
+            c.fit_text(
                 Face::R11,
                 row.detail,
                 (room - text::width(face, row.label) - 24.).max(room * 0.25),
@@ -614,7 +614,7 @@ pub fn dialog(
     let scrim_at = c.draw.len();
     scrim(c, true);
     let start = c.draw.len();
-    let lines = text::wrap(Face::R13, body, 300., 4);
+    let lines = c.wrap_text(Face::R13, body, 300., 4);
     let h = 74. + lines.len() as f32 * 19. + rows.len() as f32 * 38. + 10.;
     let (w, x) = (340., 70.);
     let y = ((HEIGHT - h) / 2.).max(12.);
@@ -696,7 +696,7 @@ pub fn empty_state(c: &mut Canvas, cy: f32, mark: Mark, title: &str, body: &str)
         Mark::Busy(phase) => c.spinner(240., cy, 30., color::ACCENT, color::RING_TRACK, phase),
     }
     let mut y = cy + 50.;
-    for line in text::wrap(Face::S20, title, 420., 2) {
+    for line in c.wrap_text(Face::S20, title, 420., 2) {
         c.text_center(
             240.,
             y + Face::S20.mid_offset(),
@@ -707,7 +707,7 @@ pub fn empty_state(c: &mut Canvas, cy: f32, mark: Mark, title: &str, body: &str)
         y += 26.;
     }
     y += 2.;
-    for line in text::wrap(Face::R13, body, 380., 3) {
+    for line in c.wrap_text(Face::R13, body, 380., 3) {
         c.text_center(
             240.,
             y + Face::R13.mid_offset(),
@@ -748,7 +748,7 @@ pub fn toast(c: &mut Canvas, message: &str, tone: Tone) {
     let start = c.draw.len();
     // A message too long for one line takes a second one instead of being
     // cut ("Couldn't reach the update server. Try again in a m…", #55).
-    let lines = text::wrap(Face::S15, message, WIDTH - 154., 2);
+    let lines = c.wrap_text(Face::S15, message, WIDTH - 154., 2);
     let h = 10. + 20. * lines.len().max(1) as f32;
     let w = if lines.len() > 1 {
         WIDTH - 100.

@@ -159,6 +159,7 @@ typedef struct {
   int has_identity, seek_points_restored;
   uint64_t io_read;
   int io_limited;
+  int video;
   AVCodecContext *c;
   AVPacket *p;
   AVFrame *frame;
@@ -882,6 +883,9 @@ static int decode_more(RbMedia *m) {
     if (pts != AV_NOPTS_VALUE) {
       int64_t decoded = av_rescale_q(pts, m->f->streams[m->stream]->time_base,
                                      (AVRational){1, m->c->sample_rate});
+      if (m->video && m->f->start_time != AV_NOPTS_VALUE)
+        decoded -= av_rescale_q(m->f->start_time, AV_TIME_BASE_Q,
+                                 (AVRational){1, m->c->sample_rate});
       if (m->seek_pending) {
         m->seek_trim_remaining = decoded < m->seek_target
                                      ? m->seek_target - decoded
@@ -1090,6 +1094,7 @@ static int stream_fd_from_path(const char *path) {
  * beside audio a picture track (audiobook tools store the cover as a
  * one-frame video stream). Such a track is never read or decoded. */
 static int admit_streams(RbMedia *m) {
+  if (m->video) return 0;
   unsigned audio = 0;
   for (unsigned i = 0; i < m->f->nb_streams; i++)
     audio += m->f->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO;
@@ -1163,7 +1168,8 @@ static int open_input(RbMedia *m, const char *path, RbCancel *cancel) {
   m->f->max_streams = 16;
   AVDictionary *options = NULL;
   av_dict_set(&options, "protocol_whitelist", "file", 0);
-  av_dict_set(&options, "format_whitelist", "flac,mp3,mov,ogg,wav,aac,aiff,ape,wv", 0);
+  av_dict_set(&options, "format_whitelist", m->video ? "mov,matroska,webm" :
+      "flac,mp3,mov,ogg,wav,aac,aiff,ape,wv", 0);
   uint64_t start = micros();
   int ret = avformat_open_input(&m->f, path, NULL, &options);
   m->open_us = micros() - start;
@@ -1176,7 +1182,8 @@ static int stream_info(RbMedia *m) {
   /* Attached images do not supply audio properties. Discard them during
    * stream analysis so FFmpeg cannot decode a giant cover just to read tags. */
   for (unsigned i = 0; i < m->f->nb_streams; i++)
-    if (m->f->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC)
+    if ((m->f->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC) ||
+        (m->video && m->f->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO))
       m->f->streams[i]->discard = AVDISCARD_ALL;
   uint64_t start = micros();
   int ret = avformat_find_stream_info(m->f, NULL);
@@ -1334,15 +1341,16 @@ fail:
   return ret;
 }
 
-int rb_media_open(const char *path, int rate, int output_format,
+static int media_open(const char *path, int rate, int output_format,
                   const RbDspConfig *dsp, RbCancel *cancel, RbMedia **out,
-                  RbMetadata *meta) {
+                  RbMetadata *meta, int video) {
   int ret = AVERROR(ENOMEM);
   *out = NULL;
   RbMedia *m = calloc(1, sizeof(*m));
   if (!m)
     return ret;
   m->cancel = cancel;
+  m->video = video;
   if (dsp)
     m->dsp = *dsp;
   if (m->dsp.volume > 100)
@@ -1466,7 +1474,10 @@ int rb_media_seek(RbMedia *m, int64_t ms) {
     m->seek_points_restored = 1;
     rb_seek_points_restore(&m->identity, m->f, m->stream);
   }
-  int r = avformat_seek_file(m->f, -1, INT64_MIN, ms * 1000, ms * 1000, 0);
+  int64_t target_us = ms * 1000;
+  if (m->video && m->f->start_time != AV_NOPTS_VALUE)
+    target_us = av_sat_add64(target_us, m->f->start_time);
+  int r = avformat_seek_file(m->f, -1, INT64_MIN, target_us, target_us, 0);
   if (r < 0)
     return r;
   avcodec_flush_buffers(m->c);
@@ -1845,13 +1856,14 @@ static int json_string(char *out, int size, int *used, const char *s) {
   return r;
 }
 static int list_codecs(char *out, int size, int *used, int audio,
-                       int artwork, int encoders) {
+                       int artwork, int video, int encoders) {
   void *opaque = NULL;
   const AVCodec *c;
   int first = 1;
   while ((c = av_codec_iterate(&opaque))) {
     if ((encoders ? !av_codec_is_encoder(c) : av_codec_is_encoder(c)) ||
         (audio && c->type != AVMEDIA_TYPE_AUDIO) ||
+        (video && c->type != AVMEDIA_TYPE_VIDEO) ||
         (artwork && strcmp(c->name, "mjpeg") && strcmp(c->name, "png") &&
          strcmp(c->name, "webp") && strcmp(c->name, "webp_anim")))
       continue;
@@ -1876,6 +1888,8 @@ static int list_demuxers(char *out, int size, int *used, int muxers) {
        * Buildroot manifests compare the same thing. */
       if (!strncmp(name, "mov,", 4))
         name = "mov";
+      if (!strcmp(name, "matroska,webm"))
+        name = "matroska";
       if (!first && json_append(out, size, used, ",") < 0)
         return AVERROR(ENOSPC);
       if (json_string(out, size, used, name) < 0)
@@ -1960,7 +1974,7 @@ int rb_media_components(char *out, int size) {
   if (r < 0 || json_string(out, size, &used, avcodec_configuration()) < 0)
     return AVERROR(ENOSPC);
   const char *names[] = {"demuxers", "muxers", "parsers", "filters",
-                         "protocols", "audio_decoders", "artwork_decoders",
+                         "protocols", "audio_decoders", "artwork_decoders", "video_decoders",
                          "encoders"};
   for (unsigned i = 0; i < sizeof(names) / sizeof(names[0]); i++) {
     if (json_append(out, size, &used, ",\"%s\":[", names[i]) < 0)
@@ -1976,11 +1990,13 @@ int rb_media_components(char *out, int size) {
     else if (!strcmp(names[i], "protocols"))
       r = list_protocols(out, size, &used);
     else if (!strcmp(names[i], "audio_decoders"))
-      r = list_codecs(out, size, &used, 1, 0, 0);
+      r = list_codecs(out, size, &used, 1, 0, 0, 0);
     else if (!strcmp(names[i], "artwork_decoders"))
-      r = list_codecs(out, size, &used, 0, 1, 0);
+      r = list_codecs(out, size, &used, 0, 1, 0, 0);
+    else if (!strcmp(names[i], "video_decoders"))
+      r = list_codecs(out, size, &used, 0, 0, 1, 0);
     else
-      r = list_codecs(out, size, &used, 0, 0, 1);
+      r = list_codecs(out, size, &used, 0, 0, 0, 1);
     if (r < 0 || json_append(out, size, &used, "]") < 0)
       return AVERROR(ENOSPC);
   }
@@ -1988,3 +2004,15 @@ int rb_media_components(char *out, int size) {
     return AVERROR(ENOSPC);
   return used;
 }
+
+int rb_media_open(const char *path, int rate, int output_format,
+                  const RbDspConfig *dsp, RbCancel *cancel, RbMedia **out,
+                  RbMetadata *meta) {
+  return media_open(path, rate, output_format, dsp, cancel, out, meta, 0);
+}
+int rb_media_open_video_audio(const char *path, int rate, int output_format,
+                  const RbDspConfig *dsp, RbCancel *cancel, RbMedia **out,
+                  RbMetadata *meta) {
+  return media_open(path, rate, output_format, dsp, cancel, out, meta, 1);
+}
+#include "video.c"

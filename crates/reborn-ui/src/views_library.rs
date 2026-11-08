@@ -44,7 +44,7 @@ pub fn home(
         c.text_center(
             356.,
             270. + Face::S15.mid_offset(),
-            &text::fit(Face::S15, crate::track_title(t), 200.),
+            &c.fit_text(Face::S15, crate::track_title(t), 200.),
             Face::S15,
             color::TEXT,
         );
@@ -54,7 +54,7 @@ pub fn home(
             components::time(m.position_ms),
             components::time(t.duration_ms)
         );
-        let shown = text::fit(Face::R11, &sub, 200.);
+        let shown = c.fit_text(Face::R11, &sub, 200.);
         c.text_center(
             356.,
             290. + Face::R11.mid_offset(),
@@ -380,14 +380,14 @@ fn albums_grid(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interact
         c.text_center(
             240.,
             292. + Face::S20.mid_offset(),
-            &text::fit(Face::S20, &row.label, 420.),
+            &c.fit_text(Face::S20, &row.label, 420.),
             Face::S20,
             color::TEXT,
         );
         c.text_center(
             240.,
             316. + Face::R13.mid_offset(),
-            &text::fit(Face::R13, &row.secondary, 420.),
+            &c.fit_text(Face::R13, &row.secondary, 420.),
             Face::R13,
             color::MUTED,
         );
@@ -688,14 +688,14 @@ fn artist_page(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interact
         c.text_center(
             x + 60.,
             328. + Face::S13.mid_offset(),
-            &text::fit(Face::S13, &row.label, 130.),
+            &c.fit_text(Face::S13, &row.label, 130.),
             Face::S13,
             color::TEXT,
         );
         c.text_center(
             x + 60.,
             346. + Face::R11.mid_offset(),
-            &text::fit(Face::R11, &row.secondary, 130.),
+            &c.fit_text(Face::R11, &row.secondary, 130.),
             Face::R11,
             color::DIM,
         );

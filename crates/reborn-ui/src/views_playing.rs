@@ -62,7 +62,7 @@ pub fn now_playing(
         c.text_tracked(
             222. + w + 8.,
             61. + Face::S10.mid_offset(),
-            &text::fit(Face::S10, &crate::track_title(t).to_uppercase(), 228. - w),
+            &c.fit_text(Face::S10, &crate::track_title(t).to_uppercase(), 228. - w),
             Face::S10,
             accent,
             1.4,
@@ -75,7 +75,7 @@ pub fn now_playing(
         Some(b) => (b.chapter.clone(), b.book.clone(), b.author.clone()),
         None => lines(ui, t),
     };
-    let lines = text::wrap(Face::S25, &title, 236., 2);
+    let lines = c.wrap_text(Face::S25, &title, 236., 2);
     // A song needs no label saying it plays: its title takes the label's place.
     // A station keeps the LIVE line above its title.
     let mut baseline = if radio { 107. } else { 84. };
@@ -88,14 +88,14 @@ pub fn now_playing(
     c.text(
         222.,
         artist_baseline,
-        &text::fit(Face::R15, &second, 236.),
+        &c.fit_text(Face::R15, &second, 236.),
         Face::R15,
         0xDEE1E8FF,
     );
     c.text(
         222.,
         artist_baseline + 20.,
-        &text::fit(Face::R11, &third, 236.),
+        &c.fit_text(Face::R11, &third, 236.),
         Face::R11,
         color::MUTED,
     );

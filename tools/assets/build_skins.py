@@ -427,6 +427,9 @@ class Skin:
         add_sleep(self.id, doc)
         add_status(self.id, doc)
         add_numbers(doc)
+        radius = 0.085 if self.id in ("nano-glass", "bunny-bow", "neon", "big-type") else 0
+        doc["native"] = {"title": "menu", "body": "body", "caption": "small",
+                         "cover_radius": radius, "corner_scale": 1 if radius else 0}
         (self.dir / "skin.json").write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n")
 
 
@@ -666,7 +669,7 @@ def add_live(sid, doc):
 
 def add_keyboard(sid, doc):
     """The skin's title bar and the keyboard's purpose over Reborn's keys."""
-    native = {"type": "native", "part": "screen", "recolor": False}
+    native = {"type": "native", "part": "screen", "recolor": True}
     if sid == "big-type":
         native["y"] = 4  # under the 44-pixel bar
     layout = [native, {"type": "part", "name": "titlebar"}]
@@ -1431,7 +1434,7 @@ def bunny_bow():
                            {"type": "icon", "x": 56, "y": 305, "size": 22, "icon": "speaker", "color": "text"},
                            bar(st, 90, 309, 296, 14, "volume"),
                            T(390, 290, 40, 52, "{volume}", "small", "muted", "right")]
-    s.screens["keyboard"] = [{"type": "native", "part": "screen", "recolor": False},
+    s.screens["keyboard"] = [{"type": "native", "part": "screen", "recolor": True},
                              P("titlebar"), T(100, 0, 280, 32, "{sheet_title}", "bartitle", "text", "center")]
     prune(s)
     return s

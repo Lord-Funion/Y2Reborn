@@ -22,3 +22,23 @@ libraries to generate the 4000×4000 JPEG. Generated metadata/images are CC0;
 the underlying original media keeps the provenance above. The
 [Platform 1.0 media receipt](../../docs/validation/REBORN-PLATFORM-V1-FFMPEG-METADATA.md)
 records tests and reproducible benchmarks.
+# Synthetic local-video fixtures
+
+`video-h264-aac.mp4`, its Matroska remux `video-h264-aac.mkv`, and
+`video-vp8-opus.webm` are generated FFmpeg test patterns with generated sine
+tones. They contain no third-party video or music. Regenerate with:
+
+```sh
+ffmpeg -f lavfi -i testsrc2=size=320x180:rate=20:duration=2 \
+  -f lavfi -i sine=frequency=440:sample_rate=44100:duration=2 \
+  -c:v libx264 -preset veryfast -pix_fmt yuv420p -c:a aac -b:a 64k \
+  -movflags +faststart -metadata title="Reborn synthetic video test" video-h264-aac.mp4
+ffmpeg -i video-h264-aac.mp4 -c copy video-h264-aac.mkv
+ffmpeg -f lavfi -i testsrc2=size=160x90:rate=10:duration=1 \
+  -f lavfi -i sine=sample_rate=48000:duration=1 -c:v libvpx -b:v 100k \
+  -c:a libopus -b:a 32k video-vp8-opus.webm
+```
+
+The fixtures test actual frame decoding, timestamps, seeking and cancellation,
+and supply the picture in video UI previews. They are not device performance
+evidence. Host CLI encoders used to generate fixtures are not target dependencies.

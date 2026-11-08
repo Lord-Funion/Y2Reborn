@@ -29,6 +29,8 @@ pub enum Tex {
     /// The runtime glyph page (`glyph_page`): characters rasterised from the
     /// CJK font; coverage masks tinted by `color`, `Quad::src` in texels.
     Glyphs,
+    /// The current decoded video picture, full texture coordinates.
+    Video,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

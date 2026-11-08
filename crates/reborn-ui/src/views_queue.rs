@@ -50,7 +50,7 @@ pub fn page(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interactive
         let selected = interactive && index == focus;
         if row.heading() {
             let mid = y + HEADING_ROW / 2. + 3.;
-            let label = text::fit(Face::S10, &item.label.to_uppercase(), 300.);
+            let label = c.fit_text(Face::S10, &item.label.to_uppercase(), 300.);
             components::section_label(c, 20., mid, &label);
             c.text_mid_right(WIDTH - 40., mid, &item.secondary, Face::R11, color::DIM);
             index += 1;

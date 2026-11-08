@@ -3,8 +3,9 @@
 use crate::{Settings, HOME_HIDEABLE, HOME_PINNABLE};
 
 /// Every place Home can show between Now Playing and Settings, in the standard order: (key, label).
-pub const HOME_PLACES: [(&str, &str); 10] = [
+pub const HOME_PLACES: [(&str, &str); 11] = [
     ("music", "Music"),
+    ("videos", "Videos"),
     ("audiobooks", "Audiobooks"),
     ("artists", "Artists"),
     ("albums", "Albums"),
@@ -81,6 +82,7 @@ mod tests {
             [
                 "radio",
                 "music",
+                "videos",
                 "audiobooks",
                 "artists",
                 "albums",

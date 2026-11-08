@@ -3,6 +3,7 @@ use std::{collections::BTreeSet, env, path::PathBuf};
 fn main() {
     for source in [
         "native/media.c",
+        "native/video.c",
         "native/seek_index.c",
         "native/seek_index.h",
     ] {

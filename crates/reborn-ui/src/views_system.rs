@@ -5,7 +5,7 @@ use crate::{
     components,
     pages::Page,
     screens::screen_title,
-    text::{self, Face},
+    text::Face,
     theme::{color, HEIGHT},
     views_settings::{group_page, message},
     Ui,
@@ -57,7 +57,7 @@ fn value_detail(c: &mut Canvas, m: &AppModel, interactive: bool) {
         .unwrap_or(("Detail", &m.navigation.filter));
     let y = message(c, title, "", 44.);
     let mut cy = y + 6.;
-    for line in text::wrap(Face::R15, value, 432., 8) {
+    for line in c.wrap_text(Face::R15, value, 432., 8) {
         c.text(
             24.,
             cy + Face::R15.mid_offset(),

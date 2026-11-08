@@ -98,7 +98,11 @@ impl BoundDecoder {
             });
         }
         let source = reborn_platform::storage::pin_track(track, music)?;
-        let decoder = Decoder::open_with(source.path(), spec, dsp, cancel)?;
+        let decoder = if reborn_core::video::candidate(&track.path) {
+            Decoder::open_video_audio(source.path(), spec, dsp, cancel)?
+        } else {
+            Decoder::open_with(source.path(), spec, dsp, cancel)?
+        };
         Ok(Self {
             decoder,
             _source: Source::File(Box::new(source)),

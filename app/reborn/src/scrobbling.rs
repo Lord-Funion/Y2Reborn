@@ -178,6 +178,9 @@ impl Runtime {
     }
     /// Follow the play: once it counts, keep it for Last.fm and the log.
     pub(crate) fn scrobble_tick(&mut self) {
+        if self.video.active() {
+            return;
+        }
         let wanted = self.model.settings.scrobble_log
             || (self.model.settings.lastfm_scrobble && self.lastfm.connected());
         if !wanted {

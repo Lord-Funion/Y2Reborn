@@ -177,6 +177,9 @@ impl Runtime {
 
     /// A new song plays: the one before goes into the history.
     pub(crate) fn note_history(&mut self) {
+        if self.video.active() {
+            return;
+        }
         let now = self
             .model
             .current()
@@ -195,7 +198,7 @@ impl Runtime {
     /// The queue changed after the song playing: the decoder learns the
     /// songs to come without the song starting over.
     pub(crate) fn upcoming_changed(&mut self) {
-        let (tracks, ids) = self.model.upcoming(UPCOMING);
+        let (tracks, ids) = self.video.upcoming(&self.model);
         self.playback
             .set_upcoming(self.model.generation, tracks, ids);
     }

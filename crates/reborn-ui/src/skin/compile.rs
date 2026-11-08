@@ -31,6 +31,8 @@ struct Manifest {
     #[serde(default)]
     palette: BTreeMap<String, String>,
     #[serde(default)]
+    native: super::native::Spec,
+    #[serde(default)]
     colors: BTreeMap<String, String>,
     #[serde(default)]
     fonts: BTreeMap<String, FontSpec>,
@@ -899,36 +901,9 @@ pub fn compile(id: &str, text: &str, files: &dyn Files) -> Result<Skin, String> 
     if manifest.fonts.len() > MAX_FONTS {
         return Err(format!("more than {MAX_FONTS} fonts"));
     }
-    let mut fonts = vec![];
-    let mut font_index = HashMap::new();
-    for (name, spec) in &manifest.fonts {
-        let at = format!("fonts.{name}");
-        if builtin_face(name).is_some() {
-            return Err(format!("{at}: R11…S36 are Reborn's own font names"));
-        }
-        if !(8. ..=72.).contains(&spec.size) {
-            return Err(format!("{at}: size is 8 to 72 pixels"));
-        }
-        if !relative_name(&spec.file) {
-            return Err(format!(
-                "{at}: \"{}\" must be a path inside the skin folder",
-                spec.file
-            ));
-        }
-        let data = files
-            .read(&spec.file, FONT_FILE_MAX)
-            .map_err(|e| format!("{at}: \"{}\" {e}", spec.file))?;
-        let ascii = match spec.charset.as_deref() {
-            None | Some("latin") => false,
-            Some("ascii") => true,
-            Some(other) => return Err(format!("{at}: charset \"{other}\" is latin or ascii")),
-        };
-        let font = atlas::rasterise(&mut atlas, &data, spec.size.round(), ascii)
-            .map_err(|e| format!("{at}: \"{}\" {e}", spec.file))?;
-        font_index.insert(name.clone(), fonts.len());
-        fonts.push(font);
-    }
+    let (fonts, font_index) = compile_fonts(&manifest, &mut atlas, files)?;
     atlas.finish();
+    let native_style = manifest.native.compile(&font_index)?;
     let mut compiler = Compiler {
         palette: palette.clone(),
         colors: &manifest.colors,
@@ -957,6 +932,7 @@ pub fn compile(id: &str, text: &str, files: &dyn Files) -> Result<Skin, String> 
         id: id.to_owned(),
         name: clip(manifest.name.trim(), 40),
         palette,
+        native_style,
         layouts,
         fonts,
         atlas: atlas.rgba,
@@ -964,4 +940,41 @@ pub fn compile(id: &str, text: &str, files: &dyn Files) -> Result<Skin, String> 
         atlas_height: atlas.height,
         warnings,
     })
+}
+
+fn compile_fonts(
+    manifest: &Manifest,
+    atlas: &mut atlas::Atlas,
+    files: &dyn Files,
+) -> Result<(Vec<atlas::Font>, HashMap<String, usize>), String> {
+    let mut fonts = vec![];
+    let mut font_index = HashMap::new();
+    for (name, spec) in &manifest.fonts {
+        let at = format!("fonts.{name}");
+        if builtin_face(name).is_some() {
+            return Err(format!("{at}: R11…S36 are Reborn's own font names"));
+        }
+        if !(8. ..=72.).contains(&spec.size) {
+            return Err(format!("{at}: size is 8 to 72 pixels"));
+        }
+        if !relative_name(&spec.file) {
+            return Err(format!(
+                "{at}: \"{}\" must be a path inside the skin folder",
+                spec.file
+            ));
+        }
+        let data = files
+            .read(&spec.file, FONT_FILE_MAX)
+            .map_err(|e| format!("{at}: \"{}\" {e}", spec.file))?;
+        let ascii = match spec.charset.as_deref() {
+            None | Some("latin") => false,
+            Some("ascii") => true,
+            Some(other) => return Err(format!("{at}: charset \"{other}\" is latin or ascii")),
+        };
+        let font = atlas::rasterise(atlas, &data, spec.size.round(), ascii)
+            .map_err(|e| format!("{at}: \"{}\" {e}", spec.file))?;
+        font_index.insert(name.clone(), fonts.len());
+        fonts.push(font);
+    }
+    Ok((fonts, font_index))
 }

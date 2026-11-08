@@ -110,10 +110,7 @@ impl Runtime {
         match e {
             Effect::None => {}
             Effect::Platform(task) => self.on_platform(task)?,
-            Effect::StopPlayback => {
-                self.pause();
-                self.model.playback = PlaybackState::Stopped;
-            }
+            Effect::StopPlayback => self.stop_playback(),
             Effect::CancelDownload => client::abort_download(),
             Effect::Radio(request) => self.radio(request)?,
             Effect::LastFm(request) => self.lastfm_request(request)?,
@@ -159,6 +156,7 @@ impl Runtime {
             Effect::AddToQueue(index) => self.queue_songs(vec![index], false)?,
             Effect::AddToQueueCollection(members) => self.queue_songs(members, false)?,
             Effect::TogglePlayback => self.toggle()?,
+            Effect::Video(request) => self.video_request(request)?,
             Effect::NextTrack | Effect::PreviousTrack => self.on_next_or_previous_track(&e)?,
             // A live station has nothing to seek in.
             Effect::Seek(_) if self.model.current().is_some_and(Track::is_radio) => {}

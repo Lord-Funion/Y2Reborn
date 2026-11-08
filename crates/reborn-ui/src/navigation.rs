@@ -99,3 +99,19 @@ impl Ui {
         Self::close_modal(m);
     }
 }
+
+impl Ui {
+    pub(crate) fn location_select(&mut self, m: &mut AppModel, key: &str) -> Option<Effect> {
+        match key {
+            "back" => {
+                Self::back(m);
+                Some(Effect::None)
+            }
+            "home" => {
+                Self::home(m);
+                Some(Effect::None)
+            }
+            _ => self.video_select(m, key),
+        }
+    }
+}
