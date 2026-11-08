@@ -26,6 +26,9 @@ fn add(status: &mut bluetooth::Status, address: &str, path: &str) {
         mode: "sink".into(),
         running: Some(false),
         transport_generation: 1,
+        channels: Some(2),
+        rate: Some(44_100),
+        format: Some(0x8210),
         ..Default::default()
     });
 }
@@ -114,4 +117,42 @@ fn already_on_bluetooth_is_never_displaced() {
     assert!(AutoOutput::default()
         .next(&keyboard, &AudioOutput::Wired)
         .is_none());
+}
+#[test]
+fn a_pcm_listed_before_its_codec_is_configured_is_not_ready_yet() {
+    // Y2Reborn #103: BlueALSA lists the PCM ~0.7 s after the connection, before its
+    // channels and rate are known; switching then failed and the jack kept the music.
+    let mut auto = AutoOutput::default();
+    let mut s = status("AA", "/a");
+    s.pcms[0].channels = None;
+    s.pcms[0].rate = None;
+    assert!(auto.next(&s, &AudioOutput::Wired).is_none());
+    s.pcms[0].channels = Some(2);
+    assert!(auto.next(&s, &AudioOutput::Wired).is_none());
+    s.pcms[0].rate = Some(48_000);
+    assert_eq!(auto.next(&s, &AudioOutput::Wired).as_deref(), Some("AA"));
+}
+#[test]
+fn a_failed_switch_is_tried_again_a_few_times_then_the_jack_stays() {
+    let mut auto = AutoOutput::default();
+    let s = status("AA", "/a");
+    for _ in 1..AUTO_OUTPUT_TRIES {
+        assert_eq!(auto.next(&s, &AudioOutput::Wired).as_deref(), Some("AA"));
+        auto.failed("AA".into());
+        // Not straight away: a short rest between tries.
+        assert!(auto.next(&s, &AudioOutput::Wired).is_none());
+        let earlier = Instant::now() - AUTO_OUTPUT_RETRY;
+        auto.failures.get_mut("AA").unwrap().1 = earlier;
+    }
+    assert_eq!(auto.next(&s, &AudioOutput::Wired).as_deref(), Some("AA"));
+    auto.failed("AA".into());
+    assert!(
+        auto.next(&s, &AudioOutput::Wired).is_none(),
+        "gave up for this connection"
+    );
+    // A new connection starts over.
+    let mut gone = s.clone();
+    gone.devices[0].connected = false;
+    assert!(auto.next(&gone, &AudioOutput::Wired).is_none());
+    assert_eq!(auto.next(&s, &AudioOutput::Wired).as_deref(), Some("AA"));
 }

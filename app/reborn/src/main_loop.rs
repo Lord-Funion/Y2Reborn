@@ -1658,12 +1658,11 @@ impl MainLoop {
                     .map(|d| d.name.clone())
                     .filter(|name| !name.is_empty())
                     .unwrap_or_else(|| "Bluetooth headphones".into());
-                // One attempt per connection, also when it fails: no retry loop.
-                self.auto_output.routed(address.clone());
-                match rt
-                    .with_model_action(|runtime| runtime.switch(AudioOutput::Bluetooth(address)))
-                {
+                // Once per connection when it works; a failure is tried again (`AutoOutput::failed`).
+                let output = AudioOutput::Bluetooth(address.clone());
+                match rt.with_model_action(|runtime| runtime.switch(output)) {
                     Ok(()) => {
+                        self.auto_output.routed(address);
                         rt.ui.flash(format!("Audio switched to {name}"));
                         self.log.emit(
                             Level::Info,
@@ -1675,6 +1674,7 @@ impl MainLoop {
                         );
                     }
                     Err(error) => {
+                        self.auto_output.failed(address);
                         self.log.emit(
                             Level::Warn,
                             "audio",
