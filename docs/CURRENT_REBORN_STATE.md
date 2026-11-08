@@ -1,5 +1,18 @@
 # Current Reborn state on the Y2
 
+## 1.0.0-beta.9.3.18 — Y2Linux 1.0 Beta 9.3.18 (Baseline 227), 2026-11-08: Luna XP, bitrate, Cover Flow follows the skin (published)
+
+Published as `baseline-227` (Reborn `56298e9`; work `dba53bf`). Luna XP skin (eNKay; fonts subset, adapted to the
+shipped-skin rules; seventeen skins). `views_playing::bitrate_label` in Song Info's Format line and skin var
+`{bitrate}` (Y2Linux #87; average only, no CBR/VBR). `Ui::online()`: the update page shows "Connect to Wi-Fi" offline
+(#96). `quick_menu_hold`: holding Select on the Wi-Fi/Bluetooth/Brightness tile opens its settings (#101).
+`ArtistAlbums` Oldest First/Newest First/A to Z in Customize → Browsing, `catalog::within_artist` (#75). Skin
+`cover_shape` + `Ui::round_covers()` (covers rounded at upload), native `"captions": false` with `{flow_title}`
+`{flow_artist}` `{flow_detail}`, generator `add_cover_flow` (#100). `reborn-library/src/unplayable.rs`: audio
+without a decoder counted per type and folder (`scan_folder_unplayable`, valid while the folder mtime matches) and
+named in Settings → Library (#104). Y2Linux side: USB stays a peripheral after every disconnect (#102)
+([Beta 9.3.18 report](https://github.com/SchulzCode/Y2Linux/blob/main/docs/validation/Y2-LINUX-1.0-BETA-9.3.18.md)).
+
 ## 1.0.0-beta.9.3.17 — Y2Linux 1.0 Beta 9.3.17 (Baseline 225), 2026-11-08: covers, Bluetooth first connect, Cover Flow (published)
 
 Published as `baseline-225` (Reborn `e14b17b`; work `0978fb4`, `e9f72a0`, `0f09caa`). Fixes written to hold for every
