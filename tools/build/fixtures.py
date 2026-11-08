@@ -8,6 +8,7 @@ different codec.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
@@ -167,6 +168,58 @@ def make_books(temp: Path) -> list[str]:
     return ["book-chapters.m4b", "book-chapters.mp3", "book-cover-track.m4b"]
 
 
+COVER_FILES = {
+    "cover-3s.mp3": ["-c:a", "libmp3lame", "-b:a", "128k", "-id3v2_version", "3"],
+    "cover-3s.m4a": ["-c:a", "aac", "-b:a", "128k"],
+    "cover-3s.flac": ["-c:a", "flac"],
+    "cover-3s.ogg": ["-c:a", "libvorbis"],
+    "cover-3s.opus": ["-c:a", "libopus", "-b:a", "96k"],
+}
+
+
+def make_covers(temp: Path) -> list[str]:
+    """Songs of 3 s with an embedded JPEG cover, one per codec (2026-11-08): MP3 decodes in
+    1152-frame blocks, AAC in 1024, Opus in 960, Vorbis in up to 2048 and FLAC in 4096, and
+    Now Playing must get every song's cover early in the song whatever the block size
+    (Y2Reborn #102, Y2Linux #98: 9.3.16 published MP3 and AAC covers only at the song's end)."""
+    cover = temp / "cover.png"
+    png(cover)
+    jpeg = temp / "cover.jpg"
+    run("-i", str(cover), "-frames:v", "1", "-c:v", "mjpeg", str(jpeg))
+    # Ogg carries a cover as a METADATA_BLOCK_PICTURE comment (a FLAC picture block), not as a
+    # picture stream; FFmpeg reads either as the attached picture.
+    data = jpeg.read_bytes()
+    mime = b"image/jpeg"
+    block = (struct.pack(">II", 3, len(mime)) + mime + struct.pack(">IIIIII", 0, 8, 8, 24, 0, len(data))
+             + data)
+    comment = "METADATA_BLOCK_PICTURE=" + base64.b64encode(block).decode()
+    names = []
+    for name, codec in COVER_FILES.items():
+        source = ["-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100:duration=3"]
+        if name.endswith((".ogg", ".opus")):
+            picture = ["-map", "0:a", "-metadata", comment]
+        else:
+            picture = ["-i", str(jpeg), "-map", "0:a", "-map", "1:v", "-c:v", "copy",
+                       "-disposition:v", "attached_pic", "-metadata:s:v", "mimetype=image/jpeg"]
+        run(*source, *picture, "-af", "volume=0.04", "-ac", "2", *codec,
+            "-metadata", "title=Cover fixture", "-fflags", "+bitexact", str(OUT / name))
+        names.append(name)
+    return names
+
+
+def update_covers() -> None:
+    """Write only the cover specimens and record them in the manifest."""
+    with tempfile.TemporaryDirectory(prefix="reborn-covers-") as directory:
+        names = make_covers(Path(directory))
+    path = OUT / "manifest.json"
+    manifest = json.loads(path.read_text())
+    for name in names:
+        data = (OUT / name).read_bytes()
+        manifest["files"][name] = {"sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
+    manifest["cover_cases"] = {"generator_ffmpeg_version": ffmpeg_version(), "files": names}
+    path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+
+
 def update_books() -> None:
     """Write only the audiobook specimens and record them in the manifest,
     leaving every other fixture (and its hash) as it is."""
@@ -263,6 +316,7 @@ def main() -> None:
         make_precision_flac(temp)
         make_loud_flac(OUT / "loud-24-96000-rg.flac")
         make_books(temp)
+        covers = make_covers(temp)
 
     # An intentionally malformed ID3 size precedes valid MP3 frames. FFmpeg
     # must preserve the useful stream or return a clean error, never crash.
@@ -298,6 +352,7 @@ def main() -> None:
                            "positive ReplayGain without a peak (near full scale)"],
         "artwork_cases": ["embedded JPEG", "embedded PNG", "embedded WebP",
                            "external JPEG", "external PNG", "external WebP"],
+        "cover_cases": {"generator_ffmpeg_version": generator_version, "files": covers},
         "gapless": gapless,
         "precision": {"frames": 1024, "source_bits": 24,
                       "rates_hz": [44100, 48000],
@@ -311,4 +366,9 @@ def main() -> None:
 if __name__ == "__main__":
     import sys
 
-    update_books() if sys.argv[1:] == ["--books"] else main()
+    if sys.argv[1:] == ["--books"]:
+        update_books()
+    elif sys.argv[1:] == ["--covers"]:
+        update_covers()
+    else:
+        main()

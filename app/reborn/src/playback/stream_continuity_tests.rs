@@ -271,3 +271,63 @@ fn a_pause_keeps_the_stream_started_with_silence_and_play_continues_in_it() {
     assert!(clock.lock().unwrap().played > played, "the stream went on");
     checked(&clock, "pause");
 }
+
+/// Every song's cover reaches Now Playing early in the song, whatever its codec's block size
+/// (Y2Reborn #102, Y2Linux #98): 9.3.16 waited for 250 ms of queued audio, which the 8-block
+/// queue never holds with MP3 (1152 frames), AAC (1024) or Opus (960) blocks, and sent those
+/// covers only once the song was decoded to its end. Also the second song of a gapless pair.
+#[test]
+fn every_codec_gets_its_cover_early_in_the_song_and_after_a_gapless_boundary() {
+    for name in [
+        "cover-3s.mp3",
+        "cover-3s.m4a",
+        "cover-3s.opus",
+        "cover-3s.ogg",
+        "cover-3s.flac",
+    ] {
+        let clock = Arc::new(Mutex::new(Clock::default()));
+        let mut p = playback(&clock);
+        let (first, second) = (fixture(name), fixture(name));
+        p.switch_and_wait(1).unwrap();
+        let started = Instant::now();
+        p.start_with_gapless(LoadRequest {
+            music_root: first.path.parent().unwrap().into(),
+            track: first,
+            entry_id: QueueEntryId(1),
+            queue: vec![second],
+            queue_entry_ids: vec![QueueEntryId(2)],
+            position: 0,
+            spec: bluetooth(),
+            generation: 1,
+            dsp: DspConfig::with_volume(100),
+            gapless_enabled: true,
+            id: 1,
+            fade_in: false,
+        })
+        .unwrap();
+        let mut covers = Vec::new();
+        while covers.len() < 2 && started.elapsed() < Duration::from_secs(8) {
+            if let Ok(PlaybackEvent::Artwork { entry_id, .. }) =
+                p.events.recv_timeout(Duration::from_millis(20))
+            {
+                covers.push((entry_id, started.elapsed()));
+            }
+        }
+        assert_eq!(
+            covers.iter().map(|c| c.0).collect::<Vec<_>>(),
+            [QueueEntryId(1), QueueEntryId(2)],
+            "{name}: one cover per song, in order"
+        );
+        // The first song plays from 0 s to 3 s, the second from 3 s to 6 s.
+        assert!(
+            covers[0].1 < Duration::from_millis(1500),
+            "{name}: first cover at {:?}",
+            covers[0].1
+        );
+        assert!(
+            covers[1].1 < Duration::from_millis(4500),
+            "{name}: second cover at {:?}",
+            covers[1].1
+        );
+    }
+}

@@ -32,6 +32,16 @@
     ],
     "generator_ffmpeg_version": "9.0.2"
   },
+  "cover_cases": {
+    "files": [
+      "cover-3s.mp3",
+      "cover-3s.m4a",
+      "cover-3s.flac",
+      "cover-3s.ogg",
+      "cover-3s.opus"
+    ],
+    "generator_ffmpeg_version": "9.0.2"
+  },
   "ffmpeg_required": "9.0.2",
   "files": {
     "aac.aac": {
@@ -89,6 +99,26 @@
     "corrupt-metadata.mp3": {
       "bytes": 5160,
       "sha256": "4fcc6dfd14fa9ce15c277b6ca730ec84138488b43e4a2d3fd17549d742c4a3a2"
+    },
+    "cover-3s.flac": {
+      "bytes": 96081,
+      "sha256": "97a0ba8da22b340c07ad332a660778d2eb20025066d15a3e95aa4805adc6875f"
+    },
+    "cover-3s.m4a": {
+      "bytes": 21973,
+      "sha256": "1fca7190379b1fb180f04c9f779a3f597535465655115ba16c7687bc50e52d5e"
+    },
+    "cover-3s.mp3": {
+      "bytes": 49175,
+      "sha256": "d10c869182e2c883ff01a077a4b5de9dc6d6eefdea18e6822f2411b926e6099e"
+    },
+    "cover-3s.ogg": {
+      "bytes": 11742,
+      "sha256": "1abcb19240e678a5445ed59b83a09b065a12b0641349c8920eae2a14314b05b0"
+    },
+    "cover-3s.opus": {
+      "bytes": 41212,
+      "sha256": "ee1ab9330673250a1724eb2238235b6b1462284828eaabecd18283722c86213b"
     },
     "flac-16-44100.flac": {
       "bytes": 11791,

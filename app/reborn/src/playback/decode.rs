@@ -168,8 +168,8 @@ impl DecodeWorker {
             None
         };
         // A song's cover and the opening of the song after it wait until its first audio is
-        // queued: run first, they made a skip's sound late and ran ~10 % of gapless boundaries
-        // dry (reports 2026-11-06), on Bluetooth a stop inside the stream (F69).
+        // queued (`Unsettled::due`): run first, they made a skip's sound late and ran ~10 % of
+        // gapless boundaries dry (reports 2026-11-06), on Bluetooth a stop inside the stream (F69).
         let settle = |index: usize,
                       decoder: &mut BoundDecoder,
                       tracks: &[Track],
@@ -204,7 +204,7 @@ impl DecodeWorker {
         };
         let cushion = u64::from(job.spec.rate) / 4;
         let mut preopened_index = None;
-        let mut unsettled = Some(0usize);
+        let mut unsettled = Some(Unsettled::new(0));
         loop {
             dl.heartbeat("playback", heartbeat_s);
             if de.load(Ordering::Acquire) != job.generation {
@@ -269,14 +269,14 @@ impl DecodeWorker {
                         dl,
                     )?;
                 }
-                if let Some(index) = unsettled.filter(|_| db.load(Ordering::Relaxed) >= cushion) {
+                if let Some(index) = unsettled.as_mut().and_then(|u| u.due(db, cushion)) {
                     unsettled = None;
                     (preopened_index, next_decoder) =
                         settle(index, &mut decoder, &tracks, &entry_ids)?.unzip();
                 }
                 continue;
             }
-            if let Some(index) = unsettled.take() {
+            if let Some(Unsettled { index, .. }) = unsettled.take() {
                 // The song ended before its audio queued up: settle now, before its end.
                 (preopened_index, next_decoder) =
                     settle(index, &mut decoder, &tracks, &entry_ids)?.unzip();
@@ -345,7 +345,7 @@ impl DecodeWorker {
                 dl,
             )?;
             // Its media state with its cover, once its audio is queued (`settle`).
-            unsettled = Some(next_index);
+            unsettled = Some(Unsettled::new(next_index));
             dl.add("audio_filter_rebuilds", 1.);
             if next.metadata.resampling {
                 dl.add("audio_resamples", 1.);
@@ -543,5 +543,32 @@ impl DecodeWorker {
             }
         }
         Ok(())
+    }
+}
+
+/// How long a song's cover and the opening of the song after it wait, at most, once its first
+/// audio is sent. The queue to the sink holds 8 decoded blocks: 8 FLAC blocks are ~740 ms, but
+/// 8 MP3 (1152 frames) or AAC (1024) blocks are only ~190-210 ms, under the 250 ms cushion, so
+/// for those the cushion was never reached and the cover only came at the song's end (Y2Reborn
+/// #102, Y2Linux #98, Beta 9.3.16). Decoding runs faster than real time, so after this long the
+/// queue and the sink's ring are as full as they get, whatever the format or block size.
+pub(super) const SETTLE_WAIT: Duration = Duration::from_millis(500);
+
+/// A song whose cover and successor are still to come (`settle` in `DecodeWorker::play`).
+pub(super) struct Unsettled {
+    pub(super) index: usize,
+    since: Option<Instant>,
+}
+
+impl Unsettled {
+    pub(super) fn new(index: usize) -> Self {
+        Self { index, since: None }
+    }
+    /// Called after each block sent: the song's index once `cushion` frames are queued or
+    /// `SETTLE_WAIT` has passed since its first block, whichever comes first.
+    pub(super) fn due(&mut self, buffered: &AtomicU64, cushion: u64) -> Option<usize> {
+        let since = *self.since.get_or_insert_with(Instant::now);
+        (buffered.load(Ordering::Relaxed) >= cushion || since.elapsed() >= SETTLE_WAIT)
+            .then_some(self.index)
     }
 }
