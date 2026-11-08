@@ -3,8 +3,8 @@
 ## 1.0.0-beta.9.3.18 — Y2Linux 1.0 Beta 9.3.18 (Baseline 227), 2026-11-08: Luna XP, bitrate, Cover Flow follows the skin (published)
 
 Published as `baseline-227` (Reborn `56298e9`; work `dba53bf`). Luna XP skin (eNKay; fonts subset, adapted to the
-shipped-skin rules; seventeen skins). `views_playing::bitrate_label` in Song Info's Format line and skin var
-`{bitrate}` (Y2Linux #87; average only, no CBR/VBR). `Ui::online()`: the update page shows "Connect to Wi-Fi" offline
+shipped-skin rules; seventeen skins). `views_playing::bitrate_label` in skin var `{bitrate}` and Song Info's Format line
+(Y2Linux #87; average only, no CBR/VBR; Song Info has had no menu entry since UI v3 `ceaae31`). `Ui::online()`: the update page shows "Connect to Wi-Fi" offline
 (#96). `quick_menu_hold`: holding Select on the Wi-Fi/Bluetooth/Brightness tile opens its settings (#101).
 `ArtistAlbums` Oldest First/Newest First/A to Z in Customize → Browsing, `catalog::within_artist` (#75). Skin
 `cover_shape` + `Ui::round_covers()` (covers rounded at upload), native `"captions": false` with `{flow_title}`
