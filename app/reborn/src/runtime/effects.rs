@@ -121,6 +121,7 @@ impl Runtime {
                 self.model.settings.scrobble_log = on;
                 self.checkpoint();
             }
+            Effect::SetUpdateNotices(on) => self.set_update_notices(on),
             Effect::SetLastFmScrobble(on) => {
                 self.model.settings.lastfm_scrobble = on;
                 self.checkpoint();

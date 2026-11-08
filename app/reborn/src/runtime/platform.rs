@@ -23,6 +23,38 @@ impl Runtime {
 
     /// Start a queued task once the worker is free, and never let the update
     /// screen own the display with no update task behind it.
+    /// Settings → System → Software Update → Update Notifications (Y2Reborn #97). Turned on while
+    /// the page shows a release: that one needs no notice.
+    pub(crate) fn set_update_notices(&mut self, on: bool) {
+        self.model.settings.update_notifications = on;
+        if let reborn_core::platform::UpdatePhase::Available { version } =
+            &self.model.platform.snapshot.update.phase
+        {
+            self.model.settings.update_announced = version.clone();
+        }
+        self.checkpoint();
+    }
+
+    /// "Software update available" once per version, and only when the listener turned Update
+    /// Notifications on (Y2Reborn #97); the version is kept, so a restart does not say it again.
+    fn announce_update(&mut self) {
+        use crate::UpdateNotice::{Record, Show};
+        let notice = crate::update_notice(
+            &self.model.settings,
+            &self.model.platform.snapshot.update.phase,
+            self.model.screen,
+        );
+        let (Show(version) | Record(version)) = notice.clone() else {
+            return;
+        };
+        self.model.settings.update_announced = version;
+        self.checkpoint();
+        if matches!(notice, Show(_)) {
+            self.ui.flash("Software update available");
+            self.dirty.mark_render();
+        }
+    }
+
     pub(crate) fn platform_tick(&mut self) {
         if self.model.platform.busy.is_none() {
             if let Some(task) = self.queued_platform.take() {
@@ -178,18 +210,10 @@ impl Runtime {
                     }
                 }
                 p.snapshot.diagnostics.extend(health_section);
-                if let reborn_core::platform::UpdatePhase::Available { version } =
-                    &p.snapshot.update.phase
-                {
-                    if self.announced_update.as_ref() != Some(version) {
-                        self.announced_update = Some(version.clone());
-                        self.ui.flash("Software update available");
-                        self.dirty.mark_render();
-                    }
-                }
                 if p.busy == Some(reborn_core::PlatformTask::Refresh) {
                     p.busy = None;
                 }
+                self.announce_update();
             }
             client::Reply::Reports(task, result) => {
                 use reborn_core::PlatformTask::*;

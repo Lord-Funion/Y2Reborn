@@ -7253,9 +7253,9 @@ fn without_wifi_the_update_page_leads_to_wifi_instead_of_waiting() {
             .collect()
     };
     assert!(ui.online());
-    assert_eq!(keys(&ui, &m), ["task:update_check"]);
+    assert_eq!(keys(&ui, &m), ["task:update_check", "update_notifications"]);
     ui.wifi.status = WifiStatus::Disconnected;
-    assert_eq!(keys(&ui, &m), ["wifi"]);
+    assert_eq!(keys(&ui, &m), ["wifi", "update_notifications"]);
     assert_eq!(select_key(&mut ui, &mut m, "wifi"), Effect::None);
     assert_eq!(m.screen, Screen::Wifi);
     let mut m = software_update();
@@ -7266,9 +7266,44 @@ fn without_wifi_the_update_page_leads_to_wifi_instead_of_waiting() {
         can_download: true,
         ..Default::default()
     };
-    assert_eq!(keys(&ui, &m), ["wifi"]);
+    assert_eq!(keys(&ui, &m), ["wifi", "update_notifications"]);
     ui.wifi.status = WifiStatus::Connected("Home".into());
-    assert_eq!(keys(&ui, &m), ["update_now"]);
+    assert_eq!(keys(&ui, &m), ["update_now", "update_notifications"]);
+}
+
+#[test]
+fn update_notifications_are_a_toggle_on_software_update_and_start_off() {
+    // Y2Reborn #97: opt in, so the player never nags unasked.
+    let mut ui = radios();
+    let mut m = software_update();
+    assert!(!m.settings.update_notifications);
+    let toggle = |ui: &Ui, m: &AppModel| {
+        crate::pages::page(ui, m, &[])
+            .rows
+            .into_iter()
+            .find(|r| r.key == "update_notifications")
+            .map(|r| (r.label, r.kind))
+    };
+    assert_eq!(
+        toggle(&ui, &m),
+        Some(("Update Notifications".into(), RowKind::Toggle(false)))
+    );
+    assert_eq!(
+        select_key(&mut ui, &mut m, "update_notifications"),
+        Effect::SetUpdateNotices(true)
+    );
+    m.settings.update_notifications = true;
+    assert_eq!(
+        toggle(&ui, &m),
+        Some(("Update Notifications".into(), RowKind::Toggle(true)))
+    );
+    assert_eq!(
+        select_key(&mut ui, &mut m, "update_notifications"),
+        Effect::SetUpdateNotices(false)
+    );
+    // Not while a check runs: that page has nothing to choose.
+    m.platform.busy = Some(PlatformTask::UpdateCheck);
+    assert_eq!(toggle(&ui, &m), None);
 }
 
 #[test]

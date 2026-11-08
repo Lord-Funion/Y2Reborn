@@ -1686,7 +1686,20 @@ fn report_trigger_label(trigger: &str) -> &'static str {
     }
 }
 
+/// Software Update, with the Update Notifications toggle (Y2Reborn #97) under every page that
+/// has something to choose (none while a check, download or install runs).
 fn update_status(ui: &Ui, m: &AppModel) -> Page {
+    let mut page = update_page(ui, m);
+    if !page.rows.is_empty() {
+        page.rows.push(
+            row("Update Notifications", "update_notifications", "")
+                .with_kind(RowKind::Toggle(m.settings.update_notifications)),
+        );
+    }
+    page
+}
+
+fn update_page(ui: &Ui, m: &AppModel) -> Page {
     let s = &m.platform.snapshot;
     let u = &s.update;
     let busy = m.platform.busy;

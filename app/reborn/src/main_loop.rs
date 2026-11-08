@@ -269,7 +269,6 @@ pub(crate) fn run() -> Result<(), String> {
         },
         platform_refresh_pending: false,
         platform_observed: false,
-        announced_update: None,
         announced_setup: false,
         asked_reports: false,
         boot_fade: reborn_ui::BOOT_FADE_FRAMES,
@@ -1095,17 +1094,24 @@ impl MainLoop {
         }
         rt.ask_about_reports();
         rt.platform_tick();
-        // Platform screens observe on demand; one observation after start
-        // (20 s in, after the boot work) also on any other screen, so the
-        // error report question comes without opening Settings.
+        // Platform screens observe on demand; one observation after start (20 s in, after the
+        // boot work) also on any other screen, so the error report question comes without opening
+        // Settings. With Update Notifications on, every screen observes while online (#97).
+        let update_watch = update_watch_due(
+            &rt.model.settings,
+            rt.ui.online(),
+            self.platform_refresh.elapsed(),
+        );
         if !rt.model.screen_off
             && !rt.platform_refresh_pending
             && rt.model.platform.busy.is_none()
-            && (platform_backed(rt.model.screen)
-                || (!rt.platform_observed
-                    && self.process_started.elapsed() >= Duration::from_secs(20)))
-            && (rt.model.screen != self.last_platform_screen
-                || self.platform_refresh.elapsed() >= platform_refresh_interval(rt.model.screen))
+            && (update_watch
+                || ((platform_backed(rt.model.screen)
+                    || (!rt.platform_observed
+                        && self.process_started.elapsed() >= Duration::from_secs(20)))
+                    && (rt.model.screen != self.last_platform_screen
+                        || self.platform_refresh.elapsed()
+                            >= platform_refresh_interval(rt.model.screen))))
             && self.platform_refresh.elapsed() >= Duration::from_secs(2)
         {
             if let Some(worker) = &rt.platform {

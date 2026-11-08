@@ -1217,6 +1217,14 @@ pub struct Settings {
     /// The one-time "Set Up Internal Storage?" question was shown.
     #[serde(default)]
     pub internal_setup_asked: bool,
+    /// Say "Software update available" when the platform's daily check finds a newer version
+    /// (Y2Reborn #97). Off unless the listener turns it on: the player does not nag.
+    #[serde(default)]
+    pub update_notifications: bool,
+    /// The version the last such notice named: each version is announced once, not after every
+    /// restart or Wi-Fi connection.
+    #[serde(default)]
+    pub update_announced: String,
     /// Wired headphone output level.
     #[serde(default)]
     pub hp_level: HpLevel,
@@ -1612,6 +1620,8 @@ impl Default for Settings {
             lastfm_scrobble: true,
             lastfm_now_playing: true,
             internal_setup_asked: false,
+            update_notifications: false,
+            update_announced: String::new(),
             hp_level: HpLevel::Low,
             volume_scale: VOLUME_SCALE,
             loud_ok: false,
@@ -1879,6 +1889,8 @@ pub enum Effect {
     Playlist(Box<PlaylistRequest>),
     LastFm(LastFmRequest),
     SetScrobbleLog(bool),
+    /// Settings → System → Software Update → Update Notifications (Y2Reborn #97).
+    SetUpdateNotices(bool),
     SetLastFmScrobble(bool),
     SetLastFmNowPlaying(bool),
     SetCodecPreference(CodecPreference),

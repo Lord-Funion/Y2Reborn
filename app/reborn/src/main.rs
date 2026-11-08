@@ -202,6 +202,44 @@ enum RadioReply {
     Categories(u64, Result<Vec<reborn_platform::radio::Category>, String>),
 }
 
+/// What a status observation means for the update notice (Y2Reborn #97).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum UpdateNotice {
+    /// Nothing to say: no newer version, notifications off, or this version was named before.
+    None,
+    /// Say it, and keep the version.
+    Show(String),
+    /// Keep the version without a toast: Software Update is on screen and shows it.
+    Record(String),
+}
+
+pub(crate) fn update_notice(
+    settings: &reborn_core::Settings,
+    phase: &reborn_core::platform::UpdatePhase,
+    screen: reborn_core::Screen,
+) -> UpdateNotice {
+    let reborn_core::platform::UpdatePhase::Available { version } = phase else {
+        return UpdateNotice::None;
+    };
+    if !settings.update_notifications || settings.update_announced == *version {
+        UpdateNotice::None
+    } else if screen == reborn_core::Screen::Update {
+        UpdateNotice::Record(version.clone())
+    } else {
+        UpdateNotice::Show(version.clone())
+    }
+}
+
+/// Whether a screen without platform state observes now for the update notice: notifications on,
+/// Wi-Fi up and `UPDATE_WATCH` since the last observation.
+pub(crate) fn update_watch_due(
+    settings: &reborn_core::Settings,
+    online: bool,
+    since_refresh: std::time::Duration,
+) -> bool {
+    settings.update_notifications && online && since_refresh >= UPDATE_WATCH
+}
+
 /// The one-step update's screen is up, but no update task runs or waits.
 fn update_screen_waits(
     update_run: bool,
@@ -257,8 +295,6 @@ struct Runtime {
     /// A refresh (not a user operation) is in flight.
     platform_refresh_pending: bool,
     platform_observed: bool,
-    /// The release the daily check last announced, so the toast shows once.
-    announced_update: Option<String>,
     /// "Internal Storage is ready" was said this start.
     announced_setup: bool,
     /// The error report question was shown this start.
@@ -651,6 +687,10 @@ fn platform_backed(screen: Screen) -> bool {
 
 /// Observation cadence while such a screen is visible. A cable plug should
 /// appear promptly on PC Transfer; other pages change rarely.
+/// How often any screen observes the platform while Wi-Fi is up and Update Notifications are on
+/// (Y2Reborn #97): the daily check's answer shows within two minutes.
+const UPDATE_WATCH: Duration = Duration::from_secs(120);
+
 fn platform_refresh_interval(screen: Screen) -> Duration {
     Duration::from_secs(if matches!(screen, Screen::PcTransfer | Screen::Sleep) {
         4

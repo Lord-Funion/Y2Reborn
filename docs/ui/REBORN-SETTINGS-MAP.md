@@ -64,6 +64,11 @@ Settings
    (About › Version, tapped seven times: the service menu — codecs, Battery, Sleep, Diagnostics)
 ```
 
+Software Update ends with **Update Notifications** (a toggle, off by default, Y2Reborn #97): when it is on, Reborn
+looks at the platform every two minutes while Wi-Fi is up, and when the platform's daily check has found a newer
+version the status bar says "Software update available" once for that version (not on Software Update itself, which
+shows it). The toggle is under every Software Update page that has a choice, not while a check or install runs.
+
 Library's hint line names the audio the last scan left out because Reborn cannot play its type ("43 files can't
 be played here (WMA, DSD), so they aren't in your library.", Y2Reborn #104); without such files there is no line.
 

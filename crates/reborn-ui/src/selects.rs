@@ -239,6 +239,7 @@ impl Ui {
             "repeat" => Effect::SetRepeat(next_repeat(m.settings.repeat)),
             "gapless" => Effect::SetGapless(!m.settings.gapless_enabled),
             "scrobble_log" => Effect::SetScrobbleLog(!m.settings.scrobble_log),
+            "update_notifications" => Effect::SetUpdateNotices(!m.settings.update_notifications),
             "lastfm_scrobble" => Effect::SetLastFmScrobble(!m.settings.lastfm_scrobble),
             "lastfm_now_playing" => Effect::SetLastFmNowPlaying(!m.settings.lastfm_now_playing),
             "lastfm_connect" => Effect::LastFm(reborn_core::LastFmRequest::Connect),
