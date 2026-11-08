@@ -1,0 +1,74 @@
+{
+  "format": 1,
+  "name": "Ember",
+  "author": "Your Name",
+  "version": "1.0",
+  "description": "Warm orange on dark brown.",
+  "cover_shape": "rounded",
+  "palette": {
+    "bg": "#1B1410",
+    "text": "#FFF4E6",
+    "muted": "#C9B8A6",
+    "dim": "#8F7F70",
+    "accent": "#FF9F43"
+  },
+  "fonts": {
+    "title": { "file": "fonts/DejaVuSansCondensed-Bold.ttf", "size": 24 },
+    "label": { "file": "fonts/DejaVuSansCondensed-Bold.ttf", "size": 17 }
+  },
+  "images": {
+    "highlight": "images/highlight.png"
+  },
+  "parts": {
+    "titlebar": [
+      { "type": "rect", "x": 0, "y": 0, "w": 480, "h": 36, "color": "#120D0A" },
+      { "type": "icon", "if": "back", "x": 10, "y": 8, "size": 20, "icon": "back", "color": "muted" },
+      { "type": "text", "if": "has_clock", "x": 290, "y": 0, "w": 70, "h": 36, "text": "{clock}", "font": "R13", "color": "muted", "align": "right" },
+      { "type": "indicators", "x": 418, "y": 10 },
+      { "type": "bar", "x": 424, "y": 12, "w": 40, "h": 12, "value": "battery", "track": "track", "fill": "text", "radius": 3 }
+    ],
+    "row": [
+      { "type": "text", "if": "numbered", "x": 16, "y": 0, "w": 36, "h": 44, "text": "{track_number}", "font": "R15", "color": "dim" },
+      { "type": "art", "if": "row_art & !numbered", "x": 16, "y": 6, "size": 32, "source": "row", "radius": 6 },
+      { "type": "text", "if": "row_art | numbered", "x": 60, "y": 0, "w": 250, "h": 44, "text": "{label}", "font": "label" },
+      { "type": "text", "if": "!row_art & !numbered", "x": 16, "y": 0, "w": 294, "h": 44, "text": "{label}", "font": "label" },
+      { "type": "text", "if": "has_detail", "x": 310, "y": 0, "w": 136, "h": 44, "text": "{detail}", "font": "R13", "color": "muted", "align": "right" },
+      { "type": "icon", "if": "chevron", "x": 450, "y": 14, "size": 16, "icon": "chevron", "color": "dim" },
+      { "type": "icon", "if": "checked | toggle & on", "x": 446, "y": 12, "size": 20, "icon": "check", "color": "accent" }
+    ]
+  },
+  "screens": {
+    "now_playing": [
+      { "type": "part", "name": "titlebar" },
+      { "type": "text", "x": 38, "y": 0, "w": 250, "h": 36, "text": "{screen}", "font": "S15" },
+      { "type": "art", "x": 16, "y": 52, "size": 196, "source": "current", "radius": 14 },
+      { "type": "text", "x": 230, "y": 56, "w": 234, "h": 0, "lines": 2, "text": "{title}", "font": "title" },
+      { "type": "text", "x": 230, "y": 128, "w": 234, "h": 24, "text": "{artist}", "font": "R17", "color": "muted" },
+      { "type": "text", "x": 230, "y": 154, "w": 234, "h": 22, "text": "{album}", "font": "R15", "color": "dim" },
+      { "type": "text", "x": 230, "y": 184, "w": 234, "h": 20, "text": "{quality}", "font": "R11", "color": "dim" },
+      { "type": "icon", "x": 230, "y": 214, "size": 32, "icon": "play_pause", "color": "accent" },
+      { "type": "icon", "if": "shuffle", "x": 276, "y": 220, "size": 20, "icon": "shuffle", "color": "muted" },
+      { "type": "bar", "x": 16, "y": 268, "w": 448, "h": 6, "value": "progress", "track": "track", "fill": "accent", "radius": 3 },
+      { "type": "text", "x": 16, "y": 280, "w": 100, "h": 20, "text": "{elapsed}", "font": "R13", "color": "muted" },
+      { "type": "text", "x": 364, "y": 280, "w": 100, "h": 20, "text": "{remaining}", "font": "R13", "color": "muted", "align": "right" },
+      { "type": "text", "if": "!sleep", "x": 16, "y": 318, "w": 448, "h": 24, "text": "{output}", "font": "R13", "color": "dim", "align": "center" },
+      { "type": "text", "if": "sleep", "x": 16, "y": 318, "w": 448, "h": 24, "text": "{output} · {sleep}", "font": "R13", "color": "dim", "align": "center" }
+    ],
+    "list": [
+      { "type": "part", "name": "titlebar" },
+      { "type": "text", "x": 38, "y": 0, "w": 250, "h": 36, "text": "{screen}", "font": "S15" },
+      { "type": "list", "x": 0, "y": 40, "w": 480, "rows": 7, "row_height": 44,
+        "row": [ { "type": "part", "name": "row" } ],
+        "focused": [
+          { "type": "image", "x": 6, "y": 2, "w": 468, "h": 40, "image": "highlight", "slice": [6, 6, 6, 6] },
+          { "type": "part", "name": "row" }
+        ],
+        "scrollbar": { "x": 474, "w": 4, "track": "track", "thumb": "accent" } }
+    ],
+    "cover_flow": [
+      { "type": "native", "part": "screen" },
+      { "type": "part", "name": "titlebar" },
+      { "type": "text", "x": 38, "y": 0, "w": 250, "h": 36, "text": "{screen} · {position}", "font": "S15" }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+Ember is the example skin of Reborn's skin guide (docs/skins.md).
+
+skin.json and images/highlight.png: CC0 1.0 (public domain dedication). Copy, change and share them freely,
+with or without credit: https://creativecommons.org/publicdomain/zero/1.0/
+
+fonts/DejaVuSansCondensed-Bold.ttf: DejaVu fonts, Bitstream Vera licence with DejaVu changes (public domain),
+see fonts/DejaVu-LICENSE.txt. The file is a subset (Latin, Greek and Cyrillic) of the DejaVu Sans Condensed Bold font,
+taken from Reborn's Luna XP skin.
