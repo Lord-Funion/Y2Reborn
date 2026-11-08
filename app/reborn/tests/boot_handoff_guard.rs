@@ -9,7 +9,9 @@ use std::{fs, path::Path};
 /// (main.rs and the `Runtime` methods), so a needle is found in the main loop where it has one.
 fn main_source() -> String {
     let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-    let mut files = vec![src.join("main_loop.rs"), src.join("main.rs")];
+    let mut files = vec![src.join("main_loop.rs")];
+    sources(&src.join("main_loop"), &mut files);
+    files.push(src.join("main.rs"));
     let mut runtime = vec![];
     sources(&src.join("runtime"), &mut runtime);
     runtime.sort();
@@ -94,7 +96,7 @@ fn first_presented_frame_is_the_real_ui_under_the_boot_cover() {
             "Reborn must not present a static boot screen itself ({forbidden})"
         );
     }
-    let start = at(&source, "first_frame_presented = false;");
+    let start = at(&source, "first_frame_presented: false,");
     let frame = at(&source, "let mut draw = rt.ui.draw(");
     let cover = at(&source, "reborn_ui::boot_transition(");
     let render = at(&source, "g.render(&draw)");
