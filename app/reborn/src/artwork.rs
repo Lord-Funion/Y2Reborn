@@ -42,6 +42,48 @@ impl Key {
     fn revision(&self) -> (u64, i64) {
         (self.size, self.mtime)
     }
+    /// The folder's cover images as they are now (names, sizes, modification
+    /// times; 0 for none), part of a cache file's name: a `cover.jpg` deleted,
+    /// added or replaced changes it while the song files stay the same, and the
+    /// old thumbnail stayed in Cover Flow (Y2Reborn #105). One folder listing per
+    /// thumbnail, on the worker thread.
+    fn folder_revision(&self) -> u64 {
+        let path = if self.path.is_absolute() {
+            self.path.clone()
+        } else {
+            self.music.join(&self.path)
+        };
+        let Some(folder) = path.parent() else {
+            return 0;
+        };
+        let names = folder_artwork_candidates(folder).unwrap_or_default();
+        if names.is_empty() {
+            return 0;
+        }
+        // FNV-1a: the same value on every run and every Rust version.
+        let mut hash = 0xcbf2_9ce4_8422_2325u64;
+        let mut add = |bytes: &[u8]| {
+            for byte in bytes {
+                hash = (hash ^ u64::from(*byte)).wrapping_mul(0x0000_0100_0000_01b3);
+            }
+        };
+        for name in names {
+            let (size, modified) = std::fs::metadata(folder.join(&name))
+                .map(|m| {
+                    let modified = m
+                        .modified()
+                        .ok()
+                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .map_or(0, |d| d.as_nanos());
+                    (m.len(), modified)
+                })
+                .unwrap_or((0, 0));
+            add(name.as_bytes());
+            add(&size.to_le_bytes());
+            add(&modified.to_le_bytes());
+        }
+        hash.max(1)
+    }
     /// The cover as `side` x `side` RGBA, if the file is still the one this key names.
     pub fn load_cover(&self, side: usize, cancel: &Cancel) -> Option<Vec<u8>> {
         let source = self.pin()?;
@@ -87,6 +129,13 @@ impl Art {
                     .ok()
                     .and_then(|fitted| reborn_ui::art::logo_tile(&fitted))
             }
+        }
+    }
+    /// The folder's covers (`Key::folder_revision`); a logo has no folder.
+    fn folder_revision(&self) -> u64 {
+        match self {
+            Self::Track(key) => key.folder_revision(),
+            Self::Logo(_) => 0,
         }
     }
     /// Size and modification time of the source, part of a cache file's name.
@@ -263,14 +312,16 @@ impl Drop for Worker {
 /// 31: folder covers won over embedded pictures ("thumb-" files rebuilt).
 /// Beta 8.18: thumbnails are 128x128, decoded straight from the picture and
 /// cached as 4:2:0 YCbCr (corners are rounded after reading); older files are
-/// rebuilt once and removed.
-const THUMB_PREFIX: &str = "thumb3-";
-const LEGACY_THUMB_PREFIXES: [&str; 2] = ["thumb-", "thumb2-"];
+/// rebuilt once and removed. Beta 9.3.17: the name also carries the folder's
+/// covers (`Key::folder_revision`, Y2Reborn #105).
+const THUMB_PREFIX: &str = "thumb4-";
+const LEGACY_THUMB_PREFIXES: [&str; 3] = ["thumb-", "thumb2-", "thumb3-"];
 const CACHED_BYTES: usize = THUMB_SIZE * THUMB_SIZE * 3 / 2;
 fn cache_path(job: &Job) -> PathBuf {
     let (size, mtime) = job.art.revision();
+    let folder = job.art.folder_revision();
     job.cache.join(format!(
-        "{THUMB_PREFIX}{:016x}-{mtime:x}-{size:x}.t128",
+        "{THUMB_PREFIX}{:016x}-{mtime:x}-{size:x}-{folder:x}.t128",
         job.thumb
     ))
 }
@@ -523,6 +574,12 @@ fn load(key: &Key, source: &PinnedTrack, side: usize, cancel: &Cancel) -> (Optio
 #[cfg(test)]
 mod tests {
     use super::*;
+    /// A 1x1 red PNG: a picture that differs from every fixture's artwork.
+    const RED: &[u8] = &[
+        137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 2,
+        0, 0, 0, 144, 119, 83, 222, 0, 0, 0, 12, 73, 68, 65, 84, 120, 156, 99, 248, 207, 192, 0, 0,
+        3, 1, 1, 0, 201, 254, 146, 239, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
+    ];
     fn fixture_track(root: &Path, name: &str, id: i64, embedded: bool) -> Track {
         let path = root.join(name);
         let meta = std::fs::metadata(&path).unwrap();
@@ -608,10 +665,13 @@ mod tests {
         std::fs::write(root.join("cache/thumb-0000000000000007-1-1.t96"), b"old").unwrap();
         // So is a 96x96 one from before Beta 8.18.
         std::fs::write(root.join("cache/thumb2-0000000000000007-1-1.t96"), b"old").unwrap();
+        // And one named before the folder's covers were part of the name (9.3.17).
+        std::fs::write(root.join("cache/thumb3-0000000000000007-1-1.t128"), b"old").unwrap();
         let mut worker = Worker::spawn().unwrap();
         let first = reply(&mut worker, job(&root, &track, 7));
         assert!(!root.join("cache/thumb-0000000000000007-1-1.t96").exists());
         assert!(!root.join("cache/thumb2-0000000000000007-1-1.t96").exists());
+        assert!(!root.join("cache/thumb3-0000000000000007-1-1.t128").exists());
         let cached: Vec<_> = std::fs::read_dir(root.join("cache"))
             .unwrap()
             .filter_map(Result::ok)
@@ -725,13 +785,6 @@ mod tests {
         std::fs::create_dir(&root).unwrap();
         let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/fixtures");
         std::fs::copy(fixtures.join("artwork.flac"), root.join("song.flac")).unwrap();
-        // A 1x1 red PNG: a picture that differs from every fixture's artwork.
-        const RED: &[u8] = &[
-            137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1,
-            8, 2, 0, 0, 0, 144, 119, 83, 222, 0, 0, 0, 12, 73, 68, 65, 84, 120, 156, 99, 248, 207,
-            192, 0, 0, 3, 1, 1, 0, 201, 254, 146, 239, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96,
-            130,
-        ];
         std::fs::write(root.join("cover.png"), RED).unwrap();
         let key = Key::new(&fixture_track(&root, "song.flac", 1, true), None, &root);
         let folder = key.load_cover(ART_SIZE, &Cancel::new().unwrap()).unwrap();
@@ -752,6 +805,34 @@ mod tests {
             key.load_cover(ART_SIZE, &Cancel::new().unwrap()).unwrap(),
             embedded
         );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn a_folder_cover_deleted_or_added_makes_a_new_thumbnail() {
+        // Y2Reborn #105: cover.jpg deleted, the songs unchanged; Cover Flow kept the old picture.
+        let root =
+            std::env::temp_dir().join(format!("reborn-thumbs-folder-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("cache")).unwrap();
+        let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/fixtures");
+        std::fs::copy(fixtures.join("artwork.flac"), root.join("song.flac")).unwrap();
+        std::fs::write(root.join("cover.png"), RED).unwrap();
+        let track = fixture_track(&root, "song.flac", 1, true);
+        let mut worker = Worker::spawn().unwrap();
+        let folder = reply(&mut worker, job(&root, &track, 7));
+        assert!(!folder.cache_hit);
+        assert!(reply(&mut worker, job(&root, &track, 7)).cache_hit);
+        std::fs::remove_file(root.join("cover.png")).unwrap();
+        let embedded = reply(&mut worker, job(&root, &track, 7));
+        assert!(!embedded.cache_hit, "the folder's cover is gone");
+        assert_ne!(embedded.rgba, folder.rgba, "the song's own picture now");
+        assert!(reply(&mut worker, job(&root, &track, 7)).cache_hit);
+        std::fs::write(root.join("cover.png"), RED).unwrap();
+        let back = reply(&mut worker, job(&root, &track, 7));
+        assert!(!back.cache_hit, "a folder cover added again");
+        assert_eq!(back.rgba, folder.rgba);
+        drop(worker);
         std::fs::remove_dir_all(root).unwrap();
     }
 
