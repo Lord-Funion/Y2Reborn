@@ -86,6 +86,8 @@ class Rasterizer:
         self.masks = mask_page(root / "assets/icons/reborn-masks.a8", 512)
         self.covers: dict[int, Image.Image] = {}
         self.skin: Image.Image | None = None
+        # A skin's "cover_shape": "square" (Y2Reborn #100): thumbnails and Cover Flow unrounded.
+        self.square_covers = False
         self.glyphs: Image.Image | None = None
 
     def load_glyphs(self, preview_dir: Path) -> None:
@@ -101,6 +103,7 @@ class Rasterizer:
             size = json.loads(meta.read_text())
             data = (preview_dir / "skin-atlas.rgba").read_bytes()
             self.skin = Image.frombytes("RGBA", (size["width"], size["height"]), data)
+            self.square_covers = bool(size.get("square_covers"))
 
     def skin_region(self, quad: dict, w: int, h: int) -> Image.Image:
         """A skin atlas region stretched to (w, h) and multiplied by the tint."""
@@ -124,10 +127,12 @@ class Rasterizer:
         tex = quad.get("tex", "Solid")
         if tex == "Solid":
             return Image.new("RGBA", (size, size), (255, 255, 255, 255))
+        if tex == "CollectionArt" and self.square_covers:
+            return self.cover_for(0, 180, rounded=False)
         if tex in ("Art", "CollectionArt"):
             return self.art_for(tex, 180)
         if isinstance(tex, dict) and "Thumb" in tex:
-            return self.cover_for(tex["Thumb"], 128)
+            return self.cover_for(tex["Thumb"], 128, rounded=not self.square_covers)
         if tex == "Skin":
             sx, sy, sw, sh = quad["src"]
             return self.skin.crop((sx, sy, sx + sw, sy + sh))

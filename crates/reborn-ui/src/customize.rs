@@ -7,8 +7,8 @@
 use crate::pages::{home_summary, row, Page};
 use crate::RowKind;
 use reborn_core::{
-    AlbumOrder, AlbumView, AppModel, ArtistsList, Effect, Haptics, ScreenOffButtons, WheelClick,
-    WrapAround,
+    AlbumOrder, AlbumView, AppModel, ArtistAlbums, ArtistsList, Effect, Haptics, ScreenOffButtons,
+    WheelClick, WrapAround,
 };
 
 /// The navigation filters of Customize's pages.
@@ -34,6 +34,12 @@ pub(crate) fn page(m: &AppModel) -> Page {
                 "album_order",
                 sort_albums(m.settings.album_order),
             ),
+            row(
+                "Artist's Albums",
+                "choose:artist_albums",
+                current(m, "artist_albums"),
+            )
+            .with_kind(RowKind::Chevron),
             row(
                 "Artists List",
                 "artists_list",
@@ -94,6 +100,9 @@ fn hint(key: &str) -> Option<&'static str> {
         "customize:wheel" => "What the wheel and buttons do, and how they answer.",
         "album_view" => "Albums and audiobooks as covers sliding past, or as a list.",
         "album_order" => "Albums A to Z by title, or each artist's albums together.",
+        "choose:artist_albums" => {
+            "How an artist's albums are ordered, on their page and in Albums by artist."
+        }
         "artists_list" => "Everyone who sings on a song, or only each album's artist.",
         "choose:wrap_around" => "Whether a list goes on at the top after its last row.",
         "now_playing_wheel" => "What turning the wheel does on Now Playing.",
@@ -156,6 +165,31 @@ fn choices(m: &AppModel, setting: &str) -> Option<(&'static str, Vec<Choice>)> {
             ]
             .map(|(v, name, meaning)| {
                 choice(name, meaning, s.wrap_around == v, Effect::SetWrapAround(v))
+            })
+            .into(),
+        ),
+        "artist_albums" => (
+            "Artist's Albums",
+            [
+                (
+                    ArtistAlbums::OldestFirst,
+                    "Oldest First",
+                    "By release year, the first album at the top.",
+                ),
+                (
+                    ArtistAlbums::NewestFirst,
+                    "Newest First",
+                    "By release year, the latest album at the top.",
+                ),
+                (ArtistAlbums::Title, "A to Z", "By album title."),
+            ]
+            .map(|(v, name, meaning)| {
+                choice(
+                    name,
+                    meaning,
+                    s.artist_albums == v,
+                    Effect::SetArtistAlbums(v),
+                )
             })
             .into(),
         ),

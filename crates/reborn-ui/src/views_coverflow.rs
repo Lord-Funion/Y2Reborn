@@ -138,39 +138,19 @@ pub fn albums(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interacti
             c.mark_focus(at);
         }
     }
-    if let Some(row) = ui.row_at(m, tracks, focus) {
+    // A skin may draw the captions in its own fonts (`{flow_title}`…, Y2Reborn #100).
+    if let Some([title, artist, detail]) = captions(ui, m, tracks).filter(|_| !c.skin_captions) {
         // The album's text rides under its cover while the row glides, fading as it travels
         // (Y2Reborn #71); at rest it stands in the middle.
         let d = focus as f32 - pos;
         let (x, shown) = (flow::centre_x(d), 1. - d.abs().min(1.) * 0.6);
-        c.text_center(
-            x,
-            270. + Face::S20.mid_offset(),
-            &text::fit(Face::S20, &row.label, 440.),
-            Face::S20,
-            fade(color::TEXT, shown),
-        );
-        // An album's artist alone: its year is in the line below (#73).
-        let artist = match row.art.and_then(|i| tracks.get(i)) {
-            Some(t) if row.key.starts_with("album:") => crate::catalog::album_artist(t),
-            _ => row.secondary.as_str().into(),
-        };
-        c.text_center(
-            x,
-            298. + Face::R15.mid_offset(),
-            &text::fit(Face::R15, &artist, 440.),
-            Face::R15,
-            fade(color::MUTED, shown),
-        );
-        // An album's songs and length; a book's progress is its own line.
-        if row.key.starts_with("album:") {
-            c.text_center(
-                x,
-                324. + Face::R13.mid_offset(),
-                &ui.album_detail(m, tracks, &row.key),
-                Face::R13,
-                fade(color::DIM, shown),
-            );
+        for (y, line, face, colour) in [
+            (270., title, Face::S20, color::TEXT),
+            (298., artist, Face::R15, color::MUTED),
+            (324., detail, Face::R13, color::DIM),
+        ] {
+            let line = text::fit(face, &line, 440.);
+            c.text_center(x, y + face.mid_offset(), &line, face, fade(colour, shown));
         }
     }
     // Once the row rests, ask for the centre cover at full resolution.
@@ -185,4 +165,27 @@ pub fn albums(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interacti
     if m.screen == Screen::Albums {
         crate::views_library::letter_bubble(c, ui, m, tracks, focus);
     }
+}
+
+/// What Cover Flow says under its centre cover: the title, an album's artist alone (its year is
+/// in the line below, #73) or a book's line, and an album's songs and length (empty for a book,
+/// whose progress is its second line). Also a skin's `{flow_title}`, `{flow_artist}` and
+/// `{flow_detail}` (Y2Reborn #100).
+pub(crate) fn captions(ui: &Ui, m: &AppModel, tracks: &[Track]) -> Option<[String; 3]> {
+    let focus = m
+        .navigation
+        .focus
+        .min(ui.row_count(m, tracks).saturating_sub(1));
+    let row = ui.row_at(m, tracks, focus)?;
+    let album = row.key.starts_with("album:");
+    let artist = match row.art.and_then(|i| tracks.get(i)) {
+        Some(t) if album => crate::catalog::album_artist(t).to_string(),
+        _ => row.secondary.clone(),
+    };
+    let detail = if album {
+        ui.album_detail(m, tracks, &row.key)
+    } else {
+        String::new()
+    };
+    Some([row.label, artist, detail])
 }

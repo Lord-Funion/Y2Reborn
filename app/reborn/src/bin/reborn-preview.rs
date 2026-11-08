@@ -438,7 +438,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             fs::write(output.join("skin-atlas.rgba"), &skin.atlas)?;
             fs::write(
                 output.join("skin-atlas.json"),
-                serde_json::to_vec(&json!({"width":skin.atlas_width,"height":skin.atlas_height}))?,
+                serde_json::to_vec(&json!({"width":skin.atlas_width,"height":skin.atlas_height,
+                    "square_covers":skin.square_covers}))?,
             )?;
             Some(std::rc::Rc::new(skin))
         }

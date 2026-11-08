@@ -105,7 +105,8 @@ pub fn round_corners(rgba: &mut [u8], edge: usize) {
     }
 }
 
-/// A library thumbnail from a `THUMB_SIZE` RGBA cover: opaque, with rounded corners.
+/// A library thumbnail from a `THUMB_SIZE` RGBA cover: an opaque square. The look rounds it
+/// (`round_corners`) when it is uploaded, so a skin can keep it square (Y2Reborn #100).
 pub fn thumbnail(cover: &[u8]) -> Option<Vec<u8>> {
     if cover.len() != THUMB_SIZE * THUMB_SIZE * 4 {
         return None;
@@ -115,7 +116,6 @@ pub fn thumbnail(cover: &[u8]) -> Option<Vec<u8>> {
         .0
         .iter_mut()
         .for_each(|p| p[3] = 255);
-    round_corners(&mut out, THUMB_SIZE);
     Some(out)
 }
 
@@ -152,11 +152,13 @@ mod tests {
     }
 
     #[test]
-    fn thumbnails_are_opaque_squares_with_clear_corners() {
+    fn thumbnails_are_opaque_squares_rounded_on_request() {
         let n = THUMB_SIZE;
         let mut cover: Vec<u8> = (0..n * n).flat_map(|_| [200, 40, 40, 90]).collect();
-        let thumb = thumbnail(&cover).unwrap();
+        let mut thumb = thumbnail(&cover).unwrap();
         assert_eq!(thumb.len(), n * n * 4);
+        assert_eq!(thumb[3], 255, "square until the look shapes it");
+        round_corners(&mut thumb, n);
         assert_eq!(thumb[3], 0, "top-left corner is transparent");
         let centre = (n / 2 * n + n / 2) * 4;
         assert_eq!(&thumb[centre..centre + 4], &[200, 40, 40, 255]);

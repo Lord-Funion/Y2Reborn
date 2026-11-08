@@ -169,7 +169,7 @@ pub struct Reply {
     /// A full-resolution (`ART_SIZE`) cover for Cover Flow's centre, not a thumbnail.
     #[allow(dead_code)]
     pub full: bool,
-    /// `THUMB_SIZE` RGBA with rounded corners, or `None` when the track has no cover.
+    /// `THUMB_SIZE` RGBA, square (the look shapes it), or `None` when the track has no cover.
     pub rgba: Option<Vec<u8>>,
     pub decode_ms: f64,
     pub cache_hit: bool,
@@ -680,7 +680,7 @@ mod tests {
         assert_eq!(cached, [CACHED_BYTES as u64], "one 4:2:0 file");
         let rgba = first.rgba.expect("embedded cover decodes");
         assert_eq!(rgba.len(), THUMB_SIZE * THUMB_SIZE * 4);
-        assert_eq!(rgba[3], 0, "rounded corner is transparent");
+        assert_eq!(rgba[3], 255, "square: the look rounds it at upload");
         assert!(!first.cache_hit);
         let again = reply(&mut worker, job(&root, &track, 7));
         assert!(again.cache_hit);

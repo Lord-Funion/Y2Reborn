@@ -427,6 +427,7 @@ class Skin:
         add_sleep(self.id, doc)
         add_status(self.id, doc)
         add_numbers(doc)
+        add_cover_flow(self.id, doc)
         (self.dir / "skin.json").write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n")
 
 
@@ -680,6 +681,39 @@ def add_keyboard(sid, doc):
                 e["text"] = e["text"].replace("{screen}", "{sheet_title}")
             layout.append(e)
     doc["screens"]["keyboard"] = layout
+
+
+def add_cover_flow(sid, doc):
+    """Cover Flow in the skin's look (Y2Reborn #100): its title bar over Reborn's header, "Albums ·
+    6 of 8" as the title, the captions in the skin's fonts and colours, and the covers' corners
+    as the skin's own Now Playing picture has them (square where it is square)."""
+    native = {"type": "native", "part": "screen", "captions": False}
+    # Reborn's header (about 30 pixels) hidden where the skin's bar is lower.
+    layout = [native, {"type": "rect", "x": 0, "y": 0, "w": 480, "h": 34, "color": "bg"},
+              {"type": "part", "name": "titlebar"}]
+    if sid == "zune":
+        layout.append({"type": "text", "x": 10, "y": 0, "w": 300, "h": 26, "text": "{screen} · {position}",
+                       "font": "small", "color": "text", "case": "lower"})
+    else:
+        for e in doc["parts"]["title"]:
+            e = json.loads(json.dumps(e))
+            # Big Type's large title has no room for the position.
+            if "text" in e and sid != "big-type":
+                e["text"] = e["text"].replace("{screen}", "{screen} · {position}")
+            layout.append(e)
+    for y, h, var, font, colour in [(255, 30, "title", "big", "text"), (286, 24, "artist", "body", "muted"),
+                                    (313, 22, "detail", "small", "dim")]:
+        layout.append({"type": "text", "x": 20, "y": y, "w": 440, "h": h, "text": f"{{flow_{var}}}",
+                       "font": font, "color": colour, "align": "center"})
+    doc["screens"]["cover_flow"] = layout
+
+    def radii(elements):
+        for e in elements:
+            if e.get("type") == "art":
+                yield e.get("radius", 0)
+            yield from radii(e.get("elements", []))
+    shown = list(radii(doc["screens"].get("now_playing", [])))
+    doc["cover_shape"] = "square" if shown and not any(shown) else "rounded"
 
 
 def add_sleep(sid, doc):

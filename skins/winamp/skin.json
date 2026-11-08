@@ -1937,6 +1937,72 @@
     "case": "upper",
     "tracking": 1
    }
+  ],
+  "cover_flow": [
+   {
+    "type": "native",
+    "part": "screen",
+    "captions": false
+   },
+   {
+    "type": "rect",
+    "x": 0,
+    "y": 0,
+    "w": 480,
+    "h": 34,
+    "color": "bg"
+   },
+   {
+    "type": "part",
+    "name": "titlebar"
+   },
+   {
+    "type": "text",
+    "x": 140,
+    "y": 0,
+    "w": 200,
+    "h": 24,
+    "text": "REBORN · {screen} · {position}",
+    "font": "bartitle",
+    "color": "bar_text",
+    "align": "center",
+    "case": "upper",
+    "tracking": 1
+   },
+   {
+    "type": "text",
+    "x": 20,
+    "y": 255,
+    "w": 440,
+    "h": 30,
+    "text": "{flow_title}",
+    "font": "big",
+    "color": "text",
+    "align": "center"
+   },
+   {
+    "type": "text",
+    "x": 20,
+    "y": 286,
+    "w": 440,
+    "h": 24,
+    "text": "{flow_artist}",
+    "font": "body",
+    "color": "muted",
+    "align": "center"
+   },
+   {
+    "type": "text",
+    "x": 20,
+    "y": 313,
+    "w": 440,
+    "h": 22,
+    "text": "{flow_detail}",
+    "font": "small",
+    "color": "dim",
+    "align": "center"
+   }
   ]
- }
+ },
+ "cover_shape": "square"
 }

@@ -923,6 +923,42 @@ pub fn count(n: usize, one: &str, many: &str) -> String {
     }
 }
 
+/// Settings → Library's line on audio the scan left out (Y2Reborn #104): "43 files can't be
+/// played here (WMA, DSD), so they aren't in your library." The three commonest types, by count.
+pub(crate) fn unplayable_note(counts: &std::collections::BTreeMap<String, u64>) -> Option<String> {
+    let mut kinds: Vec<(u64, String)> = vec![];
+    for (kind, files) in counts {
+        let name = match kind.as_str() {
+            "dsf" | "dff" => "DSD".to_owned(),
+            "mid" | "midi" => "MIDI".to_owned(),
+            "aa" | "aax" => "Audible".to_owned(),
+            other => other.to_ascii_uppercase(),
+        };
+        match kinds.iter_mut().find(|(_, n)| *n == name) {
+            Some((total, _)) => *total += files,
+            None => kinds.push((*files, name)),
+        }
+    }
+    kinds.retain(|(files, _)| *files > 0);
+    kinds.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
+    let files: u64 = kinds.iter().map(|(files, _)| files).sum();
+    let mut names: Vec<&str> = kinds.iter().take(3).map(|(_, n)| n.as_str()).collect();
+    if kinds.len() > 3 {
+        names.push("…");
+    }
+    let names = names.join(", ");
+    match files {
+        0 => None,
+        1 => Some(format!(
+            "1 file can't be played here ({names}), so it isn't in your library."
+        )),
+        n => Some(format!(
+            "{} files can't be played here ({names}), so they aren't in your library.",
+            crate::screens::count_label(n as usize)
+        )),
+    }
+}
+
 /// The rows a list draws: its window, plus (with UI motion) one row above
 /// and below that slide into view as it scrolls. Returns (first, count).
 pub(crate) fn scroll_rows(ui: &Ui, scroll: usize, visible: usize, total: usize) -> (usize, usize) {

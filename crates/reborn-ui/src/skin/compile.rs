@@ -40,6 +40,9 @@ struct Manifest {
     parts: BTreeMap<String, Vec<Spec>>,
     #[serde(default)]
     screens: BTreeMap<String, Vec<Spec>>,
+    /// "rounded" (default) or "square": album covers in lists and Cover Flow (Y2Reborn #100).
+    #[serde(default)]
+    cover_shape: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -108,6 +111,7 @@ struct Spec {
     slice: Option<[u16; 4]>,
     vertical: Option<bool>,
     recolor: Option<bool>,
+    captions: Option<bool>,
     row: Option<Vec<Spec>>,
     focused: Option<Vec<Spec>>,
     elements: Option<Vec<Spec>>,
@@ -162,6 +166,7 @@ impl Spec {
             slice,
             vertical,
             recolor,
+            captions,
             row,
             focused,
             elements,
@@ -221,7 +226,7 @@ fn fields(kind: &str) -> Option<&'static [&'static str]> {
         ],
         "group" => &["x", "y", "elements"],
         "part" => &["name", "x", "y"],
-        "native" => &["part", "x", "y", "recolor"],
+        "native" => &["part", "x", "y", "recolor", "captions"],
         "indicators" => &["x", "y", "size", "gap", "color", "dim", "charge"],
         _ => return None,
     })
@@ -779,6 +784,7 @@ impl Compiler<'_> {
                     dx: num(e.x, "x", Some(0.))?,
                     dy: num(e.y, "y", Some(0.))?,
                     recolor: e.recolor.unwrap_or(true),
+                    captions: e.captions.unwrap_or(true),
                 }
             }
             _ => unreachable!("fields() knows every type"),
@@ -959,9 +965,19 @@ pub fn compile(id: &str, text: &str, files: &dyn Files) -> Result<Skin, String> 
         palette,
         layouts,
         fonts,
+        square_covers: square_covers(manifest.cover_shape.as_deref())?,
         atlas: atlas.rgba,
         atlas_width: atlas.width,
         atlas_height: atlas.height,
         warnings,
     })
+}
+
+/// `cover_shape`: whether the skin wants square album covers.
+fn square_covers(shape: Option<&str>) -> Result<bool, String> {
+    match shape {
+        None | Some("rounded") => Ok(false),
+        Some("square") => Ok(true),
+        Some(other) => Err(format!("cover_shape \"{other}\" is rounded or square")),
+    }
 }

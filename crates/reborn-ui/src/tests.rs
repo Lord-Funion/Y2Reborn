@@ -1615,6 +1615,7 @@ fn settings_has_eight_places_and_customize_three_pages_with_pickers() {
         [
             "Cover Flow",
             "Sort Albums",
+            "Artist's Albums",
             "Artists List",
             "Lists Wrap Around"
         ]
@@ -6915,6 +6916,50 @@ fn an_artists_albums_go_oldest_first_and_name_their_year() {
         .map(|r| r.label.clone())
         .collect();
     assert_eq!(order, ["Other", "Zenith", "Alpha", "Middle"]);
+    // Y2Reborn #75: Customize > Browsing > Artist's Albums, newest first or A to Z, on the
+    // artist's page and within each artist of Albums by artist; no year stays last by year.
+    let labels = |m: &AppModel| -> Vec<String> {
+        ui.rows(m, &tracks)
+            .iter()
+            .map(|r| r.label.clone())
+            .collect()
+    };
+    let mut page = app(Screen::Artist);
+    page.navigation.filter = "artist:Band".into();
+    for (order, artist, albums) in [
+        (
+            reborn_core::ArtistAlbums::NewestFirst,
+            ["Alpha", "Zenith", "Middle"],
+            ["Other", "Alpha", "Zenith", "Middle"],
+        ),
+        (
+            reborn_core::ArtistAlbums::Title,
+            ["Alpha", "Middle", "Zenith"],
+            ["Other", "Alpha", "Middle", "Zenith"],
+        ),
+    ] {
+        page.settings.artist_albums = order;
+        m.settings.artist_albums = order;
+        assert_eq!(labels(&page)[1..], artist, "{order:?}");
+        assert_eq!(labels(&m), albums, "{order:?}");
+    }
+    // The picker: three choices, Oldest First by default.
+    let mut ui = radios();
+    let mut m = app(Screen::Customize);
+    m.navigation.filter = "browsing".into();
+    let row = ui
+        .rows(&m, &tracks)
+        .into_iter()
+        .find(|r| r.key == "choose:artist_albums")
+        .unwrap();
+    assert_eq!(row.secondary, "Oldest First");
+    select_key(&mut ui, &mut m, "choose:artist_albums");
+    let choices: Vec<_> = ui.rows(&m, &tracks).into_iter().map(|r| r.label).collect();
+    assert_eq!(choices, ["Oldest First", "Newest First", "A to Z"]);
+    assert_eq!(
+        select_key(&mut ui, &mut m, "set:artist_albums:1"),
+        Effect::SetArtistAlbums(reborn_core::ArtistAlbums::NewestFirst)
+    );
 }
 
 #[test]
@@ -7152,4 +7197,111 @@ fn settings_count_the_songs_they_are_given() {
             page.rows
         );
     }
+}
+
+#[test]
+fn library_settings_say_which_audio_the_scan_left_out() {
+    use reborn_core::ScanSummary;
+    let ui = radios();
+    let mut m = app(Screen::SettingsLibrary);
+    // Nothing left out (or no scan yet): no line.
+    assert_eq!(
+        crate::pages::page(&ui, &m, &m.library.tracks.clone()).status,
+        None
+    );
+    m.library.last_scan = Some(ScanSummary {
+        discovered: 89,
+        unplayable: [("wma".into(), 40), ("dsf".into(), 2), ("dff".into(), 1)].into(),
+        ..Default::default()
+    });
+    let note = "43 files can't be played here (WMA, DSD), so they aren't in your library.";
+    let page = crate::pages::page(&ui, &m, &m.library.tracks.clone());
+    assert_eq!(page.status.as_deref(), Some(note));
+    let drawn = drawn_text(&ui.draw(&m, &m.library.tracks, false));
+    assert!(drawn.contains("can't be played here"), "{drawn}");
+    // While a scan runs the old count is not shown.
+    m.library.scanning = true;
+    assert_eq!(
+        crate::pages::page(&ui, &m, &m.library.tracks.clone()).status,
+        None
+    );
+    // One file, and more than three types.
+    let one = [("mpc".to_owned(), 1)].into();
+    assert_eq!(
+        crate::components::unplayable_note(&one).as_deref(),
+        Some("1 file can't be played here (MPC), so it isn't in your library.")
+    );
+    let many = [("wma", 5), ("mpc", 4), ("tta", 3), ("ac3", 1)]
+        .map(|(k, n)| (k.to_owned(), n))
+        .into();
+    assert_eq!(
+        crate::components::unplayable_note(&many).as_deref(),
+        Some("13 files can't be played here (WMA, MPC, TTA, …), so they aren't in your library.")
+    );
+}
+
+#[test]
+fn without_wifi_the_update_page_leads_to_wifi_instead_of_waiting() {
+    // Y2Reborn #96: Check for Updates and Update Now waited ~30 s for the server with Wi-Fi off.
+    let mut ui = radios();
+    let mut m = software_update();
+    let keys = |ui: &Ui, m: &AppModel| -> Vec<String> {
+        crate::pages::page(ui, m, &[])
+            .rows
+            .into_iter()
+            .map(|r| r.key)
+            .collect()
+    };
+    assert!(ui.online());
+    assert_eq!(keys(&ui, &m), ["task:update_check"]);
+    ui.wifi.status = WifiStatus::Disconnected;
+    assert_eq!(keys(&ui, &m), ["wifi"]);
+    assert_eq!(select_key(&mut ui, &mut m, "wifi"), Effect::None);
+    assert_eq!(m.screen, Screen::Wifi);
+    let mut m = software_update();
+    m.platform.snapshot.update = UpdateState {
+        phase: UpdatePhase::Available {
+            version: "1.0.0-beta.9".into(),
+        },
+        can_download: true,
+        ..Default::default()
+    };
+    assert_eq!(keys(&ui, &m), ["wifi"]);
+    ui.wifi.status = WifiStatus::Connected("Home".into());
+    assert_eq!(keys(&ui, &m), ["update_now"]);
+}
+
+#[test]
+fn holding_select_on_a_quick_menu_tile_opens_its_settings() {
+    // Y2Reborn #101: hold Wi-Fi or Bluetooth to choose a network or a device, as on a phone.
+    let mut ui = radios();
+    let open = |ui: &mut Ui, m: &mut AppModel, key: &str| {
+        ui.model_action(m, Action::PowerHold);
+        ui.model_action(m, Action::PowerHoldCancel);
+        let rows = ui.quick_menu_rows(m);
+        m.navigation.modal_focus = rows.iter().position(|r| r.key == key).unwrap();
+    };
+    for (key, screen) in [
+        ("quick:wifi", Screen::Wifi),
+        ("quick:bluetooth", Screen::Bluetooth),
+        ("quick:brightness", Screen::SettingsDisplay),
+    ] {
+        let mut m = app(Screen::NowPlaying);
+        open(&mut ui, &mut m, key);
+        assert_eq!(ui.model_action(&mut m, Action::ContextMenu), Effect::None);
+        assert_eq!(
+            (m.navigation.modal.clone(), m.screen),
+            (None, screen),
+            "{key}"
+        );
+        ui.model_action(&mut m, Action::Back);
+        assert_eq!(m.screen, Screen::NowPlaying, "{key}: Back returns");
+    }
+    // Rows without a page do nothing; a plain Select still switches.
+    let mut m = app(Screen::NowPlaying);
+    open(&mut ui, &mut m, "quick:restart");
+    assert_eq!(ui.model_action(&mut m, Action::ContextMenu), Effect::None);
+    assert_eq!(m.navigation.modal, Some(Modal::QuickMenu));
+    open(&mut ui, &mut m, "quick:wifi");
+    assert_eq!(ui.model_action(&mut m, Action::Select), Effect::WifiPower);
 }

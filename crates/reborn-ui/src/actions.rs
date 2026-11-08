@@ -218,7 +218,7 @@ impl Ui {
     }
 
     pub(crate) fn open_context(&mut self, m: &mut AppModel, tracks: &[Track]) {
-        if m.navigation.modal.is_some() {
+        if self.quick_menu_hold(m) || m.navigation.modal.is_some() {
             return;
         }
         if m.screen == Screen::HomeMenu {

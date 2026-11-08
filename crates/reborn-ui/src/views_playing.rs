@@ -306,6 +306,12 @@ pub(crate) fn quality_label(t: &Track) -> Option<String> {
     })
 }
 
+/// `320 kbps`: the file's average bitrate (a station's stream rate), none when unknown
+/// (Y2Linux #87). Lossless files have one too: their size over their length.
+pub(crate) fn bitrate_label(t: &Track) -> Option<String> {
+    (t.bitrate >= 1000).then(|| format!("{} kbps", (t.bitrate + 500) / 1000))
+}
+
 /// Icons for the playback options that differ from the default; gapless is
 /// on by default and has none.
 fn status_icons(c: &mut Canvas, m: &AppModel, x: f32, cy: f32, accent: u32) {

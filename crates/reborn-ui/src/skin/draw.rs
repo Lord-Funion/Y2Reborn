@@ -281,6 +281,18 @@ impl Scene<'_> {
             Var::Skin => self.skin.name.clone(),
             // "Sleeps in 23 min", "Sleeps after song", or nothing (#29).
             Var::Sleep => crate::views_playing::sleep_note(m).unwrap_or_default(),
+            Var::FlowTitle | Var::FlowArtist | Var::FlowDetail => {
+                let [title, artist, detail] =
+                    crate::views_coverflow::captions(self.ui, m, self.tracks).unwrap_or_default();
+                match v {
+                    Var::FlowTitle => title,
+                    Var::FlowArtist => artist,
+                    _ => detail,
+                }
+            }
+            Var::Bitrate => t
+                .and_then(crate::views_playing::bitrate_label)
+                .unwrap_or_default(),
             Var::Playback => match (m.current(), m.playback) {
                 (None, _) => "Stopped",
                 (_, PlaybackState::Playing | PlaybackState::Buffering) => "Playing",
@@ -911,12 +923,15 @@ fn element(c: &mut Canvas, s: &Scene, el: &El, ox: f32, oy: f32, row: Option<&Ro
             dx,
             dy,
             recolor,
+            captions,
         } => {
             let start = c.draw.len();
             match part {
                 NativePart::Screen => {
                     if let Some(native) = s.native {
+                        c.skin_captions = !*captions;
                         native(c);
+                        c.skin_captions = false;
                     }
                 }
                 NativePart::Status => {

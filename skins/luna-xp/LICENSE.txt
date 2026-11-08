@@ -1,0 +1,12 @@
+Luna XP skin for Y2Reborn.
+
+Images (title bar, buttons, taskbar, start button, controls, wallpaper) were drawn
+from scratch with code for this skin and are released under CC0 1.0 (public domain).
+The look is inspired by early-2000s desktop styling; it contains no Microsoft images,
+icons, logos or fonts.
+
+Fonts: DejaVu Sans Condensed (Regular, Bold, Bold Oblique) are included in fonts/ under
+the DejaVu / Bitstream Vera free licence. See fonts/DejaVu-LICENSE.txt.
+
+In the copy shipped with Reborn the three fonts are subsets of the originals (Latin, Greek and Cyrillic;
+Bold Oblique ASCII only for the start button), made with pyftsubset to keep the update small.

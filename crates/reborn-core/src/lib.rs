@@ -1096,6 +1096,9 @@ pub struct ScanSummary {
     /// Supported files that could not be read (kept, never an error).
     #[serde(default)]
     pub unreadable: u64,
+    /// Audio left out because it cannot be played, per type ("wma" → 40, Y2Reborn #104).
+    #[serde(default)]
+    pub unplayable: std::collections::BTreeMap<String, u64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
@@ -1143,6 +1146,9 @@ pub struct Settings {
     /// How Albums orders them (#56).
     #[serde(default)]
     pub album_order: AlbumOrder,
+    /// How an artist's albums are ordered (Y2Reborn #75).
+    #[serde(default)]
+    pub artist_albums: ArtistAlbums,
     /// What the wheel does on Now Playing (Beta 8.36).
     #[serde(default)]
     pub now_playing_wheel: NowPlayingWheel,
@@ -1410,6 +1416,20 @@ impl ArtistsList {
         }
     }
 }
+/// How an artist's albums are ordered: on the artist's page, and within each artist when Albums
+/// sorts by artist (Customize > Browsing > Artist's Albums, Y2Reborn #75).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum ArtistAlbums {
+    /// By release year, oldest first; albums without a year last (Y2Reborn #66).
+    #[default]
+    OldestFirst,
+    /// By release year, newest first; albums without a year last.
+    NewestFirst,
+    /// A to Z by title.
+    Title,
+}
+
 /// Which lists continue at the other end: past the last row to the first and
 /// before the first to the last.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -1570,6 +1590,7 @@ impl Default for Settings {
             brightness: default_brightness(),
             album_view: AlbumView::CoverFlow,
             album_order: AlbumOrder::Title,
+            artist_albums: ArtistAlbums::OldestFirst,
             now_playing_wheel: NowPlayingWheel::Volume,
             artists_list: ArtistsList::All,
             wrap_around: WrapAround::Menus,
@@ -1932,6 +1953,7 @@ pub enum Effect {
     SetGapless(bool),
     SetAlbumView(AlbumView),
     SetAlbumOrder(AlbumOrder),
+    SetArtistAlbums(ArtistAlbums),
     SetNowPlayingWheel(NowPlayingWheel),
     SetArtistsList(ArtistsList),
     SetWrapAround(WrapAround),
@@ -2685,7 +2707,7 @@ mod tests {
             discovered: 12,
             reused: 4,
             elapsed_ms: 50,
-            unreadable: 0,
+            ..Default::default()
         }));
         assert!(!m.library.scanning);
         assert_eq!(m.library.last_scan.as_ref().map(|s| s.discovered), Some(12));

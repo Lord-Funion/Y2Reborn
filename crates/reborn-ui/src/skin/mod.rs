@@ -218,6 +218,10 @@ pub(crate) enum Align {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Var {
     Sleep,
+    Bitrate,
+    FlowTitle,
+    FlowArtist,
+    FlowDetail,
     Title,
     Artist,
     Album,
@@ -289,6 +293,10 @@ const VARS: &[(&str, Var, bool)] = &[
     ("skin", Var::Skin, false),
     ("playback", Var::Playback, false),
     ("sleep", Var::Sleep, false),
+    ("bitrate", Var::Bitrate, false),
+    ("flow_title", Var::FlowTitle, false),
+    ("flow_artist", Var::FlowArtist, false),
+    ("flow_detail", Var::FlowDetail, false),
     ("label", Var::Label, true),
     ("detail", Var::Detail, true),
     ("number", Var::Number, true),
@@ -543,6 +551,9 @@ pub(crate) enum El {
         dy: f32,
         /// Draw in the skin's palette (default) or exactly as Reborn does.
         recolor: bool,
+        /// Reborn's captions under Cover Flow's cover (default); false when the skin draws
+        /// `{flow_title}`, `{flow_artist}` and `{flow_detail}` in its own fonts (Y2Reborn #100).
+        captions: bool,
     },
 }
 
@@ -635,6 +646,8 @@ pub struct Skin {
     pub(crate) palette: Palette,
     pub(crate) layouts: HashMap<&'static str, Vec<Node>>,
     pub(crate) fonts: Vec<atlas::Font>,
+    /// Album covers keep square corners (`cover_shape`, Y2Reborn #100).
+    pub square_covers: bool,
     pub atlas: Vec<u8>,
     pub atlas_width: usize,
     pub atlas_height: usize,

@@ -235,8 +235,8 @@ fn pinned_file_probe_preserves_fixture_metadata_and_pcm_without_extension() {
         assert_eq!(actual.position_ms, expected.position_ms, "{name}");
         tested += 1;
     }
-    // 36 music fixtures and the three audiobook specimens (book-*).
-    assert_eq!(tested, 39);
+    // 36 music fixtures, the five cover-3s ones (9.3.17) and the three audiobook specimens (book-*).
+    assert_eq!(tested, 44);
     let pinned = reborn_platform::storage::pin_track(&track(), &root).unwrap();
     assert!(external_artwork(pinned.path(), ART_SIZE as u32).is_err());
     for name in [

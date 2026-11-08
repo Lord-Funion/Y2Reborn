@@ -154,8 +154,13 @@ impl Runtime {
         }
     }
 
-    /// The picture shown again in the new look's shape.
+    /// The pictures shown again in the new look's shape: Now Playing's at once, the covers
+    /// (thumbnails, Cover Flow's centre) as they are asked for again (Y2Reborn #100).
     fn reshape_art(&mut self) {
+        if let Some(renderer) = self.graphics.as_mut() {
+            renderer.forget_thumbs();
+        }
+        self.ui.collection_art.set(None);
         if self.art {
             let rgba = std::mem::take(&mut self.art_square);
             self.show_art(rgba);

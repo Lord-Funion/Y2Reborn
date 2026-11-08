@@ -157,6 +157,8 @@ pub struct Canvas {
     /// Where shared components drew things that move (Beta 7.2); one pass
     /// eases them once the frame is built (`motion::apply`).
     pub moving: Vec<Moving>,
+    /// A skin draws Cover Flow's captions itself (`"captions": false`, Y2Reborn #100).
+    pub(crate) skin_captions: bool,
 }
 
 /// A run of quads `[start, end)` that one kind of motion moves.
@@ -238,12 +240,14 @@ impl Canvas {
         Self {
             draw: Vec::with_capacity(1200),
             moving: Vec::new(),
+            skin_captions: false,
         }
     }
     pub fn from_quads(draw: Vec<Quad>) -> Self {
         Self {
             draw,
             moving: Vec::new(),
+            skin_captions: false,
         }
     }
     /// Note quads that move (see `Moving`).

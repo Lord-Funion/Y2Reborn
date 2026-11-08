@@ -393,6 +393,11 @@ impl Renderer {
     pub fn resident_thumbs(&self) -> impl Iterator<Item = u64> + '_ {
         self.thumbs.keys().copied()
     }
+    /// Forget every thumbnail (the cells are reused): they are asked for again, shaped for a
+    /// new look (Y2Reborn #100).
+    pub fn forget_thumbs(&mut self) {
+        self.thumbs.clear();
+    }
     pub fn thumb_resident(&self, key: u64) -> bool {
         self.thumbs.contains_key(&key)
     }

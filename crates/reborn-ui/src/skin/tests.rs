@@ -46,11 +46,12 @@ impl Files for Mem {
 
 const CLASSIC: &str = include_str!("../../../../skins/classic/skin.json");
 /// Every shipped skin's manifest.
-const SHIPPED: [&str; 16] = [
+const SHIPPED: [&str; 17] = [
     include_str!("../../../../skins/big-type/skin.json"),
     include_str!("../../../../skins/bunny-bow/skin.json"),
     include_str!("../../../../skins/cassette/skin.json"),
     include_str!("../../../../skins/classic/skin.json"),
+    include_str!("../../../../skins/luna-xp/skin.json"),
     include_str!("../../../../skins/mini-blue/skin.json"),
     include_str!("../../../../skins/mini-gold/skin.json"),
     include_str!("../../../../skins/mini-green/skin.json"),
@@ -725,6 +726,97 @@ fn album_songs_are_numbered_in_skins_as_on_reborns_album_page() {
         assert!(
             json.contains(r#""if": "numbered""#),
             "a shipped skin without numbers"
+        );
+    }
+}
+
+#[test]
+fn bitrate_shows_in_skins_and_song_info() {
+    // Y2Linux #87: `{bitrate}` next to `{quality}`, and Song Info's format line.
+    let screens = r##"{"now_playing": [
+  {"type": "text", "x": 0, "y": 300, "w": 480, "h": 30, "text": "{quality} · {bitrate}"}
+]}"##;
+    let ui = skinned(compile_test(screens).unwrap());
+    let mut tracks = library(2);
+    tracks[0].codec = "mp3".into();
+    tracks[0].sample_rate = 44_100;
+    tracks[0].bitrate = 319_874;
+    let mut m = model(Screen::NowPlaying);
+    m.queue = tracks.clone();
+    let text = crate::tests::drawn_text(&ui.draw(&m, &tracks, false));
+    assert!(text.contains("MP3 · 44.1 kHz · 320 kbps"), "{text}");
+    m.screen = Screen::TrackInfo;
+    let page = crate::pages::page(&crate::Ui::default(), &m, &tracks);
+    let format = |page: &crate::pages::Page| {
+        page.facts
+            .iter()
+            .find(|(label, _)| label == "Format")
+            .map(|(_, value)| value.clone())
+    };
+    assert_eq!(format(&page).as_deref(), Some("MP3 · 44.1 kHz · 320 kbps"));
+    // Unknown (0): no number, and nothing in the skin field.
+    tracks[0].bitrate = 0;
+    m.queue = tracks.clone();
+    let page = crate::pages::page(&crate::Ui::default(), &m, &tracks);
+    assert_eq!(format(&page).as_deref(), Some("MP3 · 44.1 kHz"));
+}
+
+#[test]
+fn cover_flow_follows_the_skin_captions_and_cover_shape() {
+    // Y2Reborn #100: a skin draws Cover Flow's captions in its own fonts and chooses its covers'
+    // corners; every shipped skin does both.
+    let screens = r##"{"cover_flow": [
+  {"type": "native", "part": "screen", "captions": false},
+  {"type": "text", "x": 0, "y": 255, "w": 480, "h": 30, "text": "<{flow_title}>"},
+  {"type": "text", "x": 0, "y": 286, "w": 480, "h": 24, "text": "[{flow_artist}]"},
+  {"type": "text", "x": 0, "y": 313, "w": 480, "h": 22, "text": "({flow_detail})"}
+]}"##;
+    let skin = compile_test(screens).unwrap();
+    assert!(!skin.square_covers, "rounded unless asked");
+    let ui = skinned(skin);
+    assert!(ui.round_covers());
+    let mut tracks = library(3);
+    for t in &mut tracks {
+        t.album = "Zephyr".into();
+        t.album_artist = "Nightjar".into();
+    }
+    let m = model(Screen::Albums);
+    assert!(crate::cover_flow(&m));
+    let text = crate::tests::drawn_text(&ui.draw(&m, &tracks, false));
+    assert!(text.contains("<Zephyr>"), "{text}");
+    assert!(text.contains("[Nightjar]"), "{text}");
+    assert!(text.contains("(3 songs · 10 min)"), "{text}");
+    assert_eq!(
+        text.matches("Zephyr").count(),
+        1,
+        "Reborn's own captions stay off: {text}"
+    );
+    // Without "captions": false Reborn draws them, as before.
+    let ui = skinned(
+        compile_test(r##"{"cover_flow": [{"type": "native", "part": "screen"}]}"##).unwrap(),
+    );
+    let text = crate::tests::drawn_text(&ui.draw(&m, &tracks, false));
+    assert!(
+        text.contains("Zephyr") && text.contains("Nightjar"),
+        "{text}"
+    );
+    // "cover_shape": square keeps the covers square; anything else is refused by name.
+    let shaped = |shape: &str| {
+        let text = manifest(LIST).replacen('{', &format!("{{\"cover_shape\": \"{shape}\", "), 1);
+        compile("test", &text, &files())
+    };
+    assert!(shaped("square").unwrap().square_covers);
+    assert!(!skinned(shaped("square").unwrap()).round_covers());
+    assert!(!shaped("rounded").unwrap().square_covers);
+    assert!(shaped("oval").unwrap_err().contains("cover_shape \"oval\""));
+    for json in SHIPPED {
+        assert!(
+            json.contains(r#""cover_flow": ["#),
+            "a shipped skin without Cover Flow"
+        );
+        assert!(
+            json.contains(r#""cover_shape": ""#),
+            "a shipped skin without a cover shape"
         );
     }
 }

@@ -300,6 +300,22 @@ impl Ui {
         self.cover_request.take()
     }
 
+    /// Wi-Fi is connected (with or without a working internet answer): what the update
+    /// check, a download and the radio need (Y2Reborn #96).
+    pub fn online(&self) -> bool {
+        matches!(
+            self.wifi.status,
+            WifiStatus::Connected(_) | WifiStatus::NoInternet(_)
+        )
+    }
+
+    /// Album covers get rounded corners: Reborn's own look and most skins; a skin with
+    /// `"cover_shape": "square"` keeps them square (Y2Reborn #100). The covers arrive square
+    /// from the artwork worker and are shaped when they are uploaded.
+    pub fn round_covers(&self) -> bool {
+        !self.skin.as_ref().is_some_and(|skin| skin.square_covers)
+    }
+
     /// The download bar's fill for this frame: it glides toward the reported
     /// value (reports come four times a second), and starts from empty when
     /// the step changes from download to check.

@@ -55,13 +55,17 @@ Settings
 ├ Skin                       the skins
 ├ Customize                  Home Menu › · Browsing › · Wheel & Buttons ›
 │  ├ Home Menu               the places on Home and their order
-│  ├ Browsing                Cover Flow · Sort Albums · Artists List · Lists Wrap Around ›
+│  ├ Browsing                Cover Flow · Sort Albums · Artist's Albums › · Artists List
+│  │                         · Lists Wrap Around ›
 │  └ Wheel & Buttons         Wheel on Now Playing · Wheel Click · Haptics › · Buttons While Screen Off ›
 ├ Library                    Scan for Music · Storage › · Last.fm ›
 └ System                     Software Update › · Time Zone › · Date & Time › · Error Reports ›
                              · Reset & Maintenance › · About ›
    (About › Version, tapped seven times: the service menu — codecs, Battery, Sleep, Diagnostics)
 ```
+
+Library's hint line names the audio the last scan left out because Reborn cannot play its type ("43 files can't
+be played here (WMA, DSD), so they aren't in your library.", Y2Reborn #104); without such files there is no line.
 
 Shuffle and Repeat are on Now Playing's menu, the sleep timer on Now Playing too: things you change while
 listening stay where you listen.
@@ -82,7 +86,10 @@ Settings, and nothing else:
 
 The wheel goes Wi-Fi → Bluetooth → Brightness → Sleep Timer → Restart → Power Off; the menu opens on
 Brightness. Wi-Fi and Bluetooth: Select switches them, the tile fills with the accent while on. Brightness:
-Select, turn the wheel, Select (the Display card's adjustment). Sleep Timer opens the timer's picker. Restart
+Select, turn the wheel, Select (the Display card's adjustment). Holding Select on Wi-Fi, Bluetooth or
+Brightness opens Settings' Wi-Fi, Bluetooth or Display page instead, to choose a network or a device
+(Y2Reborn #101); the menu closes and Back returns to the screen it was opened on. Sleep Timer opens the
+timer's picker. Restart
 and Power Off act at once and wait while the platform works (an update). Keep holding Power with the menu
 open: after 3 s a ring fills around the Power Off tile ("Hold to Turn Off") and turns the player off 1.2 s
 later, as a hold always did; the hardware resets the player after 10 s. Over the keyboard, a pairing

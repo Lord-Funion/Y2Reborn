@@ -1398,5 +1398,6 @@
     "if": "has_clock"
    }
   ]
- }
+ },
+ "cover_shape": "square"
 }

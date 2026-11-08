@@ -863,7 +863,9 @@ impl MainLoop {
                 if reply.full {
                     // Cover Flow's centre cover at full resolution.
                     if let (Some(mut rgba), Some(renderer)) = (reply.rgba, rt.graphics.as_mut()) {
-                        reborn_ui::art::round_corners(&mut rgba, reborn_graphics::ART_SIZE);
+                        if rt.ui.round_covers() {
+                            reborn_ui::art::round_corners(&mut rgba, reborn_graphics::ART_SIZE);
+                        }
                         if renderer.collection_artwork(&rgba).is_ok() {
                             rt.ui.collection_art.set(Some(reply.thumb));
                             rt.dirty.mark_render();
@@ -872,7 +874,12 @@ impl MainLoop {
                     continue;
                 }
                 match (reply.rgba, rt.graphics.as_mut()) {
-                    (Some(rgba), Some(renderer)) => {
+                    (Some(mut rgba), Some(renderer)) => {
+                        // Shaped for the look now: a reply asked for before a skin
+                        // switch gets the new shape (Y2Reborn #100).
+                        if rt.ui.round_covers() {
+                            reborn_ui::art::round_corners(&mut rgba, reborn_graphics::THUMB_SIZE);
+                        }
                         if renderer.upload_thumb(reply.thumb, &rgba).is_ok() {
                             rt.dirty.mark_render();
                         }
@@ -1464,6 +1471,7 @@ impl MainLoop {
                             reused: stats.reused,
                             elapsed_ms: stats.elapsed_ms,
                             unreadable: stats.unreadable,
+                            unplayable: stats.unplayable.clone(),
                         }));
                     // Files that could not be read are counted on Settings →
                     // Library, not announced after every start.
@@ -1570,10 +1578,7 @@ impl MainLoop {
         }
         // From the current Wi-Fi view every pass, not only when an event arrives
         // (Beta 4 refused a station right after start while Wi-Fi was up).
-        rt.ui.radio.online = matches!(
-            rt.ui.wifi.status,
-            WifiStatus::Connected(_) | WifiStatus::NoInternet(_)
-        );
+        rt.ui.radio.online = rt.ui.online();
         let playlist_replies: Vec<playlists::Reply> = rt
             .playlist_worker
             .as_ref()

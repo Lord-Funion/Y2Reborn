@@ -236,7 +236,7 @@ pub fn page(ui: &Ui, m: &AppModel, tracks: &[Track]) -> Page {
         Screen::Battery => battery(m),
         Screen::Sleep => sleep(m),
         Screen::Storage => storage(m),
-        Screen::Update if m.navigation.filter == SOFTWARE_UPDATE => update_status(m),
+        Screen::Update if m.navigation.filter == SOFTWARE_UPDATE => update_status(ui, m),
         Screen::Update => system_menu(ui, m),
         Screen::About => Page::default()
             .fact(
@@ -1045,14 +1045,18 @@ fn library(ui: &Ui, m: &AppModel, tracks: &[Track]) -> Page {
     let storage = free_text(&m.platform.snapshot.storage.internal)
         .map(|t| t.split(" free").next().unwrap_or("").to_owned() + " free")
         .unwrap_or_default();
-    Page::rows(vec![
-        disabled(
-            row("Scan for Music", "scan_library", scan),
-            !m.library.scanning,
-        ),
-        row("Storage", "storage", storage).with_kind(RowKind::Chevron),
-        row("Last.fm", "lastfm", lastfm_summary(ui, m)).with_kind(RowKind::Chevron),
-    ])
+    let last = m.library.last_scan.as_ref().filter(|_| !m.library.scanning);
+    Page {
+        status: last.and_then(|scan| crate::components::unplayable_note(&scan.unplayable)),
+        ..Page::rows(vec![
+            disabled(
+                row("Scan for Music", "scan_library", scan),
+                !m.library.scanning,
+            ),
+            row("Storage", "storage", storage).with_kind(RowKind::Chevron),
+            row("Last.fm", "lastfm", lastfm_summary(ui, m)).with_kind(RowKind::Chevron),
+        ])
+    }
 }
 
 /// Last.fm's row: the account, the log file, or Off.
@@ -1682,7 +1686,7 @@ fn report_trigger_label(trigger: &str) -> &'static str {
     }
 }
 
-fn update_status(m: &AppModel) -> Page {
+fn update_status(ui: &Ui, m: &AppModel) -> Page {
     let s = &m.platform.snapshot;
     let u = &s.update;
     let busy = m.platform.busy;
@@ -1711,10 +1715,17 @@ fn update_status(m: &AppModel) -> Page {
             "Connect the player to a computer to install new software.",
         );
     }
-    let check = disabled(
-        Item::new("Check for Updates", "task:update_check"),
-        u.can_check && busy.is_none(),
-    );
+    // Without Wi-Fi a check or a download waited ~30 s for the server; the way to Wi-Fi
+    // takes their place (Y2Reborn #96).
+    let wifi = || row("Connect to Wi-Fi", "wifi", "Updates need the internet");
+    let check = if ui.online() {
+        disabled(
+            Item::new("Check for Updates", "task:update_check"),
+            u.can_check && busy.is_none(),
+        )
+    } else {
+        wifi()
+    };
     match &u.phase {
         UpdatePhase::UpToDate => Page::hero(
             "Up to Date",
@@ -1740,10 +1751,14 @@ fn update_status(m: &AppModel) -> Page {
                 ),
             },
         )
-        .with_rows(vec![disabled(
-            Item::new("Update Now", "update_now"),
-            u.can_download && busy.is_none(),
-        )]),
+        .with_rows(vec![if ui.online() {
+            disabled(
+                Item::new("Update Now", "update_now"),
+                u.can_download && busy.is_none(),
+            )
+        } else {
+            wifi()
+        }]),
         UpdatePhase::ReadyToInstall => Page::hero(
             "Ready to Install",
             "The player restarts to install. It takes about a minute.",
@@ -1775,7 +1790,11 @@ fn update_status(m: &AppModel) -> Page {
                 "Couldn't Reach the Update Server",
                 "Make sure Wi-Fi is connected, then check again.",
             )
-            .with_rows(vec![Item::new("Wi-Fi", "wifi"), check]),
+            .with_rows(if ui.online() {
+                vec![Item::new("Wi-Fi", "wifi"), check]
+            } else {
+                vec![check]
+            }),
             UpdateProblem::NoUpdateSource | UpdateProblem::NeedsComputer => Page::hero(
                 "Updates Are Installed with a Computer",
                 "Connect the player to a computer to install new software.",
@@ -1832,6 +1851,11 @@ fn track_info(m: &AppModel, tracks: &[Track]) -> Page {
         (true, _) => String::new(),
         (false, 0) => t.codec.to_uppercase(),
         (false, rate) => format!("{} · {}", t.codec.to_uppercase(), khz(rate)),
+    };
+    // "MP3 · 44.1 kHz · 320 kbps" (Y2Linux #87).
+    let format = match crate::views_playing::bitrate_label(t) {
+        Some(rate) if !format.is_empty() => format!("{format} · {rate}"),
+        _ => format,
     };
     let location = m
         .sources

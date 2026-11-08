@@ -273,6 +273,10 @@ impl Runtime {
                 self.model.settings.album_order = order;
                 self.checkpoint();
             }
+            Effect::SetArtistAlbums(order) => {
+                self.model.settings.artist_albums = order;
+                self.checkpoint();
+            }
             Effect::SetNowPlayingWheel(wheel) => {
                 self.model.settings.now_playing_wheel = wheel;
                 self.checkpoint();

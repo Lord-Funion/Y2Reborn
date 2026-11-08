@@ -2,6 +2,7 @@
 pub mod benchmark;
 #[cfg(test)]
 mod platform_tests;
+pub mod unplayable;
 use reborn_core::{MediaSource, Source, Track};
 use reborn_media::{Cancel, MediaFile};
 use reborn_observability::{HealthState, Level, Observer};
@@ -67,6 +68,9 @@ pub struct ScanMetrics {
     /// Folders not read again: their modification time had not changed.
     #[serde(default)]
     pub folders_skipped: u64,
+    /// Audio files left out because Reborn cannot play their type, per type (Y2Reborn #104).
+    #[serde(default)]
+    pub unplayable: unplayable::Counts,
 }
 #[derive(Debug, Clone, Default)]
 pub struct Filter {
@@ -237,7 +241,10 @@ fn open(path: &Path) -> Result<Connection, OpenFailure> {
     }
     // Additive (quick scan, Beta 8.42): older Reborn ignores both tables.
     c.execute_batch("CREATE TABLE IF NOT EXISTS scan_folders(source_id TEXT NOT NULL,path TEXT NOT NULL,parent TEXT NOT NULL,mtime INTEGER NOT NULL,files INTEGER NOT NULL,unreadable INTEGER NOT NULL,playlists TEXT NOT NULL,PRIMARY KEY(source_id,path)) WITHOUT ROWID;
-        CREATE TABLE IF NOT EXISTS scan_volumes(source_id TEXT PRIMARY KEY,free_bytes INTEGER NOT NULL,revision INTEGER NOT NULL);")
+        CREATE TABLE IF NOT EXISTS scan_volumes(source_id TEXT PRIMARY KEY,free_bytes INTEGER NOT NULL,revision INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS scan_folder_unplayable(source_id TEXT NOT NULL,path TEXT
+        NOT NULL,mtime INTEGER NOT NULL,counts TEXT NOT NULL,PRIMARY KEY(source_id,path))
+        WITHOUT ROWID;")
         .map_err(|error| classify_open_error(error, OpenStage::Migration))?;
     c.execute_batch("CREATE TEMP TABLE scan_seen(id INTEGER PRIMARY KEY);
         CREATE TEMP TABLE scan_candidates(position INTEGER PRIMARY KEY,path TEXT NOT NULL,size INTEGER NOT NULL,mtime INTEGER NOT NULL);")
@@ -452,6 +459,8 @@ struct Folder {
     files: u64,
     unreadable: u64,
     playlists: Vec<String>,
+    /// Unplayable audio directly inside (`unplayable`); None: not counted, read the folder again.
+    unplayable: Option<unplayable::Counts>,
 }
 /// The folders of `source` if its storage still has the free space it had
 /// after the walk that recorded them (and tags are read as then).
@@ -468,7 +477,7 @@ fn folders(c: &Connection, source: &str, free: u64) -> Result<Option<Vec<Folder>
         return Ok(None);
     }
     let mut q = c
-        .prepare_cached("SELECT path,parent,mtime,files,unreadable,playlists FROM scan_folders WHERE source_id=?1")
+        .prepare_cached("SELECT f.path,f.parent,f.mtime,f.files,f.unreadable,f.playlists,u.counts FROM scan_folders f LEFT JOIN scan_folder_unplayable u ON u.source_id=f.source_id AND u.path=f.path AND u.mtime=f.mtime WHERE f.source_id=?1")
         .map_err(err)?;
     let rows = q
         .query_map([source], |r| {
@@ -479,6 +488,7 @@ fn folders(c: &Connection, source: &str, free: u64) -> Result<Option<Vec<Folder>
                 files: r.get::<_, i64>(3)? as u64,
                 unreadable: r.get::<_, i64>(4)? as u64,
                 playlists: serde_json::from_str(&r.get::<_, String>(5)?).unwrap_or_default(),
+                unplayable: unplayable::parse(r.get(6)?),
             })
         })
         .map_err(err)?;
@@ -511,6 +521,7 @@ fn save_folders(
         .map_err(err)?;
     tx.execute("DELETE FROM scan_volumes WHERE source_id=?1", [source])
         .map_err(err)?;
+    unplayable::forget(&tx, source)?;
     if let Some((free, folders)) = walked {
         {
             let mut q = tx
@@ -527,6 +538,9 @@ fn save_folders(
                     serde_json::to_string(&f.playlists).map_err(|e| e.to_string())?
                 ])
                 .map_err(err)?;
+                if let Some(counts) = &f.unplayable {
+                    unplayable::record(&tx, source, &f.path, f.mtime, counts)?;
+                }
             }
         }
         tx.execute(
@@ -1824,7 +1838,11 @@ impl FolderWalk {
         let mtime = file_mtime(&fs::metadata(physical).ok()?)?;
         let path = logical.to_string_lossy().into_owned();
         let folder = self.walked.len();
-        if let Some(known) = self.known.get(&path).filter(|known| known.mtime == mtime) {
+        let counted = |known: &&Folder| known.mtime == mtime && known.unplayable.is_some();
+        if let Some(known) = self.known.get(&path).filter(counted) {
+            if let Some(counts) = &known.unplayable {
+                unplayable::add(&mut stats.unplayable, counts);
+            }
             stats.discovered += known.files;
             stats.reused += known.files.saturating_sub(known.unreadable);
             stats.unreadable += known.unreadable;
@@ -1851,6 +1869,7 @@ impl FolderWalk {
             path,
             parent: parent.to_owned(),
             mtime,
+            unplayable: Some(unplayable::Counts::new()),
             ..Default::default()
         });
         Some(Frame {
@@ -2032,6 +2051,7 @@ fn scan_sources(
                             continue;
                         }
                         if !file_type.is_file() || !supported(&path) {
+                            walk.note_unplayable(folder, &path, file_type.is_file(), &mut stats);
                             continue;
                         }
                         let logical_path = source
@@ -3871,6 +3891,40 @@ mod quick_scan_tests {
         // No fingerprint (a FAT32 card): every folder, and the record is dropped.
         assert!(!lib.scan(ScanMode::Quick, None).quick);
         assert!(!lib.scan(ScanMode::Quick, Some(8)).quick);
+        lib.db.stop();
+    }
+
+    #[test]
+    fn unplayable_audio_is_counted_by_type_and_kept_for_skipped_folders() {
+        let lib = Library::new("unplayable");
+        fs::write(lib.media.join("Other/a.wma"), b"x").unwrap();
+        fs::write(lib.media.join("Other/b.WMA"), b"x").unwrap();
+        fs::write(lib.media.join("Artist/Album/c.dsf"), b"x").unwrap();
+        fs::write(lib.media.join("Artist/Album/cover.jpg"), b"x").unwrap();
+        let expected = unplayable::Counts::from([("dsf".into(), 1), ("wma".into(), 2)]);
+        let first = lib.scan(ScanMode::Quick, Some(7));
+        assert_eq!((first.unplayable, first.discovered), (expected.clone(), 4));
+        // Unchanged folders are not read, their counts come from the record.
+        let again = lib.scan(ScanMode::Quick, Some(7));
+        assert_eq!(
+            (again.folders_skipped, again.unplayable),
+            (4, expected.clone())
+        );
+        // Counts an older Reborn left stale (another folder time) or never wrote: the folder is
+        // read again, the rest stays skipped.
+        let other = lib.media.join("Other").to_string_lossy().into_owned();
+        let stale = format!("UPDATE scan_folder_unplayable SET mtime=mtime+1 WHERE path='{other}'");
+        lib.db.execute_test_sql(stale).unwrap();
+        let read = lib.scan(ScanMode::Quick, Some(7));
+        assert_eq!(
+            (read.folders_skipped, read.unplayable),
+            (3, expected.clone())
+        );
+        lib.db
+            .execute_test_sql("DELETE FROM scan_folder_unplayable".into())
+            .unwrap();
+        let none = lib.scan(ScanMode::Quick, Some(7));
+        assert_eq!((none.folders_skipped, none.unplayable), (0, expected));
         lib.db.stop();
     }
 

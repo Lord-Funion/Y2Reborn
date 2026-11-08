@@ -106,6 +106,27 @@ impl Ui {
         ("Quick Menu".into(), line)
     }
 
+    /// Holding Select on a tile opens its settings page, as on a phone (Y2Reborn #101): Wi-Fi
+    /// to choose a network, Bluetooth a device, Brightness the Display page. The menu closes;
+    /// Back returns to the screen it was opened on. `false`: the menu is not open.
+    pub(crate) fn quick_menu_hold(&mut self, m: &mut AppModel) -> bool {
+        if m.navigation.modal != Some(Modal::QuickMenu) {
+            return false;
+        }
+        let rows = self.quick_menu_rows(m);
+        let focused = rows.get(m.navigation.modal_focus).filter(|r| r.enabled);
+        let screen = match focused.map(|r| r.key.as_str()) {
+            Some("quick:wifi") => Screen::Wifi,
+            Some("quick:bluetooth") => Screen::Bluetooth,
+            Some("quick:brightness") => Screen::SettingsDisplay,
+            _ => return true,
+        };
+        self.adjusting_brightness = false;
+        Self::close_modal(m);
+        Self::go(m, screen, "");
+        true
+    }
+
     /// Select on a row. The switches keep the menu open so their new state shows.
     pub(crate) fn quick_menu_action(&mut self, m: &mut AppModel, key: &str) -> Effect {
         match key {

@@ -137,14 +137,7 @@ impl Row {
 }
 #[derive(Default)]
 pub struct Catalog {
-    stamp: Option<(
-        usize,
-        usize,
-        Screen,
-        String,
-        reborn_core::ArtistsList,
-        reborn_core::AlbumOrder,
-    )>,
+    stamp: Option<Stamp>,
     pub rows: Vec<Row>,
     /// The letter each row files under, read when a letter jump first
     /// passes it (#30); cleared with the rows.
@@ -169,13 +162,23 @@ pub struct Catalog {
     /// songs again (Beta 8.39).
     whole: Vec<(WholeKey, Vec<Row>)>,
 }
+/// What the rows were built from: the library, the screen and its filter, who Artists lists
+/// and how albums are ordered (Albums, and within an artist, Y2Reborn #75).
+type Stamp = (
+    usize,
+    usize,
+    Screen,
+    String,
+    reborn_core::ArtistsList,
+    (reborn_core::AlbumOrder, reborn_core::ArtistAlbums),
+);
 /// A whole-library list: the library, the screen, who Artists lists and how
 /// Albums orders them.
 type WholeKey = (
     (usize, usize),
     Screen,
     reborn_core::ArtistsList,
-    reborn_core::AlbumOrder,
+    (reborn_core::AlbumOrder, reborn_core::ArtistAlbums),
 );
 impl Catalog {
     /// The search page (Beta 8.32): the field, then each kind of result
@@ -339,7 +342,7 @@ impl Catalog {
             m.screen,
             m.navigation.filter.clone(),
             m.settings.artists_list,
-            m.settings.album_order,
+            (m.settings.album_order, m.settings.artist_albums),
         );
         if self.stamp.as_ref() == Some(&stamp) {
             return;
@@ -357,7 +360,7 @@ impl Catalog {
                 crate::library_stamp(tracks),
                 m.screen,
                 m.settings.artists_list,
-                m.settings.album_order,
+                (m.settings.album_order, m.settings.artist_albums),
             )
         });
         if let Some(key) = whole {
@@ -379,7 +382,7 @@ impl Catalog {
             crate::library_stamp(tracks),
             screen,
             m.settings.artists_list,
-            m.settings.album_order,
+            (m.settings.album_order, m.settings.artist_albums),
         );
         if self.whole.iter().any(|(k, _)| *k == key) {
             return;
@@ -424,7 +427,8 @@ impl Catalog {
                     reborn_core::AlbumOrder::Artist => {
                         albums.sort_by_cached_key(|((album, artist), (_, t, year))| {
                             let artist = artist_key(shown_artist(artist, t));
-                            (artist, year_key(*year), title_key(album))
+                            let order = m.settings.artist_albums;
+                            (artist, within_artist(order, *year, album))
                         })
                     }
                 }
@@ -609,8 +613,8 @@ impl Catalog {
                     }
                 }
                 if m.screen == Screen::Artist {
-                    // An artist page lists the artist's albums, not their songs.
-                    // Oldest first, unknown years last (Y2Reborn #66).
+                    // An artist page lists the artist's albums, not their songs, in
+                    // Customize > Browsing > Artist's Albums order (Y2Reborn #66, #75).
                     let mut albums = BTreeMap::new();
                     for (i, t) in &ids {
                         let entry = albums
@@ -619,8 +623,9 @@ impl Catalog {
                         entry.2 = crate::earliest_year(entry.2, t.year);
                     }
                     let mut albums: Vec<_> = albums.into_iter().collect();
+                    let order = m.settings.artist_albums;
                     albums.sort_by_cached_key(|((album, artist), (_, _, year))| {
-                        (year_key(*year), title_key(album), artist_key(artist))
+                        (within_artist(order, *year, album), artist_key(artist))
                     });
                     for ((album, artist), (i, t, year)) in albums {
                         self.push(album_item(album, artist, i, t, year));
@@ -805,6 +810,21 @@ fn album_item(album: &str, artist: &str, index: usize, t: &Track, year: u16) -> 
     item
 }
 /// Sorts years oldest first and unknown ones last.
+/// Where an album stands among one artist's albums (Y2Reborn #75): by year either way, albums
+/// without a year last, or A to Z.
+fn within_artist(
+    order: reborn_core::ArtistAlbums,
+    year: u16,
+    album: &str,
+) -> (u16, (String, String)) {
+    use reborn_core::ArtistAlbums::*;
+    let year = match (order, year) {
+        (Title, _) => 0,
+        (NewestFirst, 1..) => u16::MAX - 1 - year,
+        _ => year_key(year),
+    };
+    (year, title_key(album))
+}
 fn year_key(year: u16) -> u16 {
     if year == 0 {
         u16::MAX
