@@ -1,5 +1,14 @@
 # Current Reborn state on the Y2
 
+## 1.0.0-beta.9.3.19 — Y2Linux 1.0 Beta 9.3.19 (Baseline 228), 2026-11-08: update notifications (published)
+
+Published as `baseline-228` (Reborn `520c4b8`; work `e989efb`). Update Notifications (Y2Reborn #97): toggle on
+Software Update (`Settings.update_notifications`, default off). With it on, `update_watch_due` lets any screen observe
+the platform every `UPDATE_WATCH` 120 s while online and lit (before: only `platform_backed` screens, so the daily
+check's answer arrived only in Settings); `update_notice` names each version once (`update_announced` persisted), no
+toast on Software Update itself
+([Beta 9.3.19 report](https://github.com/SchulzCode/Y2Linux/blob/main/docs/validation/Y2-LINUX-1.0-BETA-9.3.19.md)).
+
 ## 1.0.0-beta.9.3.18 — Y2Linux 1.0 Beta 9.3.18 (Baseline 227), 2026-11-08: Luna XP, bitrate, Cover Flow follows the skin (published)
 
 Published as `baseline-227` (Reborn `56298e9`; work `dba53bf`). Luna XP skin (eNKay; fonts subset, adapted to the
