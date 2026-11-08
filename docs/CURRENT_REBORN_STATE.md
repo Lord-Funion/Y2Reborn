@@ -1,5 +1,18 @@
 # Current Reborn state on the Y2
 
+## 1.0.0-beta.9.3.17 — Y2Linux 1.0 Beta 9.3.17 (Baseline 225), 2026-11-08: covers, Bluetooth first connect, Cover Flow (published)
+
+Published as `baseline-225` (Reborn `e14b17b`; work `0978fb4`, `e9f72a0`, `0f09caa`). Fixes written to hold for every
+format and headset (owner 2026-11-08). `decode.rs`: `Unsettled::due` settles a song (cover, media state, gapless
+preopen of the next) once ≥ 250 ms are queued or `SETTLE_WAIT` 500 ms after its first block; 9.3.16's cushion was
+unreachable with MP3/AAC/Opus blocks (8 per channel, 190–210 ms) and their covers came at the song's end (Y2Reborn
+#102, Y2Linux #98). Fixtures `cover-3s.{mp3,m4a,opus,ogg,flac}` (`tools/build/fixtures.py --covers`), test
+`every_codec_gets_its_cover_early_in_the_song_and_after_a_gapless_boundary`. `outputs.rs`: `AutoOutput` is ready on
+`playback_rate` (stereo, rate known) and retries a failed switch (`AUTO_OUTPUT_RETRY` 2 s, `AUTO_OUTPUT_TRIES` 5;
+Y2Reborn #103). `artwork.rs`: thumbnail cache name carries `Key::folder_revision` (folder cover candidates' names,
+sizes, mtimes), prefix `thumb4-` (Y2Reborn #105). Y2Linux side: uMTP patch 0007, every file name copies (#88)
+([Beta 9.3.17 report](https://github.com/SchulzCode/Y2Linux/blob/main/docs/validation/Y2-LINUX-1.0-BETA-9.3.17.md)).
+
 ## 1.0.0-beta.9.3.16 — Y2Linux 1.0 Beta 9.3.16 (Baseline 224), 2026-11-06: steady Bluetooth (published)
 
 Published as `baseline-224` (Reborn `ceb4824`; work `0ed544c`, `d4298f2`, contract `e209e30`). A playing Bluetooth PCM
