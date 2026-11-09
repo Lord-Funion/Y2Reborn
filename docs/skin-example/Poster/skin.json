@@ -1,0 +1,170 @@
+{
+  "format": 1,
+  "name": "Poster",
+  "author": "Your Name",
+  "version": "1.0",
+  "description": "The cover fills the screen, big capital letters on top.",
+  "cover_shape": "square",
+  "palette": {
+    "bg": "#0B0B0C",
+    "text": "#FFFFFF",
+    "muted": "#C8C8C8",
+    "dim": "#8A8A8A",
+    "accent": "cover",
+    "glass": "#FFFFFF",
+    "scrim": "#000000",
+    "sheet": "#18181A",
+    "track": "#FFFFFF33",
+    "danger": "#FF5A4E",
+    "success": "#4ED48A",
+    "warning": "#FFC24D"
+  },
+  "colors": {
+    "ink": "#0B0B0C",
+    "clear": "#0B0B0C00"
+  },
+  "fonts": {
+    "display": { "file": "fonts/DejaVuSansCondensed-Bold.ttf", "size": 34 },
+    "menu": { "file": "fonts/DejaVuSansCondensed-Bold.ttf", "size": 26 }
+  },
+  "parts": {
+    "top": [
+      { "type": "text", "if": "has_clock", "x": 18, "y": 10, "w": 240, "h": 18, "text": "{date}", "font": "S13", "color": "text", "case": "upper", "tracking": 2 },
+      { "type": "native", "part": "status", "x": 0, "y": 0 }
+    ],
+    "header": [
+      { "type": "rect", "x": 0, "y": 0, "w": 480, "h": 64, "color": "ink" },
+      { "type": "part", "name": "top" },
+      { "type": "icon", "if": "back", "x": 16, "y": 34, "size": 22, "icon": "back", "color": "accent" },
+      { "type": "text", "x": 44, "y": 30, "w": 420, "h": 30, "text": "{screen}", "font": "menu", "case": "upper", "tracking": 1 }
+    ],
+    "row": [
+      { "type": "rect", "if": "odd", "x": 0, "y": 0, "w": 480, "h": 42, "color": "glass/4" },
+      { "type": "rect", "if": "!last", "x": 18, "y": 41, "w": 444, "h": 1, "color": "text/10" },
+      { "type": "art", "if": "row_art & !numbered", "x": 18, "y": 5, "size": 32, "source": "row" },
+      { "type": "text", "if": "numbered", "x": 18, "y": 0, "w": 32, "h": 42, "text": "{track_number}", "font": "S15", "color": "accent" },
+      { "type": "text", "if": "row_art & !disabled | numbered & !disabled", "x": 62, "y": 0, "w": 270, "h": 42, "text": "{label}", "font": "S17" },
+      { "type": "text", "if": "!row_art & !numbered & !disabled", "x": 18, "y": 0, "w": 314, "h": 42, "text": "{label}", "font": "S17" },
+      { "type": "text", "if": "disabled", "x": 18, "y": 0, "w": 314, "h": 42, "text": "{label}", "font": "S17", "color": "dim" },
+      { "type": "text", "if": "has_detail", "x": 332, "y": 0, "w": 110, "h": 42, "text": "{detail}", "font": "R13", "color": "muted", "align": "right" },
+      { "type": "icon", "if": "current", "x": 446, "y": 13, "size": 16, "icon": "note", "color": "accent" },
+      { "type": "icon", "if": "chevron & !current", "x": 448, "y": 13, "size": 16, "icon": "chevron", "color": "dim" },
+      { "type": "rect", "if": "toggle", "x": 436, "y": 13, "w": 28, "h": 16, "radius": 8, "stroke": 2, "color": "dim" },
+      { "type": "rect", "if": "toggle & on", "x": 436, "y": 13, "w": 28, "h": 16, "radius": 8, "color": "accent" },
+      { "type": "icon", "if": "check & checked", "x": 444, "y": 11, "size": 20, "icon": "check", "color": "accent" }
+    ],
+    "row_focused": [
+      { "type": "rect", "x": 0, "y": 0, "w": 480, "h": 42, "color": "accent" },
+      { "type": "art", "if": "row_art & !numbered", "x": 18, "y": 5, "size": 32, "source": "row" },
+      { "type": "text", "if": "numbered", "x": 18, "y": 0, "w": 32, "h": 42, "text": "{track_number}", "font": "S15", "color": "ink" },
+      { "type": "text", "if": "row_art | numbered", "x": 62, "y": 0, "w": 270, "h": 42, "text": "{label}", "font": "S17", "color": "ink" },
+      { "type": "text", "if": "!row_art & !numbered", "x": 18, "y": 0, "w": 314, "h": 42, "text": "{label}", "font": "S17", "color": "ink" },
+      { "type": "text", "if": "has_detail", "x": 332, "y": 0, "w": 110, "h": 42, "text": "{detail}", "font": "R13", "color": "ink/70", "align": "right" },
+      { "type": "icon", "if": "chevron", "x": 448, "y": 13, "size": 16, "icon": "chevron", "color": "ink" },
+      { "type": "rect", "if": "toggle", "x": 436, "y": 13, "w": 28, "h": 16, "radius": 8, "stroke": 2, "color": "ink" },
+      { "type": "rect", "if": "toggle & on", "x": 452, "y": 16, "w": 10, "h": 10, "radius": 5, "color": "ink" },
+      { "type": "icon", "if": "check & checked", "x": 444, "y": 11, "size": 20, "icon": "check", "color": "ink" }
+    ],
+    "list": [
+      { "type": "list", "x": 0, "y": 68, "w": 480, "rows": 7, "row_height": 42, "source": "rows",
+        "row": [ { "type": "part", "name": "row" } ],
+        "focused": [ { "type": "part", "name": "row_focused" } ],
+        "scrollbar": { "x": 476, "w": 3, "track": "clear", "thumb": "accent" } }
+    ],
+    "empty": [
+      { "type": "text", "x": 40, "y": 130, "w": 400, "h": 40, "text": "{empty_title}", "font": "menu", "case": "upper", "align": "center" },
+      { "type": "text", "if": "has_body", "x": 40, "y": 176, "w": 400, "h": 0, "lines": 3, "text": "{empty_body}", "font": "R15", "color": "muted", "align": "center" },
+      { "type": "text", "if": "has_action", "x": 40, "y": 270, "w": 400, "h": 30, "text": "{empty_action}", "font": "S15", "color": "accent", "align": "center", "case": "upper", "tracking": 2 }
+    ]
+  },
+  "screens": {
+    "home": [
+      { "type": "art", "if": "has_art", "x": 60, "y": 0, "size": 360, "source": "current" },
+      { "type": "rect", "if": "has_art", "x": 0, "y": 0, "w": 480, "h": 360, "color": "ink/80" },
+      { "type": "part", "name": "top" },
+      { "type": "list", "x": 0, "y": 40, "w": 480, "rows": 6, "row_height": 46,
+        "row": [ { "type": "text", "x": 20, "y": 0, "w": 440, "h": 46, "text": "{label}", "font": "menu", "color": "text/50", "case": "upper", "tracking": 1 } ],
+        "focused": [
+          { "type": "rect", "x": 0, "y": 8, "w": 6, "h": 30, "color": "accent" },
+          { "type": "text", "x": 20, "y": 0, "w": 440, "h": 46, "text": "{label}", "font": "menu", "case": "upper", "tracking": 1 }
+        ] },
+      { "type": "text", "if": "has_track & !playing", "x": 20, "y": 324, "w": 300, "h": 22, "text": "{title}", "font": "R13", "color": "muted" },
+      { "type": "text", "if": "playing", "x": 20, "y": 324, "w": 300, "h": 22, "text": "{playback} · {title}", "font": "R13", "color": "muted" },
+      { "type": "text", "x": 320, "y": 324, "w": 140, "h": 22, "text": "{skin}", "font": "S10", "color": "dim", "align": "right", "case": "upper", "tracking": 3 }
+    ],
+    "now_playing": [
+      { "type": "art", "x": 60, "y": 0, "size": 360, "source": "current" },
+      { "type": "gradient", "x": 0, "y": 0, "w": 480, "h": 70, "top": "ink/80", "bottom": "clear" },
+      { "type": "gradient", "x": 0, "y": 110, "w": 480, "h": 160, "top": "clear", "bottom": "ink" },
+      { "type": "rect", "x": 0, "y": 270, "w": 480, "h": 90, "color": "ink" },
+      { "type": "part", "name": "top" },
+      { "type": "icon", "if": "favorite", "x": 444, "y": 34, "size": 20, "icon": "heart", "color": "accent" },
+      { "type": "group", "x": 18, "y": 150, "elements": [
+        { "type": "rect", "if": "live", "x": 0, "y": 0, "w": 50, "h": 20, "radius": 4, "color": "danger" },
+        { "type": "text", "if": "live", "x": 0, "y": 0, "w": 50, "h": 20, "text": "Live", "font": "S10", "align": "center", "case": "upper", "tracking": 2 },
+        { "type": "text", "if": "live", "x": 60, "y": 0, "w": 380, "h": 20, "text": "{station}", "font": "S13", "color": "muted" },
+        { "type": "text", "if": "!live", "x": 0, "y": 0, "w": 444, "h": 20, "text": "{album_artist} · {album}", "font": "S13", "color": "muted", "case": "upper", "tracking": 1 }
+      ] },
+      { "type": "text", "x": 18, "y": 176, "w": 444, "h": 0, "lines": 2, "line_height": 36, "text": "{title}", "font": "display", "case": "upper" },
+      { "type": "text", "x": 18, "y": 252, "w": 300, "h": 22, "text": "{artist}", "font": "S17", "color": "accent" },
+      { "type": "text", "if": "!live", "x": 318, "y": 252, "w": 144, "h": 22, "text": "{genre}", "font": "R13", "color": "dim", "align": "right" },
+      { "type": "bar", "x": 18, "y": 290, "w": 444, "h": 4, "value": "progress", "track": "track", "fill": "accent", "radius": 2, "knob": "text", "knob_radius": 6 },
+      { "type": "text", "x": 18, "y": 300, "w": 80, "h": 18, "text": "{elapsed}", "font": "R11", "color": "muted" },
+      { "type": "text", "if": "!live", "x": 180, "y": 300, "w": 120, "h": 18, "text": "{queue_index} / {queue_length}", "font": "R11", "color": "dim", "align": "center" },
+      { "type": "text", "x": 382, "y": 300, "w": 80, "h": 18, "text": "{duration}", "font": "R11", "color": "muted", "align": "right" },
+      { "type": "group", "x": 18, "y": 326, "elements": [
+        { "type": "rect", "x": 0, "y": 0, "w": 150, "h": 22, "radius": 11, "stroke": 1, "color": "text/40" },
+        { "type": "text", "x": 0, "y": 0, "w": 150, "h": 22, "text": "{quality}", "font": "S10", "align": "center" },
+        { "type": "text", "x": 158, "y": 0, "w": 70, "h": 22, "text": "{bitrate}", "font": "S10", "color": "dim" },
+        { "type": "icon", "if": "shuffle & !shuffle_albums", "x": 230, "y": 3, "size": 16, "icon": "shuffle", "color": "text" },
+        { "type": "icon", "if": "shuffle_albums", "x": 230, "y": 3, "size": 16, "icon": "vinyl", "color": "text" },
+        { "type": "icon", "if": "repeat", "x": 252, "y": 3, "size": 16, "icon": "repeat_mode", "color": "text" },
+        { "type": "icon", "if": "eq", "x": 274, "y": 3, "size": 16, "icon": "eq", "color": "dim" },
+        { "type": "icon", "if": "normalise", "x": 296, "y": 3, "size": 16, "icon": "normalise", "color": "dim" },
+        { "type": "icon", "if": "crossfade", "x": 318, "y": 3, "size": 16, "icon": "crossfade", "color": "dim" },
+        { "type": "icon", "if": "gapless & !crossfade", "x": 318, "y": 3, "size": 16, "icon": "gapless", "color": "dim" },
+        { "type": "text", "if": "!sleep", "x": 340, "y": 0, "w": 104, "h": 22, "text": "{output}", "font": "R11", "color": "dim", "align": "right" },
+        { "type": "text", "if": "sleep", "x": 340, "y": 0, "w": 104, "h": 22, "text": "{output} · {sleep}", "font": "R11", "color": "dim", "align": "right" }
+      ] }
+    ],
+    "list": [
+      { "type": "part", "name": "header" },
+      { "type": "part", "name": "list", "if": "!empty" },
+      { "type": "part", "name": "empty", "if": "empty" }
+    ],
+    "artists": [
+      { "type": "part", "name": "header" },
+      { "type": "list", "x": 0, "y": 68, "w": 480, "rows": 6, "row_height": 48,
+        "row": [
+          { "type": "text", "x": 18, "y": 0, "w": 380, "h": 48, "text": "{label}", "font": "menu", "color": "text/45", "case": "upper" }
+        ],
+        "focused": [
+          { "type": "text", "x": 18, "y": 0, "w": 380, "h": 48, "text": "{label}", "font": "menu", "color": "accent", "case": "upper" },
+          { "type": "text", "x": 380, "y": 0, "w": 82, "h": 48, "text": "{number} / {count}", "font": "R11", "color": "dim", "align": "right" }
+        ] }
+    ],
+    "queue": [
+      { "type": "part", "name": "header" },
+      { "type": "text", "if": "has_track", "x": 250, "y": 34, "w": 212, "h": 22, "text": "{queue_index} of {queue_length}", "font": "R13", "color": "dim", "align": "right" },
+      { "type": "part", "name": "list" }
+    ],
+    "cover_flow": [
+      { "type": "native", "part": "screen", "captions": false },
+      { "type": "part", "name": "header" },
+      { "type": "text", "x": 300, "y": 34, "w": 162, "h": 22, "text": "{position}", "font": "R13", "color": "dim", "align": "right" },
+      { "type": "text", "x": 20, "y": 268, "w": 440, "h": 34, "text": "{flow_title}", "font": "menu", "case": "upper", "align": "center" },
+      { "type": "text", "x": 20, "y": 302, "w": 440, "h": 22, "text": "{flow_artist}", "font": "S15", "color": "accent", "align": "center" },
+      { "type": "text", "x": 20, "y": 326, "w": 440, "h": 20, "text": "{flow_detail}", "font": "R13", "color": "dim", "align": "center" }
+    ],
+    "toast": [
+      { "type": "rect", "if": "!error", "x": 60, "y": 300, "w": 360, "h": 40, "radius": 20, "color": "text" },
+      { "type": "rect", "if": "error", "x": 60, "y": 300, "w": 360, "h": 40, "radius": 20, "color": "danger" },
+      { "type": "text", "x": 76, "y": 300, "w": 328, "h": 40, "text": "{message}", "font": "S15", "color": "ink", "align": "center" }
+    ],
+    "volume": [
+      { "type": "rect", "x": 0, "y": 280, "w": 480, "h": 80, "color": "ink" },
+      { "type": "text", "x": 18, "y": 286, "w": 120, "h": 44, "text": "{volume}", "font": "display" },
+      { "type": "bar", "x": 130, "y": 304, "w": 332, "h": 8, "value": "volume", "track": "track", "fill": "accent", "radius": 4 }
+    ]
+  }
+}

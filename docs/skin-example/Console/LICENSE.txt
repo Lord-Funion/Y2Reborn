@@ -1,0 +1,8 @@
+Console is an example skin of Reborn's skin guide (docs/skins.md).
+
+skin.json and the pictures in images/: CC0 1.0 (public domain dedication). Copy, change and share them freely, with
+or without credit: https://creativecommons.org/publicdomain/zero/1.0/
+The pictures were drawn pixel by pixel by ../make_console_images.py; any image editor can change them too.
+
+fonts/PixelifySans-*.ttf: Pixelify Sans by The Pixelify Sans Project Authors, SIL Open Font License 1.1, see
+fonts/PixelifySans-OFL.txt. Taken from Reborn's Bunny Bow skin.

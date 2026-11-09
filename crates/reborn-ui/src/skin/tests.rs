@@ -820,3 +820,104 @@ fn cover_flow_follows_the_skin_captions_and_cover_shape() {
         );
     }
 }
+
+#[test]
+fn the_guides_example_skins_together_use_every_part_of_the_engine() {
+    // docs/skins.md teaches with Ember, Poster and Console. Between them they show every element
+    // field, text value, condition and fixed value, so a skin maker can see each one at work; a
+    // feature added to the engine belongs in one of them too.
+    let examples = [
+        include_str!("../../../../docs/skin-example/Ember/skin.json"),
+        include_str!("../../../../docs/skin-example/Poster/skin.json"),
+        include_str!("../../../../docs/skin-example/Console/skin.json"),
+    ];
+    let mut used: std::collections::BTreeSet<String> = Default::default();
+    fn walk(v: &serde_json::Value, used: &mut std::collections::BTreeSet<String>) {
+        match v {
+            serde_json::Value::Object(map) => {
+                if let Some(kind) = map.get("type").and_then(|t| t.as_str()) {
+                    for (key, value) in map {
+                        used.insert(format!("{kind}.{key}"));
+                        if let Some(text) = value.as_str() {
+                            used.insert(format!("{kind}.{key}={text}"));
+                            let words = text.split(|c: char| !(c.is_ascii_lowercase() || c == '_'));
+                            if key == "if" {
+                                used.extend(words.map(|w| format!("if {w}")));
+                            } else if key == "text" {
+                                for rest in text.split('{').skip(1) {
+                                    used.insert(format!("{{{}}}", rest.split('}').next().unwrap()));
+                                }
+                            }
+                        }
+                    }
+                }
+                map.values().for_each(|v| walk(v, used));
+            }
+            serde_json::Value::Array(items) => items.iter().for_each(|v| walk(v, used)),
+            _ => {}
+        }
+    }
+    for json in examples {
+        let value: serde_json::Value = serde_json::from_str(json).unwrap();
+        walk(&value, &mut used);
+    }
+    let mut missing = vec![];
+    let kinds = [
+        "rect",
+        "gradient",
+        "image",
+        "text",
+        "icon",
+        "bar",
+        "art",
+        "list",
+        "group",
+        "part",
+        "native",
+        "indicators",
+    ];
+    for kind in kinds {
+        for field in compile::fields(kind).unwrap() {
+            // `dim` on indicators is still read but no longer drawn.
+            if !(kind == "indicators" && *field == "dim")
+                && !used.contains(&format!("{kind}.{field}"))
+            {
+                missing.push(format!("{kind}.{field}"));
+            }
+        }
+    }
+    missing.extend(
+        VARS.iter()
+            .map(|(name, _, _)| format!("{{{name}}}"))
+            .filter(|v| !used.contains(v)),
+    );
+    missing.extend(
+        FLAGS
+            .iter()
+            .map(|(name, _, _)| format!("if {name}"))
+            .filter(|v| !used.contains(v)),
+    );
+    for fixed in [
+        "bar.value=progress",
+        "bar.value=volume",
+        "bar.value=battery",
+        "bar.value=brightness",
+        "art.source=current",
+        "art.source=row",
+        "list.source=rows",
+        "list.source=facts",
+        "list.source=sheet",
+        "native.part=screen",
+        "native.part=status",
+        "text.align=left",
+        "text.align=center",
+        "text.align=right",
+        "text.case=upper",
+        "text.case=lower",
+    ] {
+        if !used.contains(fixed) {
+            missing.push(fixed.into());
+        }
+    }
+    assert!(missing.is_empty(), "no example skin shows: {missing:?}");
+}

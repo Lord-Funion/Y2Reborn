@@ -1786,7 +1786,10 @@ int rb_media_image_file(const char *path, uint8_t *out, int max_w, int max_h,
   AVFrame *frame = av_frame_alloc();
   if (!ctx || !frame) r = AVERROR(ENOMEM);
   if (r >= 0) {
-    ctx->max_pixels = (int64_t)max_w * max_h;
+    /* FFmpeg checks its buffers with the width rounded up to the SIMD stride
+     * (64 on AVX-512), so a picture of exactly max_w would be refused there;
+     * the size check below still refuses anything larger than max_w x max_h. */
+    ctx->max_pixels = (int64_t)FFALIGN(max_w, 64) * max_h;
     ctx->thread_count = 1;
     r = avcodec_open2(ctx, codec, NULL);
   }

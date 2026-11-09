@@ -1148,6 +1148,13 @@ mod tests {
         );
         // Too large for the bound: refused, not scaled down.
         assert!(decode_image(&skin.join("battery.png"), 20, 360).is_err());
+        // A full-screen picture is exactly the bound: FFmpeg's stride-aligned buffer check
+        // (512 wide on AVX-512) refused it before.
+        let screen = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../docs/skin-example/Console/images/screen.png");
+        assert_eq!(decode_image(&screen, 480, 360).unwrap().0, 480);
+        assert!(decode_image(&screen, 479, 360).is_err());
+        assert!(decode_image(&screen, 480, 359).is_err());
         assert!(decode_image(&fixture("missing.png"), 480, 360).is_err());
     }
     #[test]

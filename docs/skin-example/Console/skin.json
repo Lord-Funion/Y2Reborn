@@ -1,0 +1,181 @@
+{
+  "format": 1,
+  "name": "Console",
+  "author": "Your Name",
+  "version": "1.0",
+  "description": "A pocket game console from pictures and a pixel font.",
+  "cover_shape": "square",
+  "palette": {
+    "bg": "#1E2B1A",
+    "text": "#D8F5C8",
+    "muted": "#A9CF98",
+    "dim": "#7FA66F",
+    "accent": "#B6F23A",
+    "glass": "#D8F5C8",
+    "scrim": "#0A1008",
+    "sheet": "#243320",
+    "track": "#33472C",
+    "danger": "#FF6B57",
+    "success": "#B6F23A",
+    "warning": "#F2D23A"
+  },
+  "colors": {
+    "dark": "#141F12"
+  },
+  "fonts": {
+    "pixel": { "file": "fonts/PixelifySans-Regular.ttf", "size": 16 },
+    "small": { "file": "fonts/PixelifySans-Regular.ttf", "size": 12 },
+    "big": { "file": "fonts/PixelifySans-Bold.ttf", "size": 30, "charset": "ascii" }
+  },
+  "images": {
+    "screen": "images/screen.png",
+    "frame": "images/frame.png",
+    "cursor": "images/cursor.png",
+    "track": "images/track.png",
+    "fill": "images/fill.png",
+    "logo": "images/logo.png"
+  },
+  "parts": {
+    "bar": [
+      { "type": "rect", "x": 0, "y": 0, "w": 480, "h": 28, "color": "dark" },
+      { "type": "image", "x": 8, "y": 4, "w": 20, "h": 20, "image": "logo", "tint": "accent" },
+      { "type": "text", "x": 34, "y": 0, "w": 250, "h": 28, "text": "{screen}", "font": "pixel", "case": "upper" },
+      { "type": "text", "if": "has_clock", "x": 290, "y": 0, "w": 56, "h": 28, "text": "{clock}", "font": "small", "color": "muted", "align": "right" },
+      { "type": "indicators", "x": 396, "y": 8, "size": 12, "gap": 3, "color": "muted", "charge": "accent" },
+      { "type": "text", "if": "!battery_low", "x": 400, "y": 0, "w": 34, "h": 28, "text": "{battery}%", "font": "small", "align": "right" },
+      { "type": "text", "if": "battery_low", "x": 400, "y": 0, "w": 34, "h": 28, "text": "{battery}%", "font": "small", "color": "danger", "align": "right" },
+      { "type": "bar", "x": 440, "y": 8, "w": 32, "h": 12, "value": "battery", "track_image": "track", "fill_image": "fill", "slice": [3, 3, 3, 3] }
+    ],
+    "window": [
+      { "type": "image", "x": 0, "y": 0, "w": 464, "h": 318, "image": "frame", "slice": [6, 6, 6, 6] }
+    ],
+    "row": [
+      { "type": "image", "if": "focused", "x": 0, "y": 0, "w": 440, "h": 30, "image": "cursor", "slice": [4, 4, 4, 4] },
+      { "type": "rect", "if": "first & !focused", "x": 0, "y": 0, "w": 440, "h": 2, "color": "track" },
+      { "type": "text", "if": "focused", "x": 6, "y": 0, "w": 16, "h": 30, "text": ">", "font": "pixel", "color": "dark" },
+      { "type": "text", "if": "numbered & !focused", "x": 22, "y": 0, "w": 30, "h": 30, "text": "{track_number}", "font": "small", "color": "dim" },
+      { "type": "text", "if": "numbered & focused", "x": 22, "y": 0, "w": 30, "h": 30, "text": "{track_number}", "font": "small", "color": "dark" },
+      { "type": "art", "if": "row_art & !numbered", "x": 22, "y": 3, "size": 24, "source": "row" },
+      { "type": "text", "if": "!focused & !disabled", "x": 56, "y": 0, "w": 270, "h": 30, "text": "{label}", "font": "pixel" },
+      { "type": "text", "if": "disabled", "x": 56, "y": 0, "w": 270, "h": 30, "text": "{label}", "font": "pixel", "color": "dim" },
+      { "type": "text", "if": "focused", "x": 56, "y": 0, "w": 270, "h": 30, "text": "{label}", "font": "pixel", "color": "dark" },
+      { "type": "text", "if": "has_detail & !focused & !toggle", "x": 326, "y": 0, "w": 106, "h": 30, "text": "{detail}", "font": "small", "color": "muted", "align": "right" },
+      { "type": "text", "if": "has_detail & focused & !toggle", "x": 326, "y": 0, "w": 106, "h": 30, "text": "{detail}", "font": "small", "color": "dark", "align": "right" },
+      { "type": "text", "if": "toggle & on", "x": 376, "y": 0, "w": 56, "h": 30, "text": "[ON]", "font": "small", "color": "accent", "align": "right" },
+      { "type": "text", "if": "toggle & !on", "x": 376, "y": 0, "w": 56, "h": 30, "text": "[OFF]", "font": "small", "color": "dim", "align": "right" },
+      { "type": "text", "if": "check & checked", "x": 396, "y": 0, "w": 36, "h": 30, "text": "[x]", "font": "small", "align": "right" },
+      { "type": "text", "if": "check & !checked", "x": 396, "y": 0, "w": 36, "h": 30, "text": "[ ]", "font": "small", "color": "dim", "align": "right" }
+    ],
+    "status_line": [
+      { "type": "rect", "x": 0, "y": 0, "w": 464, "h": 26, "color": "dark" },
+      { "type": "text", "x": 10, "y": 0, "w": 444, "h": 26, "text": "{status}", "font": "small", "color": "accent" }
+    ]
+  },
+  "screens": {
+    "now_playing": [
+      { "type": "image", "x": 0, "y": 0, "w": 480, "h": 360, "image": "screen" },
+      { "type": "part", "name": "bar" },
+      { "type": "image", "x": 14, "y": 40, "w": 176, "h": 176, "image": "frame", "slice": [6, 6, 6, 6] },
+      { "type": "art", "x": 22, "y": 48, "size": 160, "source": "current" },
+      { "type": "text", "x": 206, "y": 44, "w": 260, "h": 0, "lines": 2, "line_height": 32, "text": "{title}", "font": "big" },
+      { "type": "text", "x": 206, "y": 112, "w": 260, "h": 22, "text": "{artist}", "font": "pixel", "color": "accent" },
+      { "type": "text", "x": 206, "y": 136, "w": 260, "h": 20, "text": "{album}", "font": "small", "color": "muted" },
+      { "type": "icon", "if": "has_track", "x": 206, "y": 168, "size": 40, "icon": "play_pause_large", "color": "accent" },
+      { "type": "text", "if": "playing", "x": 254, "y": 176, "w": 120, "h": 24, "text": "PLAY", "font": "pixel" },
+      { "type": "text", "if": "paused", "x": 254, "y": 176, "w": 120, "h": 24, "text": "PAUSE", "font": "pixel", "color": "muted" },
+      { "type": "text", "if": "repeat_one", "x": 380, "y": 176, "w": 80, "h": 24, "text": "1x LOOP", "font": "small", "color": "accent", "align": "right" },
+      { "type": "bar", "x": 14, "y": 236, "w": 452, "h": 16, "value": "progress", "track_image": "track", "fill_image": "fill", "slice": [3, 3, 3, 3] },
+      { "type": "text", "x": 14, "y": 256, "w": 100, "h": 20, "text": "{elapsed}", "font": "small", "align": "left" },
+      { "type": "text", "x": 366, "y": 256, "w": 100, "h": 20, "text": "{remaining}", "font": "small", "align": "right" },
+      { "type": "rect", "x": 0, "y": 324, "w": 480, "h": 36, "color": "dark" },
+      { "type": "icon", "if": "bluetooth & !bluetooth_connected", "x": 12, "y": 334, "size": 16, "icon": "bluetooth", "color": "dim" },
+      { "type": "icon", "if": "bluetooth_connected", "x": 12, "y": 334, "size": 16, "icon": "bluetooth", "color": "accent" },
+      { "type": "icon", "if": "wifi & !wifi_connected", "x": 34, "y": 334, "size": 16, "icon": "wifi", "color": "dim" },
+      { "type": "icon", "if": "wifi_connected", "x": 34, "y": 334, "size": 16, "icon": "wifi", "color": "accent" },
+      { "type": "icon", "if": "charging", "x": 56, "y": 334, "size": 16, "icon": "bolt", "color": "warning" },
+      { "type": "text", "if": "!sleep", "x": 80, "y": 324, "w": 388, "h": 36, "text": "{output}", "font": "small", "color": "muted", "align": "right" },
+      { "type": "text", "if": "sleep", "x": 80, "y": 324, "w": 388, "h": 36, "text": "{output} · {sleep}", "font": "small", "color": "muted", "align": "right" }
+    ],
+    "list": [
+      { "type": "image", "x": 0, "y": 0, "w": 480, "h": 360, "image": "screen" },
+      { "type": "part", "name": "bar" },
+      { "type": "part", "name": "window", "x": 8, "y": 34 },
+      { "type": "list", "if": "!empty", "x": 20, "y": 44, "w": 440, "rows": 9, "row_height": 33,
+        "row": [ { "type": "part", "name": "row" } ],
+        "scrollbar": { "x": 462, "w": 6, "track": "dark", "thumb": "accent" } },
+      { "type": "text", "if": "empty", "x": 30, "y": 150, "w": 420, "h": 30, "text": "{empty_title}", "font": "pixel", "align": "center" },
+      { "type": "part", "name": "status_line", "if": "has_status", "x": 8, "y": 326 }
+    ],
+    "page": [
+      { "type": "image", "x": 0, "y": 0, "w": 480, "h": 360, "image": "screen" },
+      { "type": "part", "name": "bar" },
+      { "type": "part", "name": "window", "x": 8, "y": 34 },
+      { "type": "text", "if": "has_title", "x": 24, "y": 46, "w": 432, "h": 30, "text": "{page_title}", "font": "big", "color": "accent" },
+      { "type": "text", "if": "has_body", "x": 24, "y": 82, "w": 432, "h": 0, "lines": 3, "text": "{page_body}", "font": "small", "color": "muted" },
+      { "type": "list", "if": "has_facts", "x": 20, "y": 140, "w": 440, "rows": 5, "row_height": 26, "source": "facts",
+        "row": [
+          { "type": "text", "x": 6, "y": 0, "w": 200, "h": 26, "text": "{label}", "font": "small", "color": "muted", "case": "lower" },
+          { "type": "text", "x": 206, "y": 0, "w": 226, "h": 26, "text": "{detail}", "font": "small", "align": "right" }
+        ] },
+      { "type": "list", "if": "interactive", "x": 20, "y": 276, "w": 440, "rows": 2, "row_height": 33,
+        "row": [ { "type": "part", "name": "row" } ] }
+    ],
+    "display": [
+      { "type": "image", "x": 0, "y": 0, "w": 480, "h": 360, "image": "screen" },
+      { "type": "part", "name": "bar" },
+      { "type": "part", "name": "window", "x": 8, "y": 34 },
+      { "type": "text", "x": 24, "y": 44, "w": 300, "h": 24, "text": "BRIGHTNESS", "font": "small", "color": "muted" },
+      { "type": "bar", "x": 24, "y": 68, "w": 432, "h": 16, "value": "brightness", "track_image": "track", "fill_image": "fill", "slice": [3, 3, 3, 3] },
+      { "type": "list", "x": 20, "y": 98, "w": 440, "rows": 7, "row_height": 33,
+        "row": [ { "type": "part", "name": "row" } ] }
+    ],
+    "sheet": [
+      { "type": "rect", "x": 0, "y": 0, "w": 480, "h": 360, "color": "scrim/70" },
+      { "type": "image", "x": 40, "y": 70, "w": 400, "h": 240, "image": "frame", "slice": [6, 6, 6, 6] },
+      { "type": "text", "x": 56, "y": 80, "w": 368, "h": 28, "text": "{sheet_title}", "font": "pixel", "color": "accent", "case": "upper" },
+      { "type": "list", "x": 52, "y": 114, "w": 376, "rows": 5, "row_height": 36, "source": "sheet",
+        "row": [
+          { "type": "image", "if": "focused", "x": 0, "y": 2, "w": 376, "h": 32, "image": "cursor", "slice": [4, 4, 4, 4] },
+          { "type": "text", "if": "!focused", "x": 14, "y": 0, "w": 350, "h": 36, "text": "{label}", "font": "pixel" },
+          { "type": "text", "if": "focused", "x": 14, "y": 0, "w": 350, "h": 36, "text": "> {label}", "font": "pixel", "color": "dark" }
+        ] }
+    ],
+    "dialog": [
+      { "type": "rect", "x": 0, "y": 0, "w": 480, "h": 360, "color": "scrim/70" },
+      { "type": "image", "if": "!danger", "x": 40, "y": 80, "w": 400, "h": 220, "image": "frame", "slice": [6, 6, 6, 6] },
+      { "type": "image", "if": "danger", "x": 40, "y": 80, "w": 400, "h": 220, "image": "frame", "slice": [6, 6, 6, 6], "tint": "danger" },
+      { "type": "text", "x": 58, "y": 92, "w": 364, "h": 28, "text": "{sheet_title}", "font": "pixel", "case": "upper" },
+      { "type": "text", "x": 58, "y": 124, "w": 364, "h": 0, "lines": 3, "text": "{sheet_body}", "font": "small", "color": "muted" },
+      { "type": "list", "x": 52, "y": 210, "w": 376, "rows": 2, "row_height": 36, "source": "sheet",
+        "row": [
+          { "type": "image", "if": "focused", "x": 0, "y": 2, "w": 376, "h": 32, "image": "cursor", "slice": [4, 4, 4, 4] },
+          { "type": "text", "if": "!focused", "x": 14, "y": 0, "w": 350, "h": 36, "text": "{label}", "font": "pixel" },
+          { "type": "text", "if": "focused", "x": 14, "y": 0, "w": 350, "h": 36, "text": "> {label}", "font": "pixel", "color": "dark" }
+        ] }
+    ],
+    "toast": [
+      { "type": "image", "x": 40, "y": 300, "w": 400, "h": 44, "image": "frame", "slice": [6, 6, 6, 6] },
+      { "type": "text", "x": 52, "y": 300, "w": 376, "h": 44, "text": "{message}", "font": "small", "align": "center" }
+    ],
+    "volume": [
+      { "type": "image", "x": 420, "y": 60, "w": 48, "h": 240, "image": "frame", "slice": [6, 6, 6, 6] },
+      { "type": "bar", "x": 434, "y": 74, "w": 20, "h": 190, "value": "volume", "vertical": true, "track_image": "track", "fill_image": "fill", "slice": [3, 3, 3, 3] },
+      { "type": "text", "x": 420, "y": 268, "w": 48, "h": 24, "text": "{volume}", "font": "small", "align": "center" }
+    ],
+    "equalizer": [
+      { "type": "native", "part": "screen", "recolor": false },
+      { "type": "part", "name": "bar" }
+    ],
+    "keyboard": [
+      { "type": "native", "part": "screen" },
+      { "type": "part", "name": "bar" },
+      { "type": "text", "x": 34, "y": 0, "w": 250, "h": 28, "text": "{sheet_title}", "font": "pixel", "case": "upper" }
+    ],
+    "cover_flow": [
+      { "type": "native", "part": "screen" },
+      { "type": "rect", "x": 0, "y": 0, "w": 480, "h": 40, "color": "bg" },
+      { "type": "part", "name": "bar" },
+      { "type": "text", "x": 130, "y": 0, "w": 150, "h": 28, "text": "{position}", "font": "small", "color": "muted" }
+    ]
+  }
+}

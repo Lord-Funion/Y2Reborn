@@ -13,6 +13,8 @@ end lists everything a skin can use.
 - [Install a skin](#install-a-skin)
 - [The fastest start: change a shipped skin](#the-fastest-start-change-a-shipped-skin)
 - [Your first skin, step by step](#your-first-skin-step-by-step)
+- [The example skins](#the-example-skins)
+- [Recipes for a completely different look](#recipes-for-a-completely-different-look)
 - [How Reborn chooses what to draw](#how-reborn-chooses-what-to-draw)
 - [Checklist for a complete skin](#checklist-for-a-complete-skin)
 - [Testing your skin](#testing-your-skin)
@@ -47,7 +49,8 @@ change it:
 ## Your first skin, step by step
 
 This walks you through **Ember**, a warm dark skin. The finished skin is in
-[`docs/skin-example/Ember`](https://github.com/SchulzCode/Y2Reborn/tree/main/docs/skin-example/Ember).
+[`docs/skin-example/Ember`](https://github.com/SchulzCode/Y2Reborn/tree/main/docs/skin-example/Ember). Two more
+examples, [Poster and Console](#the-example-skins), show how far a skin can go from there.
 
 The screen is **480 × 360 pixels**. Positions are measured from the **top-left corner**: `x` goes right, `y` goes
 down.
@@ -235,6 +238,78 @@ The finished Ember: Now Playing, Home, Cover Flow and Now Playing with a sleep t
 
 ![The finished Ember skin on four screens](images/skin-guide-ember.png)
 
+## The example skins
+
+Three example skins come with this guide, in
+[`docs/skin-example`](https://github.com/SchulzCode/Y2Reborn/tree/main/docs/skin-example). They look nothing alike,
+and between them they use **every element, field, text value and condition** the engine has, so whatever you look
+up in the [reference](#reference), one of them shows it at work. Copy one into `Skins` to try it, or take pieces
+from them. Their files are free to use (CC0); the fonts keep their own free licences, included.
+
+| Example | Look | What to learn from it |
+| --- | --- | --- |
+| [**Ember**](https://github.com/SchulzCode/Y2Reborn/tree/main/docs/skin-example/Ember) | warm and calm, close to Reborn's own layout | the basics, as in the steps above: palette, parts, lists, a font, a stretched picture, Cover Flow |
+| [**Poster**](https://github.com/SchulzCode/Y2Reborn/tree/main/docs/skin-example/Poster) | the cover fills the screen, big capital letters, colours follow the cover | your own Home screen, layouts for single screens (Artists, Up Next), fades over the cover, toggles and checkmarks drawn yourself, empty lists, groups, a progress bar with a knob, live radio, toasts and the volume |
+| [**Console**](https://github.com/SchulzCode/Y2Reborn/tree/main/docs/skin-example/Console) | a pocket game console from pictures and a pixel font | a full-screen background picture, window frames and bars made of pictures, a vertical volume bar, tinted pictures, menus and questions (also the red "danger" kind), pages with facts, the brightness bar, the keyboard and equalizer, one row template for every state |
+
+![Poster: Now Playing, Home, Artists and a radio station](images/skin-guide-poster.png)
+
+![Console: Now Playing, Wi-Fi, a question and the volume](images/skin-guide-console.png)
+
+## Recipes for a completely different look
+
+The ideas behind Poster and Console, so you can build your own design instead of changing Reborn's.
+
+**The cover as the background (Poster).** Draw the cover first and big, then lay vertical `gradient`s over it that
+fade into the background, and put the text on top:
+
+```json
+{ "type": "art", "x": 60, "y": 0, "size": 360, "source": "current" },
+{ "type": "gradient", "x": 0, "y": 110, "w": 480, "h": 160, "top": "clear", "bottom": "ink" }
+```
+
+`clear` and `ink` are names from Poster's `colors` (`#0B0B0C00`, fully transparent, and `#0B0B0C`). A cover is at
+most 360 pixels; gradients only run from top to bottom. With `"accent": "cover"` in the palette, everything drawn in
+`accent` takes the colours of the playing cover.
+
+**Your own Home screen (Poster).** Describe `home` and it replaces Reborn's main menu. Its `list` holds the menu
+entries (`{label}`); add what you like around it: the cover behind it (`"if": "has_art"`), the song playing, the
+skin's name (`{skin}`).
+
+**One layout for one screen (Poster).** A layout named after a screen wins over `list`: Poster's `artists` shows
+names in big letters with `{number} / {count}`, and its `queue` (Up Next) adds the position in the queue. The
+[screen names](#screens) are listed in the reference.
+
+**Everything from pictures (Console).** Draw small pictures and stretch them with `slice`:
+
+- a **window**: a 24 × 24 frame picture with `"slice": [6, 6, 6, 6]` stretches to any size and keeps its borders;
+- a **selection cursor**: the same idea for the focused row;
+- **bars**: `track_image` and `fill_image` (with `slice`) instead of colours; `"vertical": true` fills upwards;
+- a **background**: a full 480 × 360 picture as the first element of a screen;
+- **tinting**: a white picture with `"tint": "accent"` takes exactly that colour, so one picture serves every colour
+  (Console's logo, and its red question frame with `"tint": "danger"`).
+
+**Draw states yourself.** Rows tell you what they are: `toggle` with `on`, `check` with `checked`, `chevron`,
+`disabled`, `current` (the song playing), `first`, `last`, `odd`. Poster draws a switch from two rounded `rect`s;
+Console writes `[ON]` and `[x]`. A single row template with `"if": "focused"` parts (Console) works as well as
+separate `row` and `focused` templates (Poster).
+
+**Menus, questions, messages and volume.** `sheet` is for menus that slide up, `dialog` for questions (`danger`
+when it deletes or resets something), `toast` for short messages (`error` when something failed) and `volume` for
+the volume. Start a `sheet` or `dialog` with a full-screen `rect` in `scrim` colour to dim what is behind it.
+
+**Pages with facts.** `page` screens (About, Storage and others) have a heading (`{page_title}`), a text
+(`{page_body}`), label and value pairs (a `list` with `"source": "facts"`) and sometimes buttons
+(`"if": "interactive"`). Console shows all four.
+
+**Reborn's parts inside your design.** A `native` element draws a piece of Reborn in your palette: `screen` for the
+whole screen (Cover Flow, the equalizer, the keyboard), `status` for Reborn's clock, battery and radio icons
+(Poster). `"recolor": false` keeps Reborn's own colours (Console's equalizer). Draw your own title bar over a
+`screen` part, with an opaque background so Reborn's title doesn't show through.
+
+**Fonts.** One font file can be listed several times at different sizes (Ember, Poster). For a very large size,
+`"charset": "ascii"` keeps only plain letters and saves room in the texture (Console's big pixel font).
+
 ## How Reborn chooses what to draw
 
 For each screen, Reborn looks for the most specific layout your skin has, and falls back step by step:
@@ -355,8 +430,10 @@ stay inside the folder.
 
 ### Colours
 
-Wherever a colour is asked for, write `#RRGGBB`, `#RRGGBBAA` (with transparency), a palette name, or a name you
-defined under `colors`. Add `/` and a percentage for transparency: `"accent/40"`, `"#000000/30"`.
+Wherever an element asks for a colour, write `#RRGGBB`, `#RRGGBBAA` (with transparency), a palette name, or a name
+you defined under `colors`. Add `/` and a percentage for transparency: `"accent/40"`, `"#000000/30"`. The palette
+and `colors` themselves take only `#RRGGBB` or `#RRGGBBAA` (and `"cover"` for `accent`), and a name in `colors`
+cannot be a palette name.
 
 ### Fonts
 
@@ -412,11 +489,11 @@ row, a `group` or a `part` they count from that row's or group's corner.
 | --- | --- | --- |
 | `rect` | `x y w h color` · `radius` · `stroke` (1–3: outline only) | a rectangle |
 | `gradient` | `x y w h top bottom` | a rectangle fading from the `top` colour to `bottom` |
-| `image` | `x y w h image` · `slice [left, top, right, bottom]` · `tint` | a picture from `images`; `tint` colours it |
+| `image` | `x y w h image` · `slice [left, top, right, bottom]` · `tint` | a picture from `images`; `tint` multiplies a colour in (a white picture becomes exactly that colour) |
 | `text` | `x y w h text` · `font` (default `R15`) · `color` (default `text`) · `align` (`left`, `center`, `right`) · `lines` (1–6) · `line_height` · `tracking` (letter spacing) · `case` (`upper`, `lower`) | text, cut with "…" when too long; one line is centred in `h`, several start at `y` when `h` is 0 |
 | `icon` | `x y size icon` · `color` | one of the [icons](#icons) |
 | `bar` | `x y w h value` · `track` `fill` (colours) or `track_image` `fill_image` (+ `slice`) · `radius` · `vertical` · `knob` (colour) `knob_radius` | a bar for `value` `progress`, `volume`, `battery` or `brightness` |
-| `art` | `x y size` · `source` (`current`: the cover playing, a station's logo; `row`: inside list rows) · `radius` | a cover |
+| `art` | `x y size` (at most 360) · `source` (`current`: the cover playing, a station's logo; `row`: inside list rows) · `radius` | a cover |
 | `list` | `x y w rows row_height row` · `focused` · `source` (`rows`, `facts`, `sheet`) · `scrollbar {x, w, track, thumb}` | the screen's list: `rows` its rows, `facts` a page's label and value pairs, `sheet` the choices of a menu or question |
 | `group` | `elements` · `x y` | its elements, moved by `x y` |
 | `part` | `name` · `x y` | a part from `parts`, moved by `x y` |
@@ -454,7 +531,7 @@ Write these in curly braces inside `text`, for example `"{artist} · {album}"`.
 ### Conditions
 
 `"if"` takes names joined with `&` (and), `|` (or) and `!` (not): `"playing & !shuffle"`. `&` binds before `|`, so
-`"a | b & c"` means a, or both b and c.
+`"a | b & c"` means a, or both b and c. There are no brackets: write `"a & c | b & c"` for "a or b, and c".
 
 | Where | Names |
 | --- | --- |

@@ -176,7 +176,7 @@ impl Spec {
 }
 
 /// Fields each element type takes, besides `type` and `if`.
-fn fields(kind: &str) -> Option<&'static [&'static str]> {
+pub(super) fn fields(kind: &str) -> Option<&'static [&'static str]> {
     Some(match kind {
         "rect" => &["x", "y", "w", "h", "color", "radius", "stroke"],
         "gradient" => &["x", "y", "w", "h", "top", "bottom"],

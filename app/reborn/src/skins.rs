@@ -204,6 +204,26 @@ mod tests {
     }
 
     #[test]
+    fn the_guides_example_skins_load_cleanly() {
+        // docs/skins.md tells skin makers to start from these; they must load as they are.
+        let png = |path: &Path, _: u32, _: u32| -> Result<(u32, u32, Vec<u8>), String> {
+            let b = fs::read(path).map_err(|e| e.to_string())?;
+            let dim = |at: usize| u32::from_be_bytes(b[at..at + 4].try_into().unwrap());
+            let (w, h) = (dim(16), dim(20));
+            Ok((w, h, [0, 0, 0, 255].repeat((w * h) as usize)))
+        };
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/skin-example");
+        let found = scan(&[root]);
+        let mut names: Vec<_> = found.iter().map(|info| info.name.as_str()).collect();
+        names.sort_unstable();
+        assert_eq!(names, ["Console", "Ember", "Poster"]);
+        for info in found {
+            let skin = load(&info.dir, &info.id, &png).unwrap();
+            assert!(skin.warnings.is_empty(), "{}: {:?}", info.id, skin.warnings);
+        }
+    }
+
+    #[test]
     fn files_stay_inside_the_skin_folder() {
         let t = temp("paths");
         let dir = t.0.join("s");
