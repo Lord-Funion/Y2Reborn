@@ -35,6 +35,7 @@ finished state, no speed, no book-level time left, no settings.
 - Every seek, resume and output change runs a full `load()` (sink reopen, open + probe).
 - Open budget 32 MiB and `av_max_alloc(32 MiB)`: a single-file M4B over roughly 9 h of AAC-LC may
   not open (the mov sample index is one allocation). Non-attached video streams are refused.
+  (Cap raised to 128 MiB in phase 0; the remaining limits are under *Open: very long single files*.)
 - One global `position_ms`; full `Track`s go into the 8 MiB session — chapters stay out of `Track`.
 - Settings root holds 9 rows, the Music page 5; `components::time` has no hours.
 
@@ -68,7 +69,11 @@ Cost of the 10.5-h book with the larger cap: peak RSS 186 MB vs 49 MB for a shor
    finished instead of deleted.
 3. **Playback rules**: no shuffle/repeat/crossfade for books (music settings untouched); Next/Previous
    = chapter (Previous restarts after 5 s); last chapter never deletes; held seek steps 10 s → 30 s →
-   60 s; in-file seek without reopening; AVRCP title = chapter, album = book.
+   60 s; in-file seek without reopening; AVRCP title = chapter, album = book. Since Y2Linux #103 the
+   Previous/Next buttons move to a chapter start only within 10 min, else skip 30 s (a pocket bump sent
+   one-chapter books to 0:00); Now Playing's menu has Previous/Next Chapter for any distance; a
+   started book keeps its place also at 0:00 (only Clear Progress removes it); while a book starts the
+   buttons do nothing.
 4. **Menus**: Home > Audiobooks (continue first, cover, author, "Chapter 3 of 12 · 45 %",
    Finished), book page (Resume, Start Over, Chapters, Mark as Finished, total/left), Now Playing for
    books (chapter title and progress, book time left, `h:mm:ss`), hold menu Chapters / Speed / Sleep.
@@ -126,3 +131,39 @@ screens by `y2-screen-stream`.
 Not testable by injection: held seek (the button driver reports the key released ~18 ms after an
 injected press). Not done: in-file seek without a reopen (a chapter jump in a very long single
 file costs ≈2–3 s); heard by ear: speed quality, the sleep fade.
+
+## Open: very long single files (Y2Linux #84, finding F62, 2026-11-01)
+
+Reported: a 3.1-GB, 118-h, 206-chapter M4B on the SD card is missing from the library (9.2.13,
+error report e7842b6a): `STSZ atom truncated`, `contradictionary STSC and STCO`,
+`error reading header`, scanner `file_failed`. The same saga as separate books works.
+
+Two limits in `crates/reborn-media/native/media.c`, both counted per AAC frame (1024 samples):
+
+1. `local_read`: the 32 MiB read budget per open covers `avformat_open_input`. The `stsz`
+   table is 4 B/frame, so beyond ≈8.4 M frames (≈54 h at 44.1 kHz, ≈108 h at 22.05 kHz) the
+   read comes up short and FFmpeg refuses the file. Playback opens the same way, so it would
+   not play either.
+2. `av_max_alloc(128 MiB)`: FFmpeg's mov index is 24 B/frame in one allocation; beyond
+   ≈5.6 M frames (≈36 h at 44.1 kHz) the realloc fails silently. The file scans, but the first
+   read is end of file and seeking fails: **listed but silent** (nobody has reported it yet).
+
+Host repro (synthetic AAC-LC 44.1 kHz mono, `ffmpeg -stream_loop` + `-c copy`, then
+`cargo run -p reborn-media --example book_probe`): 20 h ok; 50 h scans, first read EOF, seek
+EPERM; 118 h fails with exactly the report's three messages.
+
+Raising the caps is not the fix: the 118-h index alone is ≈440 MB (+ ≈146 MB sample sizes)
+on a player with 948 MB RAM.
+
+Options (owner decision owed):
+
+- **B, small:** detect it at scan time (sample count from `stsz`/`mdhd` before the open, or an
+  open that ends with no index entries) and refuse the file with a readable reason (*too long
+  for one file — split it into parts of up to about 30 hours*). Also ends the silent case.
+- **A, larger:** an own MP4/M4B sample-table reader for AAC: sample sizes as u16 (≈2 B/frame,
+  ≈37 MB at 118 h, or chunk-level only), chunk offsets as stored, packets fed straight to the
+  AAC decoder with the `esds` config; chapters still from FFmpeg's header. Touches playback
+  and seeking.
+
+Suggested: B first, A as an audiobook feature later. The reporter was told (comment
+6563558979) to keep the separate books or split into parts of up to ≈30 h.

@@ -159,6 +159,10 @@ pub struct Canvas {
     pub moving: Vec<Moving>,
     /// A skin draws Cover Flow's captions itself (`"captions": false`, Y2Reborn #100).
     pub(crate) skin_captions: bool,
+    /// Where Cover Flow's captions ride while the row glides, for a skin's
+    /// own captions: how far right of the centre and how much they show
+    /// (Y2Reborn #112). `None` at rest or off Cover Flow.
+    pub(crate) flow_caption: Option<(f32, f32)>,
 }
 
 /// A run of quads `[start, end)` that one kind of motion moves.
@@ -241,6 +245,7 @@ impl Canvas {
             draw: Vec::with_capacity(1200),
             moving: Vec::new(),
             skin_captions: false,
+            flow_caption: None,
         }
     }
     pub fn from_quads(draw: Vec<Quad>) -> Self {
@@ -248,7 +253,14 @@ impl Canvas {
             draw,
             moving: Vec::new(),
             skin_captions: false,
+            flow_caption: None,
         }
+    }
+    /// A skin's `native` element: whether the skin writes Cover Flow's captions itself, with
+    /// no glide left from an earlier drawing (Reborn's drawing sets it, Y2Reborn #112).
+    pub(crate) fn skin_flow_captions(&mut self, own: bool) {
+        self.skin_captions = own;
+        self.flow_caption = None;
     }
     /// Note quads that move (see `Moving`).
     pub fn mark_moving(&mut self, mark: Moving) {

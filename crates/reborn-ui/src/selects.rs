@@ -175,20 +175,7 @@ impl Ui {
                 }
                 Effect::Platform(PlatformTask::AacQuality(q.requested_aac?.next()))
             }
-            "aac_abr" => {
-                let q = m.platform.snapshot.bluetooth_quality;
-                if !q.aac_abr_supported {
-                    return None;
-                }
-                Effect::Platform(PlatformTask::AacAbr(!q.requested_aac_abr?))
-            }
-            "ldac_abr" => {
-                let q = m.platform.snapshot.bluetooth_quality;
-                if !q.abr_supported {
-                    return None;
-                }
-                Effect::Platform(PlatformTask::LdacAbr(!q.requested_abr?))
-            }
+            "sbc_abr" | "aac_abr" | "ldac_abr" => auto_rate(m, key)?,
             "screen_off" => Effect::ScreenSleep,
             "eq_enabled" => Effect::SetEqEnabled(!m.settings.eq_enabled),
             "eq_reset" => Effect::ResetEq,
@@ -498,4 +485,17 @@ impl Ui {
             }
         }
     }
+}
+
+/// The service menu's Auto Rate rows (SBC, AAC, LDAC): switch the codec's adaptive rate, once the
+/// platform reports it (SBC: Y2Linux #99).
+fn auto_rate(m: &AppModel, key: &str) -> Option<Effect> {
+    let q = m.platform.snapshot.bluetooth_quality;
+    let task = match key {
+        "sbc_abr" if q.sbc_abr_supported => PlatformTask::SbcAbr(!q.requested_sbc_abr?),
+        "aac_abr" if q.aac_abr_supported => PlatformTask::AacAbr(!q.requested_aac_abr?),
+        "ldac_abr" if q.abr_supported => PlatformTask::LdacAbr(!q.requested_abr?),
+        _ => return None,
+    };
+    Some(Effect::Platform(task))
 }

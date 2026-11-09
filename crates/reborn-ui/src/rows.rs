@@ -267,13 +267,7 @@ impl Ui {
             }
             // A book: its chapters; shuffle and repeat do not apply to it.
             if let Some((book, _)) = m.book_part() {
-                return vec![
-                    Item::new("Chapters", "book_chapters"),
-                    Item::new("Speed", "book_speed")
-                        .with_secondary(format!("{}×", speed_label(book.speed))),
-                    Item::new("Sleep Timer", "sleep_timer").with_secondary(sleep_label(m, true)),
-                    Item::new("Up Next", "show_queue"),
-                ];
+                return playing_book_rows(m, book);
             }
             // The song after this one, named where Up Next opens.
             let next = m
@@ -613,4 +607,16 @@ impl Ui {
         };
         (title.into(), body.into())
     }
+}
+
+/// Now Playing's hold menu for a book (Previous/Next Chapter: Y2Linux #103).
+fn playing_book_rows(m: &AppModel, book: &reborn_core::books::Listening) -> Vec<Item> {
+    vec![
+        Item::new("Chapters", "book_chapters"),
+        Item::new("Previous Chapter", "book_chapter_previous"),
+        Item::new("Next Chapter", "book_chapter_next"),
+        Item::new("Speed", "book_speed").with_secondary(format!("{}×", speed_label(book.speed))),
+        Item::new("Sleep Timer", "sleep_timer").with_secondary(sleep_label(m, true)),
+        Item::new("Up Next", "show_queue"),
+    ]
 }

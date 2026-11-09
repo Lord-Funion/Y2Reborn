@@ -227,6 +227,10 @@ fn execute(task: PlatformTask) -> Reply {
             10,
         ),
         SbcQuality(quality) => call(&["codec-settings", "--sbc-quality", quality.argument()], 10),
+        SbcAbr(on) => call(
+            &["codec-settings", "--sbc-abr", if on { "on" } else { "off" }],
+            10,
+        ),
         AacQuality(quality) => call(&["codec-settings", "--aac-quality", quality.argument()], 10),
         AacAbr(enabled) => call(
             &[
@@ -996,6 +1000,8 @@ pub fn bluetooth_quality(value: &Value) -> BluetoothQuality {
         requested_aac: aac_quality(&value["requested"]["aac_quality"]),
         aac_abr_supported: value["supported"]["aac_abr"] == true,
         requested_aac_abr: value["requested"]["aac_abr"].as_bool(),
+        sbc_abr_supported: value["supported"]["sbc_abr"] == true,
+        requested_sbc_abr: value["requested"]["sbc_abr"].as_bool(),
         pending_restart: value["pending_restart"] == true,
     }
 }
@@ -2181,6 +2187,11 @@ mod feature_completion_tests {
             Some(reborn_core::platform::AacQuality::High)
         );
         assert_eq!(a.requested_aac_abr, Some(false));
+        // Y2Linux #99: SBC's auto rate, read like AAC's.
+        let sbc = json!({"schema":"org.y2linux.codec-settings/v1",
+            "requested":{"sbc_abr":false},"supported":{"sbc_abr":true}});
+        let s = bluetooth_quality(&sbc);
+        assert!(s.sbc_abr_supported && s.requested_sbc_abr == Some(false));
         assert_eq!(q.requested_quality, Some(LdacQuality::High));
         assert_eq!(q.effective_quality, Some(LdacQuality::Standard));
         assert_eq!(q.requested_sbc, Some(SbcQuality::Xq));

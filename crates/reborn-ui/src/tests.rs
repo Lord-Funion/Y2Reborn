@@ -662,8 +662,25 @@ fn now_playing_shows_the_chapter_the_book_and_what_is_left() {
         .into_iter()
         .map(|r| r.label)
         .collect();
-    assert_eq!(menu, ["Chapters", "Speed", "Sleep Timer", "Up Next"]);
+    assert_eq!(
+        menu,
+        [
+            "Chapters",
+            "Previous Chapter",
+            "Next Chapter",
+            "Speed",
+            "Sleep Timer",
+            "Up Next"
+        ]
+    );
+    // Previous/Next Chapter (Y2Linux #103): 30 s in, Previous restarts this part's chapter and
+    // Next goes to the following one, at any distance.
+    let chapter = |n| Effect::PlayBook(book.key.clone(), reborn_core::BookStart::Chapter(n));
     m.navigation.modal_focus = 1;
+    assert_eq!(ui.model_action(&mut m, Action::Select), chapter(1));
+    m.navigation.modal_focus = 2;
+    assert_eq!(ui.model_action(&mut m, Action::Select), chapter(2));
+    m.navigation.modal_focus = 3;
     assert_eq!(
         ui.model_action(&mut m, Action::Select),
         Effect::SetBookSpeed(110)
@@ -674,7 +691,7 @@ fn now_playing_shows_the_chapter_the_book_and_what_is_left() {
     );
     m.book.as_mut().unwrap().speed = 1.1;
     let rows = ui.modal_rows_public(&m, &tracks);
-    assert_eq!(rows[1].secondary, "1.1×");
+    assert_eq!(rows[3].secondary, "1.1×");
 }
 
 #[test]
@@ -2729,6 +2746,23 @@ fn sbc_only_peer_can_enable_xq_without_a_hidden_codec_picker() {
     assert_eq!(
         select_key(&mut ui, &mut m, "sbc_quality"),
         Effect::Platform(PlatformTask::SbcQuality(SbcQuality::Xq))
+    );
+    // Y2Linux #99: SBC's auto rate, once the platform reports it.
+    assert!(!ui
+        .rows(&m, &m.library.tracks)
+        .iter()
+        .any(|r| r.key == "sbc_abr"));
+    m.platform.snapshot.bluetooth_quality.sbc_abr_supported = true;
+    m.platform.snapshot.bluetooth_quality.requested_sbc_abr = Some(false);
+    let rows = ui.rows(&m, &m.library.tracks);
+    assert!(
+        rows.iter()
+            .any(|r| r.key == "sbc_abr" && r.secondary == "Off"),
+        "{rows:?}"
+    );
+    assert_eq!(
+        select_key(&mut ui, &mut m, "sbc_abr"),
+        Effect::Platform(PlatformTask::SbcAbr(true))
     );
 }
 
@@ -7238,6 +7272,45 @@ fn library_settings_say_which_audio_the_scan_left_out() {
         crate::components::unplayable_note(&many).as_deref(),
         Some("13 files can't be played here (WMA, MPC, TTA, …), so they aren't in your library.")
     );
+    // Y2Linux #84: a file that could not be read (a 118-hour audiobook) is named too.
+    let scan = ScanSummary {
+        unreadable: 1,
+        unplayable: one,
+        ..Default::default()
+    };
+    assert_eq!(
+        crate::components::left_out_note(&scan).as_deref(),
+        Some(
+            "1 file can't be played here (MPC), so it isn't in your library. 1 more couldn't be \
+             read."
+        )
+    );
+    let unreadable_only = ScanSummary {
+        unreadable: 2,
+        ..Default::default()
+    };
+    assert!(crate::components::left_out_note(&unreadable_only)
+        .is_some_and(|note| note.starts_with("2 files couldn't be read")));
+    assert_eq!(
+        crate::components::left_out_note(&ScanSummary::default()),
+        None
+    );
+    // The longest notes fit Settings' two hint lines.
+    for scan in [
+        ScanSummary {
+            unreadable: 12_345,
+            unplayable: many.clone(),
+            ..Default::default()
+        },
+        ScanSummary {
+            unreadable: 12_345,
+            ..Default::default()
+        },
+    ] {
+        let note = crate::components::left_out_note(&scan).unwrap();
+        let lines = crate::screens::wrap_lines(&note, 420., crate::text::Face::R11, 3);
+        assert!(lines.len() <= 2, "{lines:?}");
+    }
 }
 
 #[test]

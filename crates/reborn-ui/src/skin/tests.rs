@@ -762,6 +762,44 @@ fn bitrate_shows_in_skins_and_song_info() {
 }
 
 #[test]
+fn a_skins_cover_flow_captions_glide_with_the_covers() {
+    // Y2Reborn #112: a skin's own captions ride under the incoming cover and fade in, like
+    // Reborn's own (#71); at rest they stand where the skin put them.
+    let screens = r##"{"cover_flow": [
+  {"type": "native", "part": "screen", "captions": false},
+  {"type": "text", "x": 0, "y": 255, "w": 480, "h": 30, "text": "{flow_title}"}
+]}"##;
+    let ui = skinned(compile_test(screens).unwrap());
+    let mut tracks = library(3);
+    for (i, t) in tracks.iter_mut().enumerate() {
+        t.album = format!("Album {i}");
+        t.album_artist = "Nightjar".into();
+    }
+    let mut m = model(Screen::Albums);
+    let caption = |quads: &[reborn_graphics::Quad]| {
+        let glyphs = quads.iter().filter(|q| {
+            matches!(q.tex, reborn_graphics::Tex::Font(_)) && (255. ..285.).contains(&q.y)
+        });
+        let (x, alpha) = glyphs.fold((f32::MAX, 0), |(x, a), q| {
+            (x.min(q.x), a.max(q.color & 0xFF))
+        });
+        (x, alpha)
+    };
+    let (rest, rest_alpha) = caption(&ui.draw(&m, &tracks, false));
+    // One step right: the next album's text starts under its cover, to the right, fainter.
+    m.navigation.focus = 1;
+    let (moving, moving_alpha) = caption(&ui.draw(&m, &tracks, false));
+    assert!(
+        moving > rest + 60.,
+        "rides with the cover: {rest} -> {moving}"
+    );
+    assert!(
+        moving_alpha < rest_alpha,
+        "fades in: {rest_alpha} -> {moving_alpha}"
+    );
+}
+
+#[test]
 fn cover_flow_follows_the_skin_captions_and_cover_shape() {
     // Y2Reborn #100: a skin draws Cover Flow's captions in its own fonts and chooses its covers'
     // corners; every shipped skin does both.

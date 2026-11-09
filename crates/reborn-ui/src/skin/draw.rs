@@ -720,7 +720,7 @@ fn element(c: &mut Canvas, s: &Scene, el: &El, ox: f32, oy: f32, row: Option<&Ro
                     b.x = end + 12.;
                 }
             }
-            let color = s.paint(*paint);
+            let color = flow_glide(c, text, &mut b, s.paint(*paint));
             let pitch = if *line > 0. { *line } else { w.line() };
             let shown = if *lines > 1 {
                 w.wrap(&value, b.w, *lines)
@@ -929,7 +929,7 @@ fn element(c: &mut Canvas, s: &Scene, el: &El, ox: f32, oy: f32, row: Option<&Ro
             match part {
                 NativePart::Screen => {
                     if let Some(native) = s.native {
-                        c.skin_captions = !*captions;
+                        c.skin_flow_captions(!*captions);
                         native(c);
                         c.skin_captions = false;
                     }
@@ -1062,5 +1062,24 @@ pub(crate) fn remap(c: &mut Canvas, start: usize, p: &Palette, accent: u32) {
         if let Some(w) = &mut q.warp {
             w.colors = w.colors.map(map);
         }
+    }
+}
+
+/// Cover Flow's captions in a skin glide and fade with the row like Reborn's own (Y2Reborn
+/// #112): text holding `{flow_title}`, `{flow_artist}` or `{flow_detail}` moves with the
+/// incoming cover; any other text, and all of it at rest, stays as placed.
+fn flow_glide(c: &Canvas, text: &[Seg], b: &mut Bx, color: u32) -> u32 {
+    let flow = |v: &Seg| {
+        matches!(
+            v,
+            Seg::Var(Var::FlowTitle | Var::FlowArtist | Var::FlowDetail)
+        )
+    };
+    match c.flow_caption.filter(|_| text.iter().any(flow)) {
+        Some((dx, shown)) => {
+            b.x += dx;
+            crate::theme::fade(color, shown)
+        }
+        None => color,
     }
 }

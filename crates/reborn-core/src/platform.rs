@@ -261,6 +261,9 @@ pub struct BluetoothQuality {
     pub requested_aac: Option<AacQuality>,
     pub aac_abr_supported: bool,
     pub requested_aac_abr: Option<bool>,
+    /// SBC's adaptive bit-pool (BlueALSA patch 0003, Y2Linux #99: SBC-only soundbars).
+    pub sbc_abr_supported: bool,
+    pub requested_sbc_abr: Option<bool>,
     pub pending_restart: bool,
 }
 

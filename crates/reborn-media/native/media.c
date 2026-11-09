@@ -1168,8 +1168,10 @@ static int open_input(RbMedia *m, const char *path, RbCancel *cancel) {
   int ret = avformat_open_input(&m->f, path, NULL, &options);
   m->open_us = micros() - start;
   av_dict_free(&options);
-  if (ret < 0) return ret;
+  /* The budget's own error first: a header cut short by it makes the demuxer
+   * report invalid data ("STSZ atom truncated", Y2Linux #84), which hid why. */
   if (m->io->error == AVERROR(EFBIG) || m->io->error == AVERROR_EXIT) return m->io->error;
+  if (ret < 0) return ret;
   return admit_streams(m);
 }
 static int stream_info(RbMedia *m) {

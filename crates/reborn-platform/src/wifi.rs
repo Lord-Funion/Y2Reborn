@@ -561,6 +561,36 @@ impl PendingJoin {
         None
     }
 
+    /// Whether the network is really not there (Y2Linux #83, F79): the supplicant is not
+    /// associating with anything and its latest scan does not list the name. A network that a
+    /// scan saw only failed to answer in time (radio busy, e.g. Bluetooth paging after a wake);
+    /// "not found" restarted Wi-Fi then and cut the association that was about to succeed.
+    fn absent(&self, paths: &Paths) -> bool {
+        let Ok(c) = Control::at(paths) else {
+            return true;
+        };
+        let joining = c.request("STATUS").is_ok_and(|text| {
+            text.lines().any(|l| {
+                matches!(
+                    l.strip_prefix("wpa_state="),
+                    Some(
+                        "AUTHENTICATING"
+                            | "ASSOCIATING"
+                            | "ASSOCIATED"
+                            | "4WAY_HANDSHAKE"
+                            | "GROUP_HANDSHAKE"
+                    )
+                )
+            })
+        });
+        let seen = || {
+            c.request("SCAN_RESULTS")
+                .and_then(|text| networks(&text))
+                .is_ok_and(|found| found.iter().any(|n| n.ssid == self.ssid))
+        };
+        !joining && !seen()
+    }
+
     /// The supplicant's own verdict on this join, once there is one.
     fn listen(&mut self, paths: &Paths, now: Instant) -> Option<JoinOutcome> {
         for _ in 0..32 {
@@ -602,7 +632,7 @@ impl PendingJoin {
             if self.auth_failures >= 2 {
                 return Some(JoinOutcome::Failed);
             }
-            if self.not_found >= 3 {
+            if self.not_found >= 3 && self.absent(paths) {
                 return Some(JoinOutcome::NotFound);
             }
         }
@@ -623,11 +653,13 @@ impl PendingJoin {
             }
         }
         if now >= self.deadline {
-            return Some(if self.not_found > 0 && self.auth_failures == 0 {
-                JoinOutcome::NotFound
-            } else {
-                JoinOutcome::Failed
-            });
+            return Some(
+                if self.not_found > 0 && self.auth_failures == 0 && self.absent(paths) {
+                    JoinOutcome::NotFound
+                } else {
+                    JoinOutcome::Failed
+                },
+            );
         }
         None
     }
@@ -1749,6 +1781,29 @@ mod tests {
             Some(17)
         );
         assert_eq!(ssid_hex("\"Ab\""), "4162");
+    }
+    #[test]
+    fn a_network_the_scan_sees_is_never_not_found_and_never_restarts_wifi() {
+        // Y2Linux #83 (F79): the scan listed the network, yet three NETWORK-NOT-FOUND events
+        // made the join restart Wi-Fi and cut off the association that was under way.
+        let fake = Supplicant::new(format!(
+            "{HEADER}a\t2437\t-57\t[WPA2-PSK-CCMP][ESS]\tHome\n"
+        ));
+        fake.paths.radio(true, false).unwrap();
+        *fake.saved.lock().unwrap() = "1\tHome\tany\t\n".into();
+        let mut join = PendingJoin::start(&fake.paths, 5, "Home", None, Some(1), false).unwrap();
+        for _ in 0..5 {
+            fake.event("<3>CTRL-EVENT-NETWORK-NOT-FOUND");
+        }
+        thread::sleep(Duration::from_millis(50));
+        assert_eq!(join.step(&fake.paths, Instant::now()), None, "still trying");
+        assert!(
+            join.retry.is_some() && join.restarting.is_none(),
+            "no restart"
+        );
+        // At its deadline it failed; it was not "not found", so nothing restarts.
+        let late = join.deadline + Duration::from_secs(1);
+        assert_eq!(join.step(&fake.paths, late), Some(JoinOutcome::Failed));
     }
     #[test]
     fn a_join_that_finds_nothing_restarts_wifi_once_and_tries_again() {

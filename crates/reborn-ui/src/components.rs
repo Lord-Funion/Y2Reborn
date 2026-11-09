@@ -923,6 +923,33 @@ pub fn count(n: usize, one: &str, many: &str) -> String {
     }
 }
 
+/// Settings → Library's line on what the last scan left out: files of types Reborn cannot play
+/// (`unplayable_note`) and files it could not read (Y2Linux #84: a 118-hour audiobook in one file
+/// is too long to open, and it vanished without a word).
+pub(crate) fn left_out_note(scan: &reborn_core::ScanSummary) -> Option<String> {
+    let unreadable = match scan.unreadable {
+        0 => None,
+        1 => Some(
+            "1 file couldn't be read (damaged, or an audiobook too long for one file), so it isn't \
+             in your library."
+                .to_owned(),
+        ),
+        n => Some(format!(
+            "{} files couldn't be read (damaged, or audiobooks too long for one file), so they \
+             aren't in your library.",
+            crate::screens::count_label(n as usize)
+        )),
+    };
+    // Both: the second is short, as Settings shows two lines of hint.
+    match (unplayable_note(&scan.unplayable), scan.unreadable) {
+        (Some(unplayable), n @ 1..) => Some(format!(
+            "{unplayable} {} more couldn't be read.",
+            crate::screens::count_label(n as usize)
+        )),
+        (unplayable, _) => unplayable.or(unreadable),
+    }
+}
+
 /// Settings → Library's line on audio the scan left out (Y2Reborn #104): "43 files can't be
 /// played here (WMA, DSD), so they aren't in your library." The three commonest types, by count.
 pub(crate) fn unplayable_note(counts: &std::collections::BTreeMap<String, u64>) -> Option<String> {

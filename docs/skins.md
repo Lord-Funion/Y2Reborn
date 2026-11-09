@@ -230,6 +230,8 @@ element, then your title bar over it:
 Reborn's drawing includes its own title, so give your title bar an opaque background (the `rect` in step 3) to
 cover it. `{position}` says where you are, such as "25 of 100". Add `"captions": false` to the `native` element to
 write the album's name, artist and length yourself with `{flow_title}`, `{flow_artist}` and `{flow_detail}`.
+Text with these values glides and fades with the covers like Reborn's own captions, so put it after the `native`
+element; at rest it stands where you placed it.
 
 Album covers have rounded corners unless the skin says `"cover_shape": "square"` at the top level of `skin.json`
 (next to `"name"`). This applies in lists and in Cover Flow.

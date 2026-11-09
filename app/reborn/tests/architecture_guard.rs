@@ -149,8 +149,9 @@ fn ui_and_core_perform_no_platform_io() {
         sources(&root().join(dir), &mut files);
         for file in files {
             let name = relative(&file);
-            if name == "crates/reborn-ui/src/tests.rs" {
-                // Host test module: may create and remove temporary files.
+            if name.ends_with("/tests.rs") {
+                // Host test modules (`#[cfg(test)] mod tests;`): may use temporary files and
+                // read JSON fixtures such as the skin guide's examples.
                 continue;
             }
             let full = fs::read_to_string(&file).unwrap();

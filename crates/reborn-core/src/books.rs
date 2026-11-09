@@ -328,6 +328,12 @@ pub fn next_speed(speed: f32) -> u16 {
 
 /// Previous restarts the chapter after this long in it, else goes back one.
 pub const RESTART_AFTER_MS: u64 = 5_000;
+/// The farthest the Previous and Next buttons move a book (Y2Linux #103: a
+/// bump in a pocket sent a one-chapter book back to 0:00). A chapter start
+/// farther away is reached from the menu's Previous/Next Chapter or Chapters.
+pub const BUTTON_REACH_MS: u64 = 10 * 60_000;
+/// What a button press skips instead when the chapter start is out of reach.
+pub const BUTTON_SKIP_MS: u64 = 30_000;
 
 /// The book being listened to: its parts (by path, so songs added to the
 /// queue never confuse it) and its chapters.
@@ -398,6 +404,70 @@ impl Listening {
         }
         let p = &self.chapters[at - 1];
         Some((p.part, p.start_ms))
+    }
+    /// The chapter the menu's Previous/Next Chapter goes to: the next one,
+    /// this one's start after `RESTART_AFTER_MS` in it, else the one before.
+    /// `None` after the last chapter.
+    pub fn chapter_step(&self, part: usize, position_ms: u64, forward: bool) -> Option<usize> {
+        let at = self.chapter_at(part, position_ms)?;
+        let into = position_ms.saturating_sub(self.chapters[at].start_ms);
+        match forward {
+            true => Some(at + 1).filter(|&n| n < self.chapters.len()),
+            false if at == 0 || into > RESTART_AFTER_MS => Some(at),
+            false => Some(at - 1),
+        }
+    }
+    /// Where the Previous or Next button goes (Y2Linux #103): the chapter
+    /// step when it lands within `BUTTON_REACH_MS`, else `BUTTON_SKIP_MS` back
+    /// or on inside this part. `None` only for Next with nothing left.
+    pub fn button_step(
+        &self,
+        part: usize,
+        position_ms: u64,
+        forward: bool,
+    ) -> Option<(usize, u64)> {
+        let chapter = if forward {
+            self.next(part, position_ms)
+        } else {
+            self.previous(part, position_ms)
+        };
+        if let Some(target) = chapter.filter(|&t| self.within_reach((part, position_ms), t)) {
+            return Some(target);
+        }
+        if !forward {
+            // At a part's start the skip goes on into the part before, so
+            // Previous still reaches it.
+            let before = part
+                .checked_sub(1)
+                .map(|p| (p, self.part_ms.get(p).copied().unwrap_or(0)));
+            return Some(match before {
+                Some((p, length)) if position_ms < BUTTON_SKIP_MS && length > 0 => {
+                    (p, length.saturating_sub(BUTTON_SKIP_MS - position_ms))
+                }
+                _ => (part, position_ms.saturating_sub(BUTTON_SKIP_MS)),
+            });
+        }
+        let end = self.part_ms.get(part).copied().unwrap_or(0);
+        let on = position_ms + BUTTON_SKIP_MS;
+        match chapter {
+            _ if end > 0 && on < end => Some((part, on)),
+            // The rest of this part is shorter than a skip: the next chapter.
+            Some(target) => Some(target),
+            None if end == 0 => Some((part, on)),
+            None => None,
+        }
+    }
+    /// Whether `to` is at most `BUTTON_REACH_MS` from `from`; a step into
+    /// another part of unknown length counts as near (a file is a chapter).
+    fn within_reach(&self, from: (usize, u64), to: (usize, u64)) -> bool {
+        let distance = if from.0 == to.0 {
+            Some(from.1.abs_diff(to.1))
+        } else {
+            self.progress(from.0, from.1)
+                .zip(self.progress(to.0, to.1))
+                .map(|((a, _), (b, _))| a.abs_diff(b))
+        };
+        distance.is_none_or(|d| d <= BUTTON_REACH_MS)
     }
     /// Milliseconds of the book before `part` plus `position_ms`; with the
     /// whole length, `None` when a part's length is unknown.
@@ -489,10 +559,14 @@ impl Shelf {
             .as_ref()
             .and_then(|k| self.books.get(k))
             .is_some_and(|p| p.finished && part == 0 && position_ms < 10_000);
+        // A book's first seconds are no place yet; a started book keeps one,
+        // also at 0:00 (Y2Linux #103: a jump there erased it). Only Clear
+        // Progress (`forget`) and Mark Finished remove it.
+        let had_place = old.is_some();
         if let Some(old) = old {
             self.books.remove(&old);
         }
-        if !started && !finished {
+        if !started && !finished && !had_place {
             return;
         }
         let Some(&index) = book.parts.get(part) else {
@@ -797,6 +871,66 @@ mod tests {
         assert_eq!(l.previous(1, 1_000), Some((0, 30_000)));
         assert_eq!(l.chapter_span(1), Some((30_000, 30_000)));
         assert_eq!(l.progress(1, 30_000), Some((90_000, 120_000)));
+        // Near chapter starts the buttons step like the menu does.
+        assert_eq!(l.button_step(0, 40_000, false), Some((0, 30_000)));
+        assert_eq!(l.button_step(0, 31_000, true), Some((1, 0)));
+        assert_eq!(l.button_step(1, 45_000, true), None, "nothing left to skip");
+        // The menu's Previous/Next Chapter, by chapter number.
+        assert_eq!(l.chapter_step(0, 40_000, true), Some(2));
+        assert_eq!(
+            l.chapter_step(0, 40_000, false),
+            Some(1),
+            "restart after 5 s"
+        );
+        assert_eq!(l.chapter_step(0, 31_000, false), Some(0));
+        assert_eq!(l.chapter_step(1, 1_000, true), None, "the last chapter");
+    }
+
+    #[test]
+    fn a_button_never_moves_a_long_chapter_far() {
+        // Y2Linux #103: one 20-hour file, one chapter (no marks, or not read
+        // yet). A bump of Previous sent it to 0:00.
+        let mut tracks = vec![file("/m/Audiobooks/B/book.m4b")];
+        tracks[0].duration_ms = 20 * 3_600_000;
+        let book = &books(&tracks)[0];
+        let l = Listening::new(book, &tracks, 1.0);
+        let at = 5 * 3_600_000;
+        assert_eq!(l.button_step(0, at, false), Some((0, at - BUTTON_SKIP_MS)));
+        assert_eq!(l.button_step(0, at, true), Some((0, at + BUTTON_SKIP_MS)));
+        assert_eq!(
+            l.button_step(0, 10_000, false),
+            Some((0, 0)),
+            "near: the start"
+        );
+        let end = tracks[0].duration_ms;
+        assert_eq!(l.button_step(0, end - 10_000, true), None);
+        // Two long files: Previous at the second's start goes on into the first.
+        let mut tracks = vec![file("/m/Audiobooks/B/1.mp3"), file("/m/Audiobooks/B/2.mp3")];
+        for t in &mut tracks {
+            t.duration_ms = 3_600_000;
+        }
+        let book = &books(&tracks)[0];
+        let l = Listening::new(book, &tracks, 1.0);
+        assert_eq!(l.button_step(1, 2_000, false), Some((0, 3_572_000)));
+        assert_eq!(
+            l.button_step(0, 3_590_000, true),
+            Some((1, 0)),
+            "near: the next file"
+        );
+    }
+
+    #[test]
+    fn a_started_book_keeps_its_place_at_its_start() {
+        let mut tracks = vec![file("/m/Audiobooks/B/book.m4b")];
+        tracks[0].duration_ms = 3_600_000;
+        let book = books(&tracks).remove(0);
+        let mut shelf = Shelf::default();
+        shelf.record(&book, &tracks, 0, 1_800_000, 1.0, 1_000);
+        // Previous to 0:00, then a checkpoint: the book stays started.
+        shelf.record(&book, &tracks, 0, 0, 1.0, 1_010);
+        assert_eq!(shelf.books[&book.key].position_ms, 0);
+        shelf.forget(&book, &tracks);
+        assert!(shelf.books.is_empty(), "Clear Progress still clears");
     }
 
     #[test]

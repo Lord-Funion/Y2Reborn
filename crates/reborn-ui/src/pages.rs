@@ -1047,7 +1047,7 @@ fn library(ui: &Ui, m: &AppModel, tracks: &[Track]) -> Page {
         .unwrap_or_default();
     let last = m.library.last_scan.as_ref().filter(|_| !m.library.scanning);
     Page {
-        status: last.and_then(|scan| crate::components::unplayable_note(&scan.unplayable)),
+        status: last.and_then(crate::components::left_out_note),
         ..Page::rows(vec![
             disabled(
                 row("Scan for Music", "scan_library", scan),
@@ -1086,6 +1086,13 @@ fn system(ui: &Ui, m: &AppModel) -> Page {
         if let Some(q) = quality.requested_sbc {
             rows.push(disabled(
                 row("SBC Quality", "sbc_quality", q.label()),
+                m.platform.busy.is_none(),
+            ));
+        }
+        let sbc_abr = quality.sbc_abr_supported && b.sbc_quality_available;
+        if let Some(abr) = quality.requested_sbc_abr.filter(|_| sbc_abr) {
+            rows.push(disabled(
+                row("SBC Auto Rate", "sbc_abr", on_off(abr)),
                 m.platform.busy.is_none(),
             ));
         }

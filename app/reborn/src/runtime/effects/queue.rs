@@ -29,8 +29,8 @@ impl Runtime {
         } else {
             -1
         };
-        // A book moves by chapter.
-        if let Some(result) = self.book_step(delta) {
+        // A book moves by a near chapter or skips (Y2Linux #103).
+        if let Some(result) = self.book_step(delta > 0) {
             result?;
         // A station has no next track: the next station of its list.
         } else if self.model.current().is_some_and(Track::is_radio) {

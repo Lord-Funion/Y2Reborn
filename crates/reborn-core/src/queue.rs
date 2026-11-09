@@ -37,6 +37,36 @@ pub fn shuffle_from<T>(items: &mut [T], from: usize, mut seed: u64) {
     }
 }
 
+/// Whether `tracks` are one album as Shuffle Albums sees one (one album
+/// folder and one album tag, not empty) with one album artist. Such a queue
+/// plays in its order unless a Shuffle row asked for shuffle (Y2Reborn #113).
+pub fn one_album<'a>(tracks: impl IntoIterator<Item = &'a Track>) -> bool {
+    let mut tracks = tracks.into_iter();
+    let Some(first) = tracks.next() else {
+        return false;
+    };
+    let folder = |t: &Track| album_folder(t.path.parent().unwrap_or(Path::new(""))).to_owned();
+    let home = folder(first);
+    !first.album.trim().is_empty()
+        && tracks.all(|t| {
+            t.album == first.album && t.album_artist == first.album_artist && folder(t) == home
+        })
+}
+
+/// The album's folder for a song's folder: a `CD 2` or `Disc 1` folder folds
+/// into the one above it.
+fn album_folder(parent: &Path) -> &Path {
+    let mut dir = parent;
+    while dir.components().count() > 1
+        && dir
+            .file_name()
+            .is_some_and(|n| crate::books::subdivision(&n.to_string_lossy()))
+    {
+        dir = dir.parent().unwrap_or(dir);
+    }
+    dir
+}
+
 /// Shuffle Albums (Beta 8.39): the songs as whole albums in random order,
 /// each album in its own order (disc, track, file name). An album is a
 /// folder (a `CD 2` or `Disc 1` folder folds into the one above it) and an
@@ -55,16 +85,8 @@ pub fn album_shuffle<'a>(tracks: &[&'a Track], lead: Option<usize>, seed: u64) -
         let folder = match folders.get(parent) {
             Some(&folder) => folder,
             None => {
-                let mut dir = parent;
-                while dir.components().count() > 1
-                    && dir
-                        .file_name()
-                        .is_some_and(|n| crate::books::subdivision(&n.to_string_lossy()))
-                {
-                    dir = dir.parent().unwrap_or(dir);
-                }
                 let next = albums_folders.len();
-                let folder = *albums_folders.entry(dir).or_insert(next);
+                let folder = *albums_folders.entry(album_folder(parent)).or_insert(next);
                 folders.insert(parent, folder);
                 folder
             }
@@ -663,6 +685,34 @@ mod tests {
             }
         }
         albums
+    }
+
+    #[test]
+    fn one_album_is_told_apart_from_mixed_songs() {
+        let a = [album_song(1, "A", 1), album_song(2, "A", 2)];
+        assert!(one_album(&a), "Y2Reborn #113: plays in order");
+        let mixed = [album_song(1, "A", 1), album_song(2, "B", 1)];
+        assert!(!one_album(&mixed));
+        let mut other_artist = a.clone();
+        other_artist[1].album_artist = "Someone".into();
+        assert!(
+            !one_album(&other_artist),
+            "a same-named album of another artist"
+        );
+        assert!(
+            !one_album(&[song(1), song(2)]),
+            "untagged songs are no album"
+        );
+        assert!(!one_album(&[]));
+        // Two "Greatest Hits" in different folders (a playlist): not one album.
+        let mut hits = [album_song(1, "Hits", 1), album_song(2, "Hits", 2)];
+        hits[1].path = "/m/Other/Hits/02 x.mp3".into();
+        assert!(!one_album(&hits));
+        // Disc folders fold into the album's folder.
+        let mut discs = [album_song(1, "A", 1), album_song(2, "A", 2)];
+        discs[0].path = "/m/A/CD 1/01 x.mp3".into();
+        discs[1].path = "/m/A/CD 2/01 x.mp3".into();
+        assert!(one_album(&discs));
     }
 
     #[test]

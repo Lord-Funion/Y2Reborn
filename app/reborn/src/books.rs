@@ -194,16 +194,13 @@ impl Runtime {
         self.dirty.mark_render();
     }
 
-    /// Next and Previous inside a book move by chapter. `None` when the
-    /// current song is not part of a book (the queue's own step applies).
-    pub(crate) fn book_step(&mut self, delta: i32) -> Option<Result<(), String>> {
+    /// The Previous and Next buttons inside a book: a near chapter or 30 s
+    /// (`Listening::button_step`, Y2Linux #103; the menu's Previous/Next
+    /// Chapter go any distance). `None` when the current song is not part of
+    /// a book (the queue's own step applies).
+    pub(crate) fn book_step(&mut self, forward: bool) -> Option<Result<(), String>> {
         let (listening, part) = self.model.book_part()?;
-        let position = self.model.position_ms;
-        let target = if delta > 0 {
-            listening.next(part, position)
-        } else {
-            listening.previous(part, position)
-        };
+        let target = listening.button_step(part, self.model.position_ms, forward);
         let Some((to, ms)) = target else {
             // The last chapter: Next keeps the place (Y2Player lost it here).
             self.ui.flash("This is the last chapter");

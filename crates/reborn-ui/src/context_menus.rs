@@ -166,6 +166,28 @@ impl Ui {
         }
     }
 
+    /// Now Playing's menu for a book; it stays open for the next press. Speed steps on;
+    /// Previous/Next Chapter move one chapter at any distance (Y2Linux #103: the buttons stop
+    /// at 10 minutes).
+    fn playing_book_effect(&mut self, m: &AppModel, menu_key: &str) -> Option<Effect> {
+        let (book, part) = m.book_part()?;
+        let forward = match menu_key {
+            "book_speed" => {
+                let speed = reborn_core::books::next_speed(book.speed);
+                return Some(Effect::SetBookSpeed(speed));
+            }
+            "book_chapter_next" => true,
+            "book_chapter_previous" => false,
+            _ => return None,
+        };
+        let Some(chapter) = book.chapter_step(part, m.position_ms, forward) else {
+            self.flash("This is the last chapter");
+            return Some(Effect::None);
+        };
+        let start = reborn_core::BookStart::Chapter(chapter);
+        Some(Effect::PlayBook(book.key.clone(), start))
+    }
+
     pub(crate) fn context_action(
         &mut self,
         m: &mut AppModel,
@@ -199,11 +221,8 @@ impl Ui {
         if menu_key.starts_with("group_") {
             return self.group_effect(m, tracks, &source_key, menu_key);
         }
-        if menu_key == "book_speed" {
-            // The menu stays open: each press steps the speed on.
-            return m.book_part().map_or(Effect::None, |(book, _)| {
-                Effect::SetBookSpeed(reborn_core::books::next_speed(book.speed))
-            });
+        if let Some(effect) = self.playing_book_effect(m, menu_key) {
+            return effect;
         }
         if menu_key == "book_chapters" {
             Self::close_modal(m);

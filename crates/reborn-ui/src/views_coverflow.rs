@@ -138,12 +138,16 @@ pub fn albums(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interacti
             c.mark_focus(at);
         }
     }
-    // A skin may draw the captions in its own fonts (`{flow_title}`…, Y2Reborn #100).
+    // The album's text rides under its cover while the row glides, fading as it travels
+    // (Y2Reborn #71); at rest it stands in the middle.
+    let d = focus as f32 - pos;
+    let (x, shown) = (flow::centre_x(d), 1. - d.abs().min(1.) * 0.6);
+    // A skin may draw the captions in its own fonts (`{flow_title}`…, Y2Reborn #100); they
+    // ride and fade the same way (Y2Reborn #112).
+    if c.skin_captions {
+        c.flow_caption = Some((x - flow::centre_x(0.), shown));
+    }
     if let Some([title, artist, detail]) = captions(ui, m, tracks).filter(|_| !c.skin_captions) {
-        // The album's text rides under its cover while the row glides, fading as it travels
-        // (Y2Reborn #71); at rest it stands in the middle.
-        let d = focus as f32 - pos;
-        let (x, shown) = (flow::centre_x(d), 1. - d.abs().min(1.) * 0.6);
         for (y, line, face, colour) in [
             (270., title, Face::S20, color::TEXT),
             (298., artist, Face::R15, color::MUTED),

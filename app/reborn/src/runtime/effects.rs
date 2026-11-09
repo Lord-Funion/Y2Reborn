@@ -40,6 +40,11 @@ impl Runtime {
         // ("Couldn't complete that").
         if self.pending_reconfiguration.is_some() {
             match e {
+                // A book keeps its place while it starts: the whole-file step
+                // below would send it to a part's 0:00 (Y2Linux #103).
+                Effect::NextTrack | Effect::PreviousTrack if self.model.book_part().is_some() => {
+                    return Ok(());
+                }
                 Effect::NextTrack | Effect::PreviousTrack => {
                     let delta = if matches!(e, Effect::NextTrack) {
                         1
