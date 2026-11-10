@@ -1,5 +1,16 @@
 # Current Reborn state on the Y2
 
+## 1.0.0-beta.9.3.20 — Y2Linux 1.0 Beta 9.3.20 (Baseline 229), 2026-11-10: issue fixes (published)
+
+Published as `baseline-229` (Reborn `f6ba913`; work `5c6e769`). Audiobook Previous/Next: `Listening::button_step`
+(chapter start within `BUTTON_REACH_MS` 10 min, else `BUTTON_SKIP_MS` 30 s, backward continues into the previous
+part), Now Playing book menu Previous/Next Chapter (`PlayBook(key, Chapter(n))`), `Shelf::record` keeps a place at
+0:00 (Y2Linux #103). `queue::one_album` plays a one-album queue unshuffled (#113). Skin Cover Flow captions glide via
+`Canvas::flow_caption`/`flow_glide` (#112). Wi-Fi `PendingJoin::absent()` before NotFound (Y2Linux #83). EFBIG counted
+in Settings → Library (`left_out_note`, Y2Linux #84). Service menu SBC Auto Rate (`PlatformTask::SbcAbr`, Y2Linux
+#99). Architecture guard skips every `tests.rs` host module. Host-tested only
+([Beta 9.3.20 report](https://github.com/SchulzCode/Y2Linux/blob/main/docs/validation/Y2-LINUX-1.0-BETA-9.3.20.md)).
+
 ## 1.0.0-beta.9.3.19 — Y2Linux 1.0 Beta 9.3.19 (Baseline 228), 2026-11-08: update notifications (published)
 
 Published as `baseline-228` (Reborn `520c4b8`; work `e989efb`). Update Notifications (Y2Reborn #97): toggle on
