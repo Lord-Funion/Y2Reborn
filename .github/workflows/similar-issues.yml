@@ -1,0 +1,23 @@
+# A new issue gets one comment listing earlier issues that look like it (both repositories), so
+# duplicates are noticed by the person who opened it. A hint only: nothing is closed or labelled.
+name: Similar issues
+on:
+  issues:
+    types: [opened]
+permissions:
+  issues: write
+  contents: read
+jobs:
+  hint:
+    # The owner's own issues need no hint.
+    if: github.event.issue.user.login != github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const hint = require('./.github/scripts/similar-issues.js');
+            await hint.run({ github, context });

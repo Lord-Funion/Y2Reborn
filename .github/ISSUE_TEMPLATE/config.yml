@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: 🚫 Ideas that won't be built, and why
+    url: https://github.com/SchulzCode/Y2Linux/blob/main/docs/NOT-PLANNED.md
+    about: Please read before asking for a feature. Asked before and decided.
   - name: 📄 How to make an error report
     url: https://github.com/SchulzCode/Y2Linux/blob/main/docs/ERROR-REPORTS.md
     about: Send one from the player or save it to a file, and what it holds.

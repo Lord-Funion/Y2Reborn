@@ -2,6 +2,14 @@ name: 📦 Install or update
 description: Installing Y2Linux, an update, or going back to stock failed or got stuck.
 labels: [update]
 body:
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: Before you send this
+      description: "The same thing may have been reported or asked already. Please look through the [Y2Linux issues](https://github.com/SchulzCode/Y2Linux/issues?q=is%3Aissue), the [Y2Reborn issues](https://github.com/SchulzCode/Y2Reborn/issues?q=is%3Aissue) (open and closed) and the [ideas that won't be built](https://github.com/SchulzCode/Y2Linux/blob/main/docs/NOT-PLANNED.md). If it is there, add to that issue instead."
+      options:
+        - label: I searched, and this isn't there yet.
+          required: true
   - type: markdown
     attributes:
       value: |
