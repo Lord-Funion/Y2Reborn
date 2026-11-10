@@ -1263,6 +1263,11 @@ static void extract_metadata(RbMedia *m, RbMetadata *meta) {
       (m->f->duration > 0 ? (uint64_t)m->f->duration / 1000 : 0);
   meta->bitrate = p->bit_rate > 0 ? (uint64_t)p->bit_rate :
       (m->f->bit_rate > 0 ? (uint64_t)m->f->bit_rate : 0);
+  /* A stream and a container that name no bitrate (FLAC, Opus; any format whose headers carry
+   * none): the file's size over its length, the average a player shows (Y2Linux #87: those two
+   * showed nothing). Not for a station, which has no size. */
+  if (!meta->bitrate && m->file_size > 0 && meta->duration_ms > 0)
+    meta->bitrate = (uint64_t)m->file_size * 8000 / meta->duration_ms;
   meta->skip_start = p->initial_padding > 0 ? (uint64_t)p->initial_padding : 0;
   meta->skip_end = p->trailing_padding > 0 ? (uint64_t)p->trailing_padding : 0;
   meta->track_gain_db = gain_tag(m, "REPLAYGAIN_TRACK_GAIN", "replaygain_track_gain");

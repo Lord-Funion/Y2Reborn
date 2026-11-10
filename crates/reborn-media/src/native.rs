@@ -1369,6 +1369,26 @@ mod tests {
         }
     }
     #[test]
+    fn every_fixture_format_reports_an_average_bitrate() {
+        // Y2Linux #87: FLAC and Opus showed no bitrate. Their streams and containers carry none,
+        // so it is the file's size over its length, as for any format that names none.
+        for n in [
+            "tone.wav",
+            "tone.flac",
+            "tone.mp3",
+            "tone.m4a",
+            "tone.ogg",
+            "tone.opus",
+        ] {
+            // As the library scan reads a file, and as playback opens it.
+            let scanned = MediaFile::open(&fixture(n), Cancel::new().unwrap()).unwrap();
+            let played = Decoder::open(&fixture(n), 48_000, Cancel::new().unwrap()).unwrap();
+            for bitrate in [scanned.metadata.bitrate, played.metadata.bitrate] {
+                assert!((1000..10_000_000).contains(&bitrate), "{n}: {bitrate}");
+            }
+        }
+    }
+    #[test]
     fn production_source_matrix_decodes_without_a_second_audio_stack() {
         for name in [
             "flac-16-44100.flac",
