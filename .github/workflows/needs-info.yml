@@ -1,0 +1,56 @@
+# The maintainer labels an issue `needs-info` after asking its author something. When the author
+# comments, the label comes off, so answered issues stand out from the ones still waiting. After 14
+# days without an answer the author gets one reminder. Nothing is ever closed automatically.
+name: Needs info
+on:
+  issue_comment:
+    types: [created]
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+permissions:
+  issues: write
+jobs:
+  answered:
+    if: >-
+      github.event_name == 'issue_comment' && !github.event.issue.pull_request &&
+      github.event.comment.user.login == github.event.issue.user.login &&
+      contains(github.event.issue.labels.*.name, 'needs-info')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.removeLabel({
+              ...context.repo, issue_number: context.issue.number, name: 'needs-info',
+            });
+  remind:
+    if: github.event_name != 'issue_comment'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const MARK = '<!-- needs-info-reminder -->';
+            const WAIT_MS = 14 * 24 * 3600 * 1000;
+            const repo = context.repo;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              ...repo, state: 'open', labels: 'needs-info', per_page: 100,
+            });
+            for (const issue of issues.filter(i => !i.pull_request)) {
+              const events = await github.paginate(github.rest.issues.listEvents, {
+                ...repo, issue_number: issue.number, per_page: 100,
+              });
+              const asked = events.filter(e => e.event === 'labeled' && e.label?.name === 'needs-info').pop();
+              if (!asked || Date.now() - Date.parse(asked.created_at) < WAIT_MS) continue;
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                ...repo, issue_number: issue.number, since: asked.created_at, per_page: 100,
+              });
+              if (comments.some(c => c.body.includes(MARK))) continue;
+              await github.rest.issues.createComment({
+                ...repo, issue_number: issue.number,
+                body: `${MARK}\n@${issue.user.login}, a friendly reminder: the questions above are still ` +
+                  'open, and without the answers the cause can\'t be found. Answering by number is fine. ' +
+                  'If it has fixed itself, just say so and the issue can be closed.',
+              });
+            }

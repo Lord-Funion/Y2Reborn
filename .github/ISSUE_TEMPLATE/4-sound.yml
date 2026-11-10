@@ -24,6 +24,32 @@ body:
     validations:
       required: true
   - type: dropdown
+    id: install
+    attributes:
+      label: How did you install Y2Linux?
+      description: The first install. Later updates over Wi-Fi don't change the answer.
+      options:
+        - SP Flash Tool with the first-install zip from GitHub
+        - Innioasis Updater (Updater CE)
+        - Another way (say which under "Anything else")
+        - I don't know
+    validations:
+      required: true
+  - type: dropdown
+    id: radios_work
+    attributes:
+      label: Do Wi-Fi and Bluetooth work?
+      description: They need the radio firmware, added once by copying `system.img` into the *Firmware* folder.
+      options:
+        - Both work
+        - Only Wi-Fi works
+        - Only Bluetooth works
+        - Neither works, although I added system.img
+        - I haven't added system.img
+        - I don't know
+    validations:
+      required: true
+  - type: dropdown
     id: output
     attributes:
       label: Output
