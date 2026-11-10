@@ -482,7 +482,7 @@ impl Playback {
         // stay in FFmpeg. The live sink applies user attenuation after them.
         dsp.volume = 100;
         let (reply, opened) = sync_channel(1);
-        let deadline = Instant::now() + OPEN_DEADLINE;
+        let deadline = Instant::now() + open_deadline(&spec);
         let job = Box::new(Job {
             track,
             music_root,

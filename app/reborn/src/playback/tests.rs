@@ -1086,6 +1086,19 @@ fn stop_invalidates_pending_pcm_and_output_switch_reopens() {
     p.stop(4);
 }
 #[test]
+fn a_bluetooth_start_waits_longer_than_bluez_waits_for_the_headphones() {
+    // BlueZ gives headphones 6 s to answer a stream start (REQ_TIMEOUT, avdtp.c): its answer,
+    // success or failure, must arrive before the start gives up.
+    let bluetooth = spec(AudioOutput::Bluetooth("00:11:22:33:44:55".into()), 44_100);
+    assert!(open_deadline(&bluetooth) >= Duration::from_secs(6) + Duration::from_secs(1));
+    // The wired start keeps its deadline (two slow crystal opens, #52).
+    assert_eq!(
+        open_deadline(&spec(AudioOutput::Wired, 44_100)),
+        OPEN_DEADLINE
+    );
+}
+
+#[test]
 fn a_kept_sink_plays_on_only_for_exactly_its_spec_and_wired_settings() {
     let wired = spec(AudioOutput::Wired, 44_100);
     assert_eq!(sink_change(&wired, 3, &wired.clone(), 3), None);

@@ -25,6 +25,15 @@ pub(super) struct SinkWorker {
 
 impl SinkWorker {
     pub(super) fn run(mut self) {
+        let realtime = reborn_platform::audio_thread_priority();
+        self.al.emit(
+            Level::Info,
+            "audio",
+            "thread_priority",
+            "the audio thread asked for real-time scheduling",
+            None,
+            json!({"realtime":realtime}),
+        );
         let sink: Option<Box<dyn AudioSink>> = None;
         let generation = 0;
         let correlation = 0;

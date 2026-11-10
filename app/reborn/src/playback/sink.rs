@@ -9,6 +9,22 @@ pub(crate) type SinkFactory =
 /// second time: 2 s gave up during the second open even when it played (#52).
 pub(crate) const OPEN_DEADLINE: Duration = Duration::from_secs(5);
 
+/// How long a Bluetooth start waits for its sink. Opening it asks the headphones to start
+/// the stream, and BlueZ waits 6 s for their answer (`REQ_TIMEOUT` in its avdtp.c) before it
+/// reports the failure. Giving up before BlueZ does showed an error for headphones that were
+/// only slow to answer, while their start was still in progress; now the real answer arrives
+/// first, whichever it is.
+pub(crate) const BLUETOOTH_OPEN_DEADLINE: Duration = Duration::from_secs(8);
+
+/// The deadline of a start in `spec`'s output.
+pub(crate) fn open_deadline(spec: &SinkSpec) -> Duration {
+    if keeps_queued_audio(spec) {
+        BLUETOOTH_OPEN_DEADLINE
+    } else {
+        OPEN_DEADLINE
+    }
+}
+
 /// What one slow open can take (the crystal case above): no retry starts so
 /// late that it cannot finish inside `OPEN_DEADLINE`.
 pub(crate) const SLOW_OPEN: Duration = Duration::from_secs(2);

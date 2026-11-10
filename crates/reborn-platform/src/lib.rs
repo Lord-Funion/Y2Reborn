@@ -20,13 +20,43 @@ pub mod storage;
 pub mod wifi;
 pub mod workload;
 
+/// How a thread is scheduled against the rest of the player.
+enum ThreadClass {
+    /// Yields to playback and the UI: nice 10.
+    Background,
+    /// Runs before everything that is not real-time: SCHED_FIFO at the lowest priority.
+    Audio,
+}
+
+/// Schedule the calling thread as `class`; whether the kernel took it.
+fn schedule_thread(class: ThreadClass) -> bool {
+    // SAFETY: both calls act on the calling thread only, with plain values; nothing is shared.
+    unsafe {
+        match class {
+            ThreadClass::Background => {
+                libc::setpriority(libc::PRIO_PROCESS, libc::gettid() as libc::id_t, 10) == 0
+            }
+            ThreadClass::Audio => {
+                let priority = libc::sched_param { sched_priority: 1 };
+                libc::sched_setscheduler(0, libc::SCHED_FIFO, &priority) == 0
+            }
+        }
+    }
+}
+
 /// A background helper thread (library scan workers) yields to playback and
 /// the UI: nice 10 for this thread only.
 pub fn lower_thread_priority() {
-    // SAFETY: setpriority on this thread's own id; nothing is shared.
-    unsafe {
-        libc::setpriority(libc::PRIO_PROCESS, libc::gettid() as libc::id_t, 10);
-    }
+    schedule_thread(ThreadClass::Background);
+}
+
+/// The thread that writes audio to the output runs before the player's other work (a library
+/// scan, covers, the UI), as a phone's mixer thread does: it writes a few milliseconds of audio
+/// and sleeps, and when it is late the output runs dry. Threads it starts inherit this, which
+/// is wanted: the Bluetooth output's transfer thread is started by its open. False where the
+/// kernel refuses (not root: tests, a development host); the thread then runs as before.
+pub fn audio_thread_priority() -> bool {
+    schedule_thread(ThreadClass::Audio)
 }
 
 /// 64 random bits from the kernel's pool (getrandom), the clock if that fails.
