@@ -207,11 +207,11 @@ pub fn now_playing(
         } else {
             components::progress(position, length)
         },
-        // Opaque, so the wave's joints do not bead.
+        // The cover's colour, as on Home (#108); opaque, so the joints do not bead.
         if radio {
             crate::theme::mix(accent, color::BG, 0.3)
         } else {
-            color::TEXT
+            accent
         },
         phase,
         amp,
