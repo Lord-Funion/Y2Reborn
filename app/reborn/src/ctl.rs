@@ -33,15 +33,13 @@ fn command(a: &[String]) -> Result<Command, String> {
             let preference = match a.get(2).map(String::as_str) {
                 Some("Auto") => reborn_core::CodecPreference::Auto,
                 Some("SBC") => reborn_core::CodecPreference::Sbc,
-                Some("SBC-XQ") => reborn_core::CodecPreference::SbcXq,
+                Some("SBC-XQ") => reborn_core::CodecPreference::Sbc,
                 Some("AAC") => reborn_core::CodecPreference::Aac,
                 Some("aptX") => reborn_core::CodecPreference::Aptx,
                 Some("aptX-HD") => reborn_core::CodecPreference::AptxHd,
                 Some("LDAC") => reborn_core::CodecPreference::Ldac,
                 _ => {
-                    return Err(
-                        "Use bluetooth codec Auto|SBC|SBC-XQ|AAC|aptX|aptX-HD|LDAC ADDRESS".into(),
-                    )
+                    return Err("Use bluetooth codec Auto|SBC|AAC|aptX|aptX-HD|LDAC ADDRESS".into())
                 }
             };
             return Ok(Command::BluetoothCodec {
@@ -152,7 +150,7 @@ mod tests {
     use super::*;
     #[test]
     fn every_classic_codec_uses_the_typed_preference_command() {
-        for codec in ["Auto", "SBC", "SBC-XQ", "AAC", "aptX", "aptX-HD", "LDAC"] {
+        for codec in ["Auto", "SBC", "AAC", "aptX", "aptX-HD", "LDAC"] {
             let cmd = command(&[
                 "bluetooth".into(),
                 "codec".into(),
@@ -164,6 +162,15 @@ mod tests {
             assert_eq!(value["op"], "bluetooth_codec");
             assert_eq!(value["preference"], codec);
         }
+        // SBC XQ is gone: its old name asks for SBC.
+        let old = command(&[
+            "bluetooth".into(),
+            "codec".into(),
+            "SBC-XQ".into(),
+            "11:22:33:44:55:66".into(),
+        ])
+        .unwrap();
+        assert_eq!(serde_json::to_value(old).unwrap()["preference"], "SBC");
         assert!(command(&[
             "bluetooth".into(),
             "codec".into(),

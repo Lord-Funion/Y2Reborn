@@ -24,10 +24,9 @@ pub enum CodecPreference {
     /// The best codec both ends support, from the platform's ranking.
     #[default]
     Auto,
-    #[serde(rename = "SBC")]
+    // "SBC-XQ" is what a player could save before SBC XQ went (Y2Reborn #123): it is SBC.
+    #[serde(rename = "SBC", alias = "SBC-XQ")]
     Sbc,
-    #[serde(rename = "SBC-XQ")]
-    SbcXq,
     #[serde(rename = "AAC")]
     Aac,
     #[serde(rename = "aptX")]
@@ -42,7 +41,6 @@ impl CodecPreference {
         match self {
             Self::Auto => "Auto",
             Self::Sbc => "SBC",
-            Self::SbcXq => "SBC-XQ",
             Self::Aac => "AAC",
             Self::Aptx => "aptX",
             Self::AptxHd => "aptX-HD",
@@ -1021,7 +1019,6 @@ pub enum PlatformTask {
     SleepRequest,
     LdacQuality(platform::LdacQuality),
     LdacAbr(bool),
-    SbcQuality(platform::SbcQuality),
     SbcAbr(bool),
     AacQuality(platform::AacQuality),
     AacAbr(bool),

@@ -1082,20 +1082,13 @@ fn system(ui: &Ui, m: &AppModel) -> Page {
             m.settings.codec_preference.label(),
         ));
     }
-    if quality.sbc_supported && b.sbc_quality_available {
-        if let Some(q) = quality.requested_sbc {
-            rows.push(disabled(
-                row("SBC Quality", "sbc_quality", q.label()),
-                m.platform.busy.is_none(),
-            ));
-        }
-        let sbc_abr = quality.sbc_abr_supported && b.sbc_quality_available;
-        if let Some(abr) = quality.requested_sbc_abr.filter(|_| sbc_abr) {
-            rows.push(disabled(
-                row("SBC Auto Rate", "sbc_abr", on_off(abr)),
-                m.platform.busy.is_none(),
-            ));
-        }
+    // SBC has one quality (standard); XQ and XQ+ went with Y2Reborn #123.
+    let sbc_abr = quality.sbc_abr_supported && b.sbc_quality_available;
+    if let Some(abr) = quality.requested_sbc_abr.filter(|_| sbc_abr) {
+        rows.push(disabled(
+            row("SBC Auto Rate", "sbc_abr", on_off(abr)),
+            m.platform.busy.is_none(),
+        ));
     }
     if b.codec_choices.contains(&reborn_core::CodecPreference::Aac) {
         if quality.aac_supported {

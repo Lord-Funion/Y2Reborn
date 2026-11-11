@@ -126,9 +126,6 @@ impl Status {
         .filter(|(name, _)| usable(name))
         .map(|(_, preference)| preference)
         .collect();
-        if crate::codecs::experimental_xq_enabled() && usable("SBC") {
-            choices.insert(1, CodecPreference::SbcXq);
-        }
         if choices.len() < 2 {
             return vec![];
         }

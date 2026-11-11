@@ -161,13 +161,6 @@ impl Ui {
                 }
                 Effect::Platform(PlatformTask::LdacQuality(q.requested_quality?.next()))
             }
-            "sbc_quality" => {
-                let q = m.platform.snapshot.bluetooth_quality;
-                if !q.sbc_supported {
-                    return None;
-                }
-                Effect::Platform(PlatformTask::SbcQuality(q.requested_sbc?.next()))
-            }
             "aac_quality" => {
                 let q = m.platform.snapshot.bluetooth_quality;
                 if !q.aac_supported {

@@ -193,35 +193,6 @@ impl AacQuality {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum SbcQuality {
-    High,
-    Xq,
-    XqPlus,
-}
-impl SbcQuality {
-    pub const fn argument(self) -> &'static str {
-        match self {
-            Self::High => "high",
-            Self::Xq => "xq",
-            Self::XqPlus => "xq+",
-        }
-    }
-    pub const fn label(self) -> &'static str {
-        match self {
-            Self::High => "Standard",
-            Self::Xq => "XQ",
-            Self::XqPlus => "XQ+",
-        }
-    }
-    pub const fn next(self) -> Self {
-        match self {
-            Self::High => Self::Xq,
-            Self::Xq => Self::XqPlus,
-            Self::XqPlus => Self::High,
-        }
-    }
-}
 impl LdacQuality {
     pub const fn argument(self) -> &'static str {
         match self {
@@ -248,9 +219,6 @@ impl LdacQuality {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct BluetoothQuality {
-    pub sbc_supported: bool,
-    pub requested_sbc: Option<SbcQuality>,
-    pub effective_sbc: Option<SbcQuality>,
     pub ldac_supported: bool,
     pub abr_supported: bool,
     pub requested_quality: Option<LdacQuality>,

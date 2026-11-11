@@ -10,8 +10,8 @@ use reborn_core::{
     platform::{
         BluetoothQuality, DiagnosticSection, DownloadLive, Fact, HealthLevel, InternalSetup,
         LdacQuality, OperationResult, PlatformInfo, PlatformSnapshot, RadioFirmware,
-        ReportDestination, ReportLast, ReportLive, ReportState, ReportStep, SbcQuality, SdCard,
-        SetupWait, SleepPhase, SleepProblem, SleepState, StorageState, UpdatePhase, UpdateProblem,
+        ReportDestination, ReportLast, ReportLive, ReportState, ReportStep, SdCard, SetupWait,
+        SleepPhase, SleepProblem, SleepState, StorageState, UpdatePhase, UpdateProblem,
         UpdateState, UsbTransfer, VolumeSpace, VolumeState, WakeReason,
     },
     PlatformTask,
@@ -226,7 +226,6 @@ fn execute(task: PlatformTask) -> Reply {
             &["codec-settings", "--ldac-quality", quality.argument()],
             10,
         ),
-        SbcQuality(quality) => call(&["codec-settings", "--sbc-quality", quality.argument()], 10),
         SbcAbr(on) => call(
             &["codec-settings", "--sbc-abr", if on { "on" } else { "off" }],
             10,
@@ -955,29 +954,11 @@ fn aac_quality(value: &Value) -> Option<reborn_core::platform::AacQuality> {
     }
 }
 
-fn sbc_quality(value: &Value) -> Option<SbcQuality> {
-    match value.as_str() {
-        Some("high") => Some(SbcQuality::High),
-        Some("xq") => Some(SbcQuality::Xq),
-        Some("xq+") => Some(SbcQuality::XqPlus),
-        _ => None,
-    }
-}
-
 pub fn bluetooth_quality(value: &Value) -> BluetoothQuality {
     if value["schema"] != schemas::CODEC_SETTINGS {
         return BluetoothQuality::default();
     }
     BluetoothQuality {
-        sbc_supported: value["supported"]["sbc_quality"]
-            .as_array()
-            .is_some_and(|v| {
-                ["high", "xq", "xq+"]
-                    .iter()
-                    .all(|name| v.iter().any(|x| x == name))
-            }),
-        requested_sbc: sbc_quality(&value["requested"]["sbc_quality"]),
-        effective_sbc: sbc_quality(&value["effective"]["sbc_quality"]),
         ldac_supported: value["supported"]["ldac_quality"]
             .as_array()
             .is_some_and(|v| {
@@ -2175,7 +2156,7 @@ mod feature_completion_tests {
             "supported":{"ldac_quality":["mobile","standard","high"],"ldac_abr":true,"sbc_quality":["high","xq","xq+"]},
             "pending_restart":true});
         let q = bluetooth_quality(&v);
-        assert!(q.pending_restart && q.ldac_supported && q.abr_supported && q.sbc_supported);
+        assert!(q.pending_restart && q.ldac_supported && q.abr_supported);
         assert!(!q.aac_supported && q.requested_aac.is_none());
         let aac = json!({"schema":"org.y2linux.codec-settings/v1",
             "requested":{"aac_quality":"high","aac_abr":false},
@@ -2194,8 +2175,6 @@ mod feature_completion_tests {
         assert!(s.sbc_abr_supported && s.requested_sbc_abr == Some(false));
         assert_eq!(q.requested_quality, Some(LdacQuality::High));
         assert_eq!(q.effective_quality, Some(LdacQuality::Standard));
-        assert_eq!(q.requested_sbc, Some(SbcQuality::Xq));
-        assert_eq!(q.effective_sbc, Some(SbcQuality::High));
         assert_eq!(q.requested_abr, Some(true));
         assert_eq!(q.effective_abr, Some(false));
         assert_eq!(bluetooth_quality(&json!({})), BluetoothQuality::default());

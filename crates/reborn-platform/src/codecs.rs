@@ -152,25 +152,3 @@ impl Session {
         }
     }
 }
-fn read_value(path: &str) -> Option<serde_json::Value> {
-    use std::io::Read;
-    let mut bytes = Vec::new();
-    std::fs::File::open(path)
-        .ok()?
-        .take(65_537)
-        .read_to_end(&mut bytes)
-        .ok()?;
-    (bytes.len() <= 65_536)
-        .then(|| serde_json::from_slice(&bytes).ok())
-        .flatten()
-}
-pub fn experimental_xq_enabled() -> bool {
-    // Requested daemon quality may differ until restart. Expose XQ only when
-    // the current boot's startup receipt has actually selected it. Since
-    // Y2Linux 1.0 Beta 3 SBC XQ is an owner choice, not an experiment.
-    let boot = std::fs::read_to_string("/proc/sys/kernel/random/boot_id").unwrap_or_default();
-    read_value("/run/y2/codec-runtime.json").is_some_and(|v| {
-        v["boot_id"].as_str() == Some(boot.trim())
-            && matches!(v["settings"]["sbc_quality"].as_str(), Some("xq" | "xq+"))
-    })
-}

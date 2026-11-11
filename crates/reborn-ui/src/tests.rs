@@ -2728,25 +2728,18 @@ fn aac_headphones_get_quality_and_auto_rate_rows() {
 }
 
 #[test]
-fn sbc_only_peer_can_enable_xq_without_a_hidden_codec_picker() {
-    use reborn_core::platform::{BluetoothQuality, SbcQuality};
+fn sbc_only_peer_gets_auto_rate_and_no_quality_row() {
+    use reborn_core::platform::BluetoothQuality;
     let mut ui = radios();
     let mut m = app(Screen::SettingsSystem);
     ui.bluetooth.codec_choices.clear();
     ui.bluetooth.sbc_quality_available = true;
-    m.platform.snapshot.bluetooth_quality = BluetoothQuality {
-        sbc_supported: true,
-        requested_sbc: Some(SbcQuality::High),
-        ..Default::default()
-    };
+    m.platform.snapshot.bluetooth_quality = BluetoothQuality::default();
+    // SBC XQ is gone (Y2Reborn #123): no picker, no quality row.
     assert!(!ui
         .rows(&m, &m.library.tracks)
         .iter()
-        .any(|r| r.key == "codec_preference"));
-    assert_eq!(
-        select_key(&mut ui, &mut m, "sbc_quality"),
-        Effect::Platform(PlatformTask::SbcQuality(SbcQuality::Xq))
-    );
+        .any(|r| r.key == "codec_preference" || r.key == "sbc_quality"));
     // Y2Linux #99: SBC's auto rate, once the platform reports it.
     assert!(!ui
         .rows(&m, &m.library.tracks)

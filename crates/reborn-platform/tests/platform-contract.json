@@ -176,7 +176,7 @@
      "reason": "runtime enablement uses compiled inventory and explicit Experimental gate; physical qualification pending"
     },
     "bluetooth_sbc_xq": {
-     "enabled": true,
+     "enabled": false,
      "experimental": true,
      "fallback": "SBC",
      "implemented": true,
@@ -3164,7 +3164,7 @@
     "ldac_abr": false,
     "ldac_quality": "mobile",
     "sbc_abr": false,
-    "sbc_quality": "xq",
+    "sbc_quality": "high",
     "schema": 1
    },
    "schema": "org.y2linux.codec-settings/v1",
@@ -3182,9 +3182,7 @@
     ],
     "sbc_abr": true,
     "sbc_quality": [
-     "high",
-     "xq",
-     "xq+"
+     "high"
     ]
    }
   }
@@ -3204,7 +3202,7 @@
   "argv": [
    "codec-settings",
    "--sbc-quality",
-   "xq"
+   "high"
   ],
   "exit": 1,
   "files": {},
@@ -3298,9 +3296,7 @@
     ],
     "sbc_abr": true,
     "sbc_quality": [
-     "high",
-     "xq",
-     "xq+"
+     "high"
     ]
    }
   }
@@ -3344,9 +3340,7 @@
     ],
     "sbc_abr": true,
     "sbc_quality": [
-     "high",
-     "xq",
-     "xq+"
+     "high"
     ]
    }
   }
@@ -3399,9 +3393,7 @@
     ],
     "sbc_abr": true,
     "sbc_quality": [
-     "high",
-     "xq",
-     "xq+"
+     "high"
     ]
    }
   }
@@ -3452,9 +3444,7 @@
     ],
     "sbc_abr": true,
     "sbc_quality": [
-     "high",
-     "xq",
-     "xq+"
+     "high"
     ]
    }
   }
@@ -3491,7 +3481,7 @@
   "argv": [
    "codec-settings",
    "--sbc-quality",
-   "xq"
+   "high"
   ],
   "exit": 1,
   "files": {},
@@ -3538,9 +3528,7 @@
     ],
     "sbc_abr": true,
     "sbc_quality": [
-     "high",
-     "xq",
-     "xq+"
+     "high"
     ]
    }
   }
@@ -3563,7 +3551,7 @@
   "argv": [
    "codec-settings",
    "--sbc-quality",
-   "xq+",
+   "high",
    "--sbc-abr",
    "off"
   ],
@@ -3582,7 +3570,7 @@
     "ldac_abr": true,
     "ldac_quality": "mobile",
     "sbc_abr": false,
-    "sbc_quality": "xq+",
+    "sbc_quality": "high",
     "schema": 1
    },
    "schema": "org.y2linux.codec-settings/v1",
@@ -3600,9 +3588,7 @@
     ],
     "sbc_abr": true,
     "sbc_quality": [
-     "high",
-     "xq",
-     "xq+"
+     "high"
     ]
    }
   }
@@ -3644,9 +3630,7 @@
     ],
     "sbc_abr": true,
     "sbc_quality": [
-     "high",
-     "xq",
-     "xq+"
+     "high"
     ]
    }
   }
@@ -7493,9 +7477,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -7685,9 +7667,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -7881,9 +7861,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -8540,9 +8518,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -8736,9 +8712,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -8885,9 +8859,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -9129,9 +9101,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -9246,9 +9216,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -9441,9 +9409,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -9599,9 +9565,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -9847,9 +9811,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -9957,9 +9919,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -10074,9 +10034,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -10208,9 +10166,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -11015,9 +10971,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
@@ -18990,9 +18944,7 @@
       ],
       "sbc_abr": true,
       "sbc_quality": [
-       "high",
-       "xq",
-       "xq+"
+       "high"
       ]
      }
     },
