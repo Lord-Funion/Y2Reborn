@@ -5,6 +5,7 @@ pub mod clock;
 mod countries;
 pub mod eq;
 pub mod home;
+pub mod lyrics;
 pub mod platform;
 pub mod playlist;
 pub mod queue;

@@ -42,6 +42,7 @@ impl Ui {
             .unwrap_or_default();
         vec![
             Item::new("Up Next", "show_queue").with_secondary(next),
+            Item::new("Lyrics", "lyrics"),
             Item::new("Sleep Timer", "sleep_timer").with_secondary(sleep_label(m, false)),
             Item::new("Shuffle", "toggle_shuffle")
                 .with_secondary(m.settings.shuffle_mode().label()),
@@ -622,5 +623,6 @@ fn playing_book_rows(m: &AppModel, book: &reborn_core::books::Listening) -> Vec<
         Item::new("Speed", "book_speed").with_secondary(format!("{}×", speed_label(book.speed))),
         Item::new("Sleep Timer", "sleep_timer").with_secondary(sleep_label(m, true)),
         Item::new("Up Next", "show_queue"),
+        Item::new("Lyrics", "lyrics"),
     ]
 }

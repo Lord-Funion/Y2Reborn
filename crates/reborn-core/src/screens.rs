@@ -19,6 +19,7 @@ pub enum Screen {
     Album,
     Artist,
     NowPlaying,
+    Lyrics,
     Queue,
     TrackInfo,
     Settings,

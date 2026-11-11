@@ -29,6 +29,8 @@ skins. Written in Rust, it decodes with FFmpeg, draws with OpenGL ES on the Y2's
   heart. Changes are written back into the playlist file.
 
 **Listening**
+- **Local synchronized lyrics (source candidate):** Now Playing → Lyrics reads a sibling `.lrc`
+  file and follows the audio position in the selected skin's colors ([guide](docs/lyrics.md)).
 - Gapless playback, crossfade up to 12 s, shuffle by song or by album, repeat and a sleep timer.
 - A five-band equalizer with presets, headphone profiles for 47 headphones and IEMs (AutoEq) plus your own AutoEq
   `ParametricEQ.txt` files, Normalize Volume (ReplayGain), balance, headphone level and DAC filter.

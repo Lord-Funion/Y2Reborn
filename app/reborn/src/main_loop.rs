@@ -297,6 +297,7 @@ pub(crate) fn run() -> Result<(), String> {
         power: power::status(),
         kernel_events: Arc::new(Mutex::new(Vec::new())),
         background,
+        lyrics: Default::default(),
         art: false,
         art_square: Vec::new(),
         history_seen: None,
@@ -823,6 +824,7 @@ impl MainLoop {
         self.control_requests(rt);
         self.observations(rt);
         self.periodic(rt);
+        rt.lyrics_tick();
         self.render(rt);
         self.wait(rt);
         ControlFlow::Continue(())

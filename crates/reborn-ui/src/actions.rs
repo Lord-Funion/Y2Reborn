@@ -11,7 +11,9 @@ const LETTER_SCROLL_STEPS: i32 = 3;
 impl Ui {
     pub fn action(&mut self, m: &mut AppModel, tracks: &[Track], action: Action) -> Effect {
         let before = (m.screen, m.navigation.filter.clone());
-        let effect = self.action_inner(m, tracks, action);
+        let effect = self
+            .lyrics_action(m, action)
+            .unwrap_or_else(|| self.action_inner(m, tracks, action));
         // Cover Flow and the album page hand the centre cover to each other.
         if m.settings.album_view == reborn_core::AlbumView::CoverFlow && !self.motion_fixed {
             let kind = match (before.0, m.screen) {
