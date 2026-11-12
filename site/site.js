@@ -170,4 +170,100 @@
   load('releases.json').then(showReleases).catch(function () {}).then(function () {
     return load('https://api.github.com/repos/SchulzCode/Y2Linux/releases?per_page=8');
   }).then(showReleases).catch(function () {});
+
+  // Motion on scroll. Everything below is decoration: with reduced motion asked for, none of it runs.
+  if (still) return;
+  const ease = function (t) { return t * t * (3 - 2 * t); };
+  const clamp = function (t) { return Math.max(0, Math.min(1, t)); };
+
+  // Things come in as they are scrolled to; the members of a grid one after the other.
+  const groups = ['.cards .card', '.tiles .tile', '.stats .stat', '.ways .way', '.open .pillar', '.shots figure',
+    '.shots .code', '.faq details', '.chips', '.skin-stage'];
+  groups.forEach(function (selector) {
+    const seen = new Map();
+    document.querySelectorAll(selector).forEach(function (node) {
+      const count = seen.get(node.parentNode) || 0;
+      seen.set(node.parentNode, count + 1);
+      node.classList.add('reveal');
+      node.style.setProperty('--delay', Math.min(count, 8) * 0.07 + 's');
+    });
+  });
+  document.querySelectorAll('main h2, main .eyebrow, main .lead, .copy > p, .copy > ul, .copy > .actions, .plain, .hero .actions, .hero .note')
+    .forEach(function (node) { node.classList.add('reveal'); });
+  const watcher = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('in');
+      watcher.unobserve(entry.target);
+      if (entry.target.classList.contains('stat')) count(entry.target.querySelector('strong'));
+    });
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+  document.querySelectorAll('.reveal').forEach(function (node) { watcher.observe(node); });
+
+  // A number counts up to its value once.
+  function count(node) {
+    const text = node.textContent;
+    const match = text.match(/\d+/);
+    if (!match) return;
+    const goal = Number(match[0]);
+    const start = performance.now();
+    (function step(now) {
+      const t = clamp((now - start) / 1100);
+      node.textContent = text.replace(/\d+/, String(Math.round(goal * (1 - Math.pow(1 - t, 3)))));
+      if (t < 1) requestAnimationFrame(step);
+    })(start);
+  }
+
+  // The wave draws itself as it comes up the window.
+  const line = document.querySelector('.wave path');
+  line.setAttribute('pathLength', '1');
+  line.style.strokeDasharray = '1';
+  const progress = document.getElementById('progress');
+  const tour = document.getElementById('tour');
+  const frames = Array.prototype.slice.call(tour.querySelectorAll('.tour-screen img'));
+  const words = Array.prototype.slice.call(tour.querySelectorAll('.tour-words span'));
+  const stage = tour.querySelector('.tour-screen');
+  const hint = tour.querySelector('.tour-hint');
+  const hero = document.getElementById('player');
+
+  function frame() {
+    waiting = false;
+    const high = window.innerHeight;
+    const page = document.documentElement;
+    progress.style.transform = 'scaleX(' + clamp(window.scrollY / (page.scrollHeight - high)) + ')';
+
+    const wave = line.ownerSVGElement.getBoundingClientRect();
+    line.style.strokeDashoffset = String(1 - ease(clamp((high - wave.top) / (high * 0.6))));
+
+    // The player in the hero leans back a little as it leaves.
+    const gone = clamp(window.scrollY / high);
+    hero.style.transform = 'translateY(' + gone * -40 + 'px) scale(' + (1 - gone * 0.06) + ')';
+
+    // The tour: its screens and words follow the scroll position.
+    const box = tour.getBoundingClientRect();
+    const through = clamp(-box.top / (box.height - high));
+    const place = through * (frames.length - 1);
+    const arrive = ease(clamp((high - box.top) / high));
+    const leave = ease(clamp((box.bottom - high * 0.35) / (high * 0.65)));
+    frames.forEach(function (image, index) {
+      image.style.opacity = String(index === 0 ? 1 : ease(clamp((place - (index - 1)) * 1.6 - 0.3)));
+    });
+    words.forEach(function (word, index) {
+      const far = place - index;
+      word.style.opacity = String(clamp(1 - Math.abs(far) * 2.4) * arrive);
+      word.style.transform = 'translateY(' + (far * -60) + 'px) scale(' + (1 - Math.abs(far) * 0.08) + ')';
+    });
+    stage.style.transform = 'scale(' + (0.72 + 0.28 * arrive) * (0.9 + 0.1 * leave) + ')';
+    stage.style.opacity = String(leave);
+    hint.style.opacity = String(clamp(1 - through * 6) * arrive);
+  }
+  let waiting = false;
+  function ask() {
+    if (waiting) return;
+    waiting = true;
+    requestAnimationFrame(frame);
+  }
+  window.addEventListener('scroll', ask, { passive: true });
+  window.addEventListener('resize', ask);
+  frame();
 })();

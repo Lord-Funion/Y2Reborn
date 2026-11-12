@@ -14,3 +14,6 @@ build. `.github/workflows/pages.yml` publishes this folder when it changes on `m
   `releases.json` is a copy for a visitor GitHub does not answer; the workflow renews it at every publish, and
   `gh api 'repos/SchulzCode/Y2Linux/releases?per_page=8' --jq '[.[] | select(.draft|not) | {name, tag_name,
   published_at, html_url, body}]' > site/releases.json` renews it by hand.
+- Motion (`site.js`, last part): things ease in when scrolled to, the tour pins a screen and changes it with
+  the scroll position, numbers count up, the wave draws itself. No library. With "reduce motion" set in the
+  system, or without scripts, the page is still and complete.

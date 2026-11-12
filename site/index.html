@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,10 +10,12 @@
 <meta property="og:image" content="https://schulzcode.github.io/Y2Reborn/img/now-playing.png">
 <meta name="theme-color" content="#06070a">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2306070a'/%3E%3Cpath d='M5 17c3-5 5 5 8 0s5 5 8 0 4 3 6 0' fill='none' stroke='%236ea0ff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<script>document.documentElement.className = "js";</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<div class="progress" id="progress" aria-hidden="true"></div>
 <header class="bar">
   <a class="brand" href="#top" aria-label="Reborn, to the top">
     <svg viewBox="0 0 44 16" aria-hidden="true"><path d="M2 8c4-7 7 7 11 0s7 7 11 0 7 7 11 0 5 3 7 0"/></svg>
@@ -76,6 +78,23 @@
   <a class="card" href="#more"><h3>Radio and audiobooks</h3><p>Thousands of stations, and books that keep their place.</p></a>
   <a class="card" href="#video"><h3>Videos <span class="tag">new</span></h3><p>Films on the Y2, decoded by its own video chip.</p></a>
   <a class="card" href="#skins"><h3>Seventeen skins</h3><p>From Classic to Terminal, or make your own.</p></a>
+</section>
+
+<section class="tour" id="tour" aria-label="A tour through Reborn">
+  <div class="tour-stage">
+    <div class="tour-words" aria-hidden="true">
+      <span>Home.</span><span>Now Playing.</span><span>Cover Flow.</span><span>Search.</span><span>Radio.</span><span>Books.</span>
+    </div>
+    <div class="tour-screen">
+      <img src="img/home-playing.png" width="480" height="360" alt="Home">
+      <img loading="lazy" src="img/now-playing.png" width="480" height="360" alt="Now Playing">
+      <img loading="lazy" src="img/albums.png" width="480" height="360" alt="Cover Flow">
+      <img loading="lazy" src="img/search-results.png" width="480" height="360" alt="Search">
+      <img loading="lazy" src="img/radio-playing.png" width="480" height="360" alt="A radio station playing">
+      <img loading="lazy" src="img/now-playing-book.png" width="480" height="360" alt="An audiobook playing">
+    </div>
+    <p class="tour-hint">Keep scrolling</p>
+  </div>
 </section>
 
 <section class="feature" id="music">

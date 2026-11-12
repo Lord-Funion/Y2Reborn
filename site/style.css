@@ -108,6 +108,28 @@ main > section { max-width: var(--wide); margin: 0 auto; padding: clamp(3.5rem, 
 .wave { display: block; width: 100%; height: 40px; opacity: .55; }
 .wave path { stroke-width: 2; vector-effect: non-scaling-stroke; }
 
+/* Scroll progress, the thin line under the top bar */
+.progress { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 11; background: linear-gradient(90deg, var(--accent), var(--warm)); transform: scaleX(0); transform-origin: 0 50%; }
+
+/* Things come in as they are scrolled to (only with scripts on; site.js adds .in). */
+.js .reveal { opacity: 0; transform: translateY(34px) scale(.985); transition: opacity .9s cubic-bezier(.2, .7, .2, 1), transform .9s cubic-bezier(.2, .7, .2, 1); transition-delay: var(--delay, 0s); will-change: opacity, transform; }
+.js .reveal.in { opacity: 1; transform: none; }
+.js figure.reveal { transform: translateY(46px) scale(.94); }
+.js figure.reveal.in { transform: none; }
+
+/* The tour: the screen stays while the page scrolls through it. */
+.tour { max-width: none !important; padding: 0 !important; height: 520vh; position: relative; }
+.tour-stage { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3.5vh; overflow: hidden; padding-top: 56px; }
+.tour-words { display: grid; place-items: center; pointer-events: none; height: clamp(3rem, 9vw, 7rem); }
+.tour-words span { grid-area: 1 / 1; font-weight: 700; letter-spacing: -.035em; line-height: 1; font-size: clamp(2.6rem, 8vw, 6.4rem); white-space: nowrap; color: transparent; background: linear-gradient(180deg, var(--text) 35%, rgba(246, 246, 248, .45)); -webkit-background-clip: text; background-clip: text; opacity: 0; will-change: opacity, transform; }
+.tour-screen { position: relative; width: min(70vw, 84vh, 680px); aspect-ratio: 4 / 3; border-radius: clamp(14px, 2.4vw, 28px); overflow: hidden; border: 1px solid var(--glass); box-shadow: 0 60px 140px -40px #000, 0 0 120px -30px rgba(110, 160, 255, .35); will-change: transform; background: #000; transform-origin: 50% 30%; }
+.tour-screen img { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; will-change: opacity; }
+.tour-screen img:first-child { opacity: 1; }
+.tour-hint { position: absolute; bottom: 4vh; left: 0; right: 0; text-align: center; color: var(--dim); font-size: .8rem; letter-spacing: .14em; text-transform: uppercase; margin: 0; }
+.no-js .tour { height: auto; }
+.no-js .tour-stage { position: static; height: auto; padding: 4rem 1.25rem; }
+.no-js .tour-words, .no-js .tour-hint { display: none; }
+
 /* Cards */
 .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding-top: 3rem !important; padding-bottom: 2rem !important; }
 .card { display: block; padding: 1.4rem 1.5rem; border-radius: var(--radius); background: var(--glass-faint); border: 1px solid var(--rule); color: var(--text); text-decoration: none; transition: background .15s ease, border-color .15s ease, transform .15s ease; }
@@ -225,4 +247,8 @@ footer p { max-width: 760px; margin: 0 auto .8em; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   * { transition: none !important; }
+  .js .reveal, .js figure.reveal { opacity: 1; transform: none; }
+  .tour { height: auto; }
+  .tour-stage { position: static; height: auto; padding: 4rem 1.25rem; }
+  .tour-words, .tour-hint { display: none; }
 }
