@@ -56,7 +56,8 @@ typedef struct RbVideo {
   uint32_t *sum_y, *sum_u, *sum_v; /* one output row of sums */
   uint16_t *col_y, *col_c;         /* source column -> output column */
   uint32_t *per_y, *per_c;         /* 65536 / samples summed into each output column of a row */
-  uint8_t *first_y, *first_c;      /* first sampled column within each 16-sample (8-pair) chunk */
+  uint16_t *acc_y, *acc_u, *acc_v; /* the source lines of one output row, added up column by column */
+  uint8_t *line_y;                 /* one output row of averaged luma */
   uint8_t *chroma;                 /* averaged CbCr at half the output size */
   RbCue *cues;
   int cue_count, cue_next;
@@ -177,8 +178,9 @@ static void free_scaler(RbVideo *v) {
   free(v->sum_y); free(v->sum_u); free(v->sum_v);
   free(v->col_y); free(v->col_c); free(v->chroma);
   free(v->per_y); free(v->per_c);
-  free(v->first_y); free(v->first_c);
-  v->first_y = v->first_c = NULL;
+  free(v->acc_y); free(v->acc_u); free(v->acc_v); free(v->line_y);
+  v->acc_y = v->acc_u = v->acc_v = NULL;
+  v->line_y = NULL;
   v->sum_y = v->sum_u = v->sum_v = v->per_y = v->per_c = NULL;
   v->col_y = v->col_c = NULL;
   v->chroma = NULL;
@@ -212,10 +214,9 @@ static void output_size(RbVideo *v, int max_w, int max_h) {
   if (v->out_h < 2) v->out_h = 2;
   if (v->out_w > max_w) v->out_w = max_w & ~1;
   if (v->out_h > max_h) v->out_h = max_h & ~1;
-  /* More source than screen: the average needs about four samples for three screen pixels,
-   * not every one (1280 wide for 480: every second sample and line; 1920: every third). */
+  /* Every source line counts (they are added sixteen samples at a time); across, about four
+   * samples for three screen pixels are plenty (1280 wide for 480: every second column). */
   v->step = w * 3 / (v->out_w * 4);
-  if (h * 3 / (v->out_h * 4) < v->step) v->step = h * 3 / (v->out_h * 4);
   if (v->step < 1) v->step = 1;
 }
 
@@ -232,9 +233,11 @@ static int make_scaler(RbVideo *v) {
   free_scaler(v);
   v->per_y = calloc((size_t)ow, sizeof(*v->per_y));
   v->per_c = calloc((size_t)ocw, sizeof(*v->per_c));
-  int chunks = w / 16 + 1;
-  v->first_y = malloc((size_t)chunks);
-  v->first_c = malloc((size_t)chunks);
+  /* Whole 16-sample chunks are added at a time: room for the last one's overhang. */
+  v->acc_y = calloc((size_t)w + 32, sizeof(*v->acc_y));
+  v->acc_u = calloc((size_t)cw + 32, sizeof(*v->acc_u));
+  v->acc_v = calloc((size_t)cw + 32, sizeof(*v->acc_v));
+  v->line_y = malloc((size_t)ow + 16);
   v->sum_y = calloc((size_t)ow, sizeof(*v->sum_y));
   v->sum_u = calloc((size_t)ocw, sizeof(*v->sum_u));
   v->sum_v = calloc((size_t)ocw, sizeof(*v->sum_v));
@@ -242,13 +245,8 @@ static int make_scaler(RbVideo *v) {
   v->col_c = malloc((size_t)cw * sizeof(*v->col_c));
   v->chroma = malloc((size_t)ocw * (size_t)(v->out_h / 2) * 2);
   if (!v->sum_y || !v->sum_u || !v->sum_v || !v->col_y || !v->col_c || !v->chroma ||
-      !v->per_y || !v->per_c || !v->first_y || !v->first_c)
+      !v->per_y || !v->per_c || !v->acc_y || !v->acc_u || !v->acc_v || !v->line_y)
     return AVERROR(ENOMEM);
-  /* Every `step`-th column of the picture is sampled, whichever chunk it falls in. */
-  for (int chunk = 0; chunk < chunks; chunk++) {
-    v->first_y[chunk] = (uint8_t)((v->step - chunk * 16 % v->step) % v->step);
-    v->first_c[chunk] = (uint8_t)((v->step - chunk * 8 % v->step) % v->step);
-  }
   for (int x = 0; x < w; x++) v->col_y[x] = (uint16_t)((int64_t)x * ow / w);
   for (int x = 0; x < cw; x++) v->col_c[x] = (uint16_t)((int64_t)x * ocw / cw);
   column_shares(v->col_y, w, v->step, v->per_y, ow);
@@ -395,58 +393,137 @@ int rb_video_subtitle(RbVideo *v, int64_t ms, char *out, int size) {
   return (int)strlen(out);
 }
 
-/* --- pictures to RGBA --- */
+/* --- pictures to RGBA ---
+ *
+ * One output row at a time: its source lines are added up column by column (sixteen samples per
+ * step, NEON on the player), the column sums are gathered into the output columns and averaged,
+ * and the row is converted to RGB eight pixels at a time. Colour arithmetic is in 1/64ths, the
+ * same in the NEON and the plain version, so the host tests see what the player shows. */
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#endif
+
+/* acc[0..16) += p[0..16) */
+static inline void add16(uint16_t *acc, const uint8_t *p) {
+#if defined(__ARM_NEON)
+  uint8x16_t in = vld1q_u8(p);
+  vst1q_u16(acc, vaddw_u8(vld1q_u16(acc), vget_low_u8(in)));
+  vst1q_u16(acc + 8, vaddw_u8(vld1q_u16(acc + 8), vget_high_u8(in)));
+#else
+  for (int i = 0; i < 16; i++) acc[i] += p[i];
+#endif
+}
+
+/* Sixteen interleaved CbCr bytes: u[0..8) += Cb, v[0..8) += Cr. */
+static inline void add_pairs(uint16_t *u, uint16_t *w, const uint8_t *p) {
+#if defined(__ARM_NEON)
+  uint8x8x2_t in = vld2_u8(p);
+  vst1q_u16(u, vaddw_u8(vld1q_u16(u), in.val[0]));
+  vst1q_u16(w, vaddw_u8(vld1q_u16(w), in.val[1]));
+#else
+  for (int i = 0; i < 8; i++) {
+    u[i] += p[2 * i];
+    w[i] += p[2 * i + 1];
+  }
+#endif
+}
 
 typedef struct {
   const AVFrame *f;
   int blocks; /* hardware layout: blocks across; 0 for planes */
 } Source;
 
-/* 16 luma samples of row `y` starting at column 16 * `chunk`. */
-static inline const uint8_t *luma(const Source *s, int y, int chunk) {
-  if (s->blocks)
-    return s->f->data[0] + ((size_t)(y / 32 * s->blocks + chunk) * 32 + (size_t)(y % 32)) * 16;
-  return s->f->data[0] + (size_t)y * (size_t)s->f->linesize[0] + (size_t)chunk * 16;
-}
-
-static void sum_luma_row(const RbVideo *v, const Source *s, int y, int w) {
-  int step = v->step;
-  for (int chunk = 0; chunk * 16 < w; chunk++) {
-    const uint8_t *p = luma(s, y, chunk);
-    const uint16_t *col = v->col_y + chunk * 16;
-    int n = w - chunk * 16 < 16 ? w - chunk * 16 : 16;
-    for (int x = v->first_y[chunk]; x < n; x += step) v->sum_y[col[x]] += p[x];
-  }
-}
-
-static void sum_chroma_row(const RbVideo *v, const Source *s, int y, int cw) {
-  int step = v->step;
+/* Add luma line `y` to acc_y. The hardware layout stores a line as 16-sample pieces of its blocks;
+ * a plane's line is read 16 at a time too (FFmpeg pads its lines, and acc has room). */
+static void add_luma_line(const RbVideo *v, const Source *s, int y, int w) {
   if (s->blocks) {
-    for (int chunk = 0; chunk * 8 < cw; chunk++) {
-      const uint8_t *p = s->f->data[1] + ((size_t)(y / 16 * s->blocks + chunk) * 16 + (size_t)(y % 16)) * 16;
-      const uint16_t *col = v->col_c + chunk * 8;
-      int n = cw - chunk * 8 < 8 ? cw - chunk * 8 : 8;
-      for (int x = v->first_c[chunk]; x < n; x += step) {
-        v->sum_u[col[x]] += p[2 * x];
-        v->sum_v[col[x]] += p[2 * x + 1];
-      }
-    }
+    const uint8_t *band = s->f->data[0] + (size_t)(y / 32 * s->blocks) * 512 + (size_t)(y % 32) * 16;
+    for (int chunk = 0; chunk * 16 < w; chunk++) add16(v->acc_y + chunk * 16, band + (size_t)chunk * 512);
+    return;
+  }
+  const uint8_t *line = s->f->data[0] + (size_t)y * (size_t)s->f->linesize[0];
+  int x = 0;
+  for (; x + 16 <= w; x += 16) add16(v->acc_y + x, line + x);
+  for (; x < w; x++) v->acc_y[x] += line[x];
+}
+
+static void add_chroma_line(const RbVideo *v, const Source *s, int y, int cw) {
+  if (s->blocks) {
+    const uint8_t *band = s->f->data[1] + (size_t)(y / 16 * s->blocks) * 256 + (size_t)(y % 16) * 16;
+    for (int chunk = 0; chunk * 8 < cw; chunk++)
+      add_pairs(v->acc_u + chunk * 8, v->acc_v + chunk * 8, band + (size_t)chunk * 256);
     return;
   }
   const uint8_t *u = s->f->data[1] + (size_t)y * (size_t)s->f->linesize[1];
   const uint8_t *w = s->f->data[2] + (size_t)y * (size_t)s->f->linesize[2];
-  for (int x = 0; x < cw; x += step) {
-    v->sum_u[v->col_c[x]] += u[x];
-    v->sum_v[v->col_c[x]] += w[x];
+  int x = 0;
+  for (; x + 16 <= cw; x += 16) {
+    add16(v->acc_u + x, u + x);
+    add16(v->acc_v + x, w + x);
+  }
+  for (; x < cw; x++) {
+    v->acc_u[x] += u[x];
+    v->acc_v[x] += w[x];
   }
 }
 
 /* The average of a column's sum over `rows` lines: sum / (columns * rows) by two multiplications. */
 static inline uint32_t average(uint32_t sum, uint32_t per_columns, uint32_t per_rows) {
-  return (((sum * per_columns + 32768) >> 16) * per_rows + 32768) >> 16;
+  uint32_t value = (((sum * per_columns + 32768) >> 16) * per_rows + 32768) >> 16;
+  return value > 255 ? 255 : value;
 }
 
+/* Gather every `step`-th column sum into its output column. */
+static inline void gather(const uint16_t *acc, const uint16_t *col, int w, int step, uint32_t *sum, int out) {
+  memset(sum, 0, (size_t)out * sizeof(*sum));
+  for (int x = 0; x < w; x += step) sum[col[x]] += acc[x];
+}
+
+/* Colour in 1/64ths: BT.709 for high definition, BT.601 below, studio range unless full. */
+typedef struct {
+  int y_off, ky, rv, gu, gv, bu;
+} Colour;
+
 static inline uint8_t clip(int value) { return value < 0 ? 0 : value > 255 ? 255 : (uint8_t)value; }
+
+/* One output row: `y` luma samples and half as many CbCr pairs to RGBA. `n` is even. */
+static void row_to_rgba(const uint8_t *y, const uint8_t *chroma, int n, const Colour *c, uint8_t *out) {
+  int x = 0;
+#if defined(__ARM_NEON)
+  uint8x8_t y_off = vdup_n_u8((uint8_t)c->y_off);
+  int16x8_t ky = vdupq_n_s16((int16_t)c->ky), rv = vdupq_n_s16((int16_t)c->rv);
+  int16x8_t gu = vdupq_n_s16((int16_t)c->gu), gv = vdupq_n_s16((int16_t)c->gv);
+  int16x8_t bu = vdupq_n_s16((int16_t)c->bu), mid = vdupq_n_s16(128);
+  for (; x + 8 <= n; x += 8) {
+    int16x8_t luma = vmulq_s16(vreinterpretq_s16_u16(vmovl_u8(vqsub_u8(vld1_u8(y + x), y_off))), ky);
+    /* Four CbCr pairs, each for two pixels. */
+    uint8x8_t pairs = vld1_u8(chroma + x);
+    uint8x8x2_t each = vuzp_u8(pairs, pairs);
+    uint8x8_t u8 = vzip_u8(each.val[0], each.val[0]).val[0];
+    uint8x8_t v8 = vzip_u8(each.val[1], each.val[1]).val[0];
+    int16x8_t u = vsubq_s16(vreinterpretq_s16_u16(vmovl_u8(u8)), mid);
+    int16x8_t w = vsubq_s16(vreinterpretq_s16_u16(vmovl_u8(v8)), mid);
+    uint8x8x4_t px;
+    px.val[0] = vqrshrun_n_s16(vqaddq_s16(luma, vmulq_s16(w, rv)), 6);
+    px.val[1] = vqrshrun_n_s16(vqsubq_s16(luma, vaddq_s16(vmulq_s16(u, gu), vmulq_s16(w, gv))), 6);
+    px.val[2] = vqrshrun_n_s16(vqaddq_s16(luma, vmulq_s16(u, bu)), 6);
+    px.val[3] = vdup_n_u8(255);
+    vst4_u8(out + 4 * x, px);
+  }
+#endif
+  for (; x < n; x++) {
+    int luma = (y[x] > c->y_off ? y[x] - c->y_off : 0) * c->ky;
+    int u = chroma[x & ~1] - 128, w = chroma[(x & ~1) + 1] - 128;
+    int r = luma + w * c->rv, g = luma - (u * c->gu + w * c->gv), b = luma + u * c->bu;
+    /* As the NEON version: saturate at 16 bits, round, shift. */
+    r = r > 32767 ? 32767 : r;
+    b = b > 32767 ? 32767 : b;
+    out[4 * x] = clip((r + 32) >> 6);
+    out[4 * x + 1] = clip((g + 32) >> 6);
+    out[4 * x + 2] = clip((b + 32) >> 6);
+    out[4 * x + 3] = 255;
+  }
+}
 
 static int convert_420(RbVideo *v, const AVFrame *f, uint8_t *rgba) {
   Source s = {f, f->format == AV_PIX_FMT_DRM_PRIME ? f->linesize[0] / 16 : 0};
@@ -455,43 +532,35 @@ static int convert_420(RbVideo *v, const AVFrame *f, uint8_t *rgba) {
   if (f->width < w || f->height < h) return AVERROR(EINVAL);
   /* Chroma first: averaged to half the output size. */
   for (int oy = 0; oy < och; oy++) {
-    int y0 = (int)((int64_t)oy * ch / och), y1 = (int)((int64_t)(oy + 1) * ch / och), rows = 0;
-    memset(v->sum_u, 0, (size_t)ocw * sizeof(*v->sum_u));
-    memset(v->sum_v, 0, (size_t)ocw * sizeof(*v->sum_v));
+    int y0 = (int)((int64_t)oy * ch / och), y1 = (int)((int64_t)(oy + 1) * ch / och);
     if (y1 <= y0) y1 = y0 + 1;
-    for (int y = y0; y < y1; y += step, rows++) sum_chroma_row(v, &s, y, cw);
+    memset(v->acc_u, 0, (size_t)cw * sizeof(*v->acc_u));
+    memset(v->acc_v, 0, (size_t)cw * sizeof(*v->acc_v));
+    for (int y = y0; y < y1; y++) add_chroma_line(v, &s, y, cw);
+    gather(v->acc_u, v->col_c, cw, step, v->sum_u, ocw);
+    gather(v->acc_v, v->col_c, cw, step, v->sum_v, ocw);
     uint8_t *line = v->chroma + (size_t)oy * (size_t)ocw * 2;
-    uint32_t per_rows = 65536 / (uint32_t)rows;
+    uint32_t per_rows = 65536 / (uint32_t)(y1 - y0);
     for (int x = 0; x < ocw; x++) {
-      line[2 * x] = clip((int)average(v->sum_u[x], v->per_c[x], per_rows));
-      line[2 * x + 1] = clip((int)average(v->sum_v[x], v->per_c[x], per_rows));
+      line[2 * x] = (uint8_t)average(v->sum_u[x], v->per_c[x], per_rows);
+      line[2 * x + 1] = (uint8_t)average(v->sum_v[x], v->per_c[x], per_rows);
     }
   }
-  /* BT.709 for high definition, BT.601 below, unless the stream says; studio range unless full. */
   int hd = f->colorspace == AVCOL_SPC_BT709 || (f->colorspace == AVCOL_SPC_UNSPECIFIED && h > 576);
   int full = f->color_range == AVCOL_RANGE_JPEG || f->format == AV_PIX_FMT_YUVJ420P;
-  int ky = full ? 65536 : 76309, y_off = full ? 0 : 16;
-  int rv = hd ? (full ? 103206 : 117489) : (full ? 91881 : 104597);
-  int gu = hd ? (full ? 12276 : 13975) : (full ? 22554 : 25675);
-  int gv = hd ? (full ? 30679 : 34925) : (full ? 46802 : 53279);
-  int bu = hd ? (full ? 121609 : 138438) : (full ? 116130 : 132201);
+  Colour colour = {full ? 0 : 16, full ? 64 : 75, hd ? (full ? 101 : 115) : (full ? 90 : 102),
+                   hd ? (full ? 12 : 14) : (full ? 22 : 25), hd ? (full ? 30 : 34) : (full ? 46 : 52),
+                   hd ? (full ? 119 : 135) : (full ? 113 : 129)};
   for (int oy = 0; oy < oh; oy++) {
-    int y0 = (int)((int64_t)oy * h / oh), y1 = (int)((int64_t)(oy + 1) * h / oh), rows = 0;
-    memset(v->sum_y, 0, (size_t)ow * sizeof(*v->sum_y));
+    int y0 = (int)((int64_t)oy * h / oh), y1 = (int)((int64_t)(oy + 1) * h / oh);
     if (y1 <= y0) y1 = y0 + 1;
-    for (int y = y0; y < y1; y += step, rows++) sum_luma_row(v, &s, y, w);
+    memset(v->acc_y, 0, (size_t)w * sizeof(*v->acc_y));
+    for (int y = y0; y < y1; y++) add_luma_line(v, &s, y, w);
+    gather(v->acc_y, v->col_y, w, step, v->sum_y, ow);
+    uint32_t per_rows = 65536 / (uint32_t)(y1 - y0);
+    for (int x = 0; x < ow; x++) v->line_y[x] = (uint8_t)average(v->sum_y[x], v->per_y[x], per_rows);
     const uint8_t *chroma = v->chroma + (size_t)(oy / 2 < och ? oy / 2 : och - 1) * (size_t)ocw * 2;
-    uint8_t *out = rgba + (size_t)oy * (size_t)ow * 4;
-    uint32_t per_rows = 65536 / (uint32_t)rows;
-    for (int x = 0; x < ow; x++) {
-      int cx = x / 2 < ocw ? x / 2 : ocw - 1;
-      int luma_value = ((int)average(v->sum_y[x], v->per_y[x], per_rows) - y_off) * ky;
-      int u = chroma[2 * cx] - 128, w2 = chroma[2 * cx + 1] - 128;
-      out[4 * x] = clip((luma_value + rv * w2 + 32768) >> 16);
-      out[4 * x + 1] = clip((luma_value - gu * u - gv * w2 + 32768) >> 16);
-      out[4 * x + 2] = clip((luma_value + bu * u + 32768) >> 16);
-      out[4 * x + 3] = 255;
-    }
+    row_to_rgba(v->line_y, chroma, ow, &colour, rgba + (size_t)oy * (size_t)ow * 4);
   }
   return 0;
 }
