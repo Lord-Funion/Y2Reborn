@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reborn · a music player for the Innioasis Y2</title>
+<meta name="description" content="Reborn is a free, open music player for the Innioasis Y2: made for the click wheel, with Cover Flow, Bluetooth, internet radio, audiobooks, videos and seventeen skins.">
+<meta property="og:title" content="Reborn · a music player for the Innioasis Y2">
+<meta property="og:description" content="Made for the click wheel: Cover Flow, Bluetooth, internet radio, audiobooks, videos and seventeen skins.">
+<meta property="og:image" content="https://schulzcode.github.io/Y2Reborn/img/now-playing.png">
+<meta name="theme-color" content="#06070a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2306070a'/%3E%3Cpath d='M5 17c3-5 5 5 8 0s5 5 8 0 4 3 6 0' fill='none' stroke='%236ea0ff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="bar">
+  <a class="brand" href="#top" aria-label="Reborn, to the top">
+    <svg viewBox="0 0 44 16" aria-hidden="true"><path d="M2 8c4-7 7 7 11 0s7 7 11 0 7 7 11 0 5 3 7 0"/></svg>
+    <span>Reborn</span>
+  </a>
+  <nav aria-label="Sections">
+    <a href="#music">Music</a>
+    <a href="#listen">Listening</a>
+    <a href="#video">Videos</a>
+    <a href="#skins">Skins</a>
+    <a href="#install">Install</a>
+    <a href="#questions">Questions</a>
+  </nav>
+  <a class="button small" href="https://github.com/SchulzCode/Y2Linux/releases/latest">Download</a>
+</header>
+
+<main id="top">
+
+<section class="hero">
+  <div class="hero-text">
+    <p class="eyebrow">For the Innioasis Y2 · free and open</p>
+    <h1>Your Y2,<br>reborn.</h1>
+    <p class="lead">A music player made for the click wheel. Smooth at sixty pictures a second, quick with large libraries, and it looks the way you want.</p>
+    <div class="actions">
+      <a class="button" href="https://github.com/SchulzCode/Y2Linux/releases/latest">Download the latest release</a>
+      <a class="button ghost" href="https://github.com/SchulzCode/Y2Reborn">Source code</a>
+    </div>
+    <p class="note"><strong>Public beta.</strong> Reborn comes with Y2Linux, a new system for the player. You can go back to the original software at any time.</p>
+  </div>
+
+  <div class="player" id="player">
+    <div class="screen">
+      <img id="screen" src="img/home-playing.png" width="480" height="360" alt="Reborn's Home screen with Now Playing, Music, Playlists, Radio, Search and Settings">
+    </div>
+    <div class="wheel" role="group" aria-label="Look through Reborn's screens">
+      <button class="w-prev" type="button" aria-label="Previous screen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6v12M19 6l-9 6 9 6z"/></svg>
+      </button>
+      <button class="w-next" type="button" aria-label="Next screen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 6v12M5 6l9 6-9 6z"/></svg>
+      </button>
+      <button class="w-ok" type="button" aria-label="Next screen"></button>
+      <span class="w-label w-top" aria-hidden="true">MENU</span>
+      <span class="w-label w-bottom" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 6l8 6-8 6zM15 6v12M20 6v12"/></svg>
+      </span>
+    </div>
+    <p class="caption" id="caption" aria-live="polite">Home</p>
+  </div>
+</section>
+
+<svg class="wave" viewBox="0 0 1200 40" preserveAspectRatio="none" aria-hidden="true">
+  <path d="M0 20 C 50 0, 100 40, 150 20 S 250 0, 300 20 S 400 40, 450 20 S 550 0, 600 20 S 700 40, 750 20 S 850 0, 900 20 S 1000 40, 1050 20 S 1150 0, 1200 20"/>
+</svg>
+
+<section class="cards" aria-label="What Reborn does">
+  <a class="card" href="#music"><h3>Your library, fast</h3><p>Cover Flow, live search, folders and Up Next.</p></a>
+  <a class="card" href="#listen"><h3>Sound you can shape</h3><p>Gapless, an equalizer and profiles for 47 headphones.</p></a>
+  <a class="card" href="#wireless"><h3>Bluetooth and Wi-Fi</h3><p>SBC, AAC and LDAC; updates and Last.fm over Wi-Fi.</p></a>
+  <a class="card" href="#more"><h3>Radio and audiobooks</h3><p>Thousands of stations, and books that keep their place.</p></a>
+  <a class="card" href="#video"><h3>Videos <span class="tag">new</span></h3><p>Films on the Y2, decoded by its own video chip.</p></a>
+  <a class="card" href="#skins"><h3>Seventeen skins</h3><p>From Classic to Terminal, or make your own.</p></a>
+</section>
+
+<section class="feature" id="music">
+  <div class="copy">
+    <p class="eyebrow">Finding your music</p>
+    <h2>Every album a turn of the wheel away.</h2>
+    <p>Artists, albums, songs, genres and folders from Internal Storage and the SD card. Turn the wheel quickly and long lists move several rows at a time; spin it and they jump letter by letter.</p>
+    <ul>
+      <li><strong>Cover Flow</strong> or a grid for albums, with covers from the album folder or the file.</li>
+      <li><strong>Search</strong> shows results while you type, across artists, albums, songs and playlists.</li>
+      <li><strong>Up Next</strong>: Play Next and Add to Queue for anything; move or remove songs.</li>
+      <li><strong>Playlists</strong> made on the player or copied from a computer, and Favorites with a heart.</li>
+    </ul>
+  </div>
+  <div class="shots three">
+    <figure><img loading="lazy" src="img/albums.png" width="480" height="360" alt="Albums as Cover Flow"><figcaption>Cover Flow</figcaption></figure>
+    <figure><img loading="lazy" src="img/search-results.png" width="480" height="360" alt="Search results across artists, albums and songs"><figcaption>Search</figcaption></figure>
+    <figure><img loading="lazy" src="img/up-next.png" width="480" height="360" alt="The Up Next queue"><figcaption>Up Next</figcaption></figure>
+  </div>
+</section>
+
+<section class="feature flip" id="listen">
+  <div class="copy">
+    <p class="eyebrow">Listening</p>
+    <h2>Nothing between the songs but the music.</h2>
+    <p>Gapless playback, crossfade up to twelve seconds, shuffle by song or by album, repeat and a sleep timer. Now Playing takes its colour from the cover, and its progress line moves with the music.</p>
+    <ul>
+      <li>A five-band <strong>equalizer</strong> with presets.</li>
+      <li><strong>Headphone profiles</strong> for 47 headphones and in-ears (AutoEq), or your own file.</li>
+      <li>Normalize Volume, balance, headphone level and the DAC's filter.</li>
+      <li>FLAC, ALAC, MP3, AAC, Opus, Vorbis, WAV and more, up to high-resolution files.</li>
+    </ul>
+  </div>
+  <div class="shots three">
+    <figure><img loading="lazy" src="img/now-playing.png" width="480" height="360" alt="Now Playing with the cover, the progress wave and the next song"><figcaption>Now Playing</figcaption></figure>
+    <figure><img loading="lazy" src="img/equalizer.png" width="480" height="360" alt="The five-band equalizer"><figcaption>Equalizer</figcaption></figure>
+    <figure><img loading="lazy" src="img/eq-profiles.png" width="480" height="360" alt="The list of headphone profiles"><figcaption>Headphone profiles</figcaption></figure>
+  </div>
+</section>
+
+<section class="feature" id="wireless">
+  <div class="copy">
+    <p class="eyebrow">Bluetooth and Wi-Fi</p>
+    <h2>Wireless that picks the best it can.</h2>
+    <p>Bluetooth headphones and speakers with SBC, AAC and LDAC, chosen automatically. The music follows your headphones when they connect.</p>
+    <ul>
+      <li><strong>Updates over Wi-Fi</strong>: the player offers a new version and installs it; your music and settings stay.</li>
+      <li><strong>Last.fm</strong> scrobbling: scan a code with your phone to sign in; plays wait while you are offline.</li>
+      <li>Copy music over USB from Windows, macOS and Linux, to Internal Storage or the SD card.</li>
+    </ul>
+  </div>
+  <div class="shots three">
+    <figure><img loading="lazy" src="img/output.png" width="480" height="360" alt="Choosing where the sound goes"><figcaption>Sound output</figcaption></figure>
+    <figure><img loading="lazy" src="img/update-downloading.png" width="480" height="360" alt="A software update downloading"><figcaption>Software update</figcaption></figure>
+    <figure><img loading="lazy" src="img/lastfm-code.png" width="480" height="360" alt="Signing in to Last.fm with a code"><figcaption>Last.fm sign-in</figcaption></figure>
+  </div>
+</section>
+
+<section class="feature flip" id="more">
+  <div class="copy">
+    <p class="eyebrow">Radio and audiobooks</p>
+    <h2>More than the songs you own.</h2>
+    <p><strong>Internet radio</strong> from radio-browser.info: popular stations, countries, genres, search and favorites, with station logos and the song that is playing.</p>
+    <p><strong>Audiobooks</strong> with chapters, your place in every book, a speed for each book from 0.75 to 2 times, and a sleep timer.</p>
+  </div>
+  <div class="shots three">
+    <figure><img loading="lazy" src="img/radio.png" width="480" height="360" alt="The Radio page"><figcaption>Radio</figcaption></figure>
+    <figure><img loading="lazy" src="img/radio-playing.png" width="480" height="360" alt="A radio station playing"><figcaption>A station playing</figcaption></figure>
+    <figure><img loading="lazy" src="img/now-playing-book.png" width="480" height="360" alt="An audiobook playing with its chapter"><figcaption>An audiobook</figcaption></figure>
+  </div>
+</section>
+
+<section class="feature" id="video">
+  <div class="copy">
+    <p class="eyebrow">Videos · early version</p>
+    <h2>Films on a music player.</h2>
+    <p>Copy video files onto the player like songs and <strong>Videos</strong> appears on Home. H.264 and Xvid/DivX films are decoded by the Y2's own video chip, through a driver written for this project.</p>
+    <ul>
+      <li>Films go on where you left them; subtitles from the file or an <code>.srt</code> beside it.</li>
+      <li><strong>Best file:</strong> MP4 with H.264 and AAC, 640×360. The screen has 480×360 pixels, so bigger looks no better.</li>
+      <li>Measured on one player: 1280×720 and 1920×1080 H.264 without a dropped picture.</li>
+      <li>H.265/HEVC and AV1 do not play; convert them first.</li>
+    </ul>
+    <p class="note">Video is new and parts of it are untested. Expect bugs, and please report them. <a href="https://github.com/SchulzCode/Y2Linux/blob/main/docs/VIDEO.md">Formats, converting and what was measured</a></p>
+  </div>
+  <div class="shots two">
+    <figure><img loading="lazy" src="img/videos.png" width="480" height="360" alt="The Videos list with a picture of each film"><figcaption>Videos, captured from a player</figcaption></figure>
+    <figure><img loading="lazy" src="img/film.png" width="480" height="360" alt="A test film playing full screen"><figcaption>A test film playing</figcaption></figure>
+  </div>
+</section>
+
+<section class="skins" id="skins">
+  <p class="eyebrow">Making it yours</p>
+  <h2>One player, seventeen looks.</h2>
+  <p class="lead">Pick a skin in Settings, or copy your own into the <code>Skins</code> folder. A skin is a folder with a text file and pictures; the <a href="https://github.com/SchulzCode/Y2Reborn/blob/main/docs/skins.md">skin guide</a> shows how to make one.</p>
+  <div class="skin-stage">
+    <img id="skin" src="img/skin-classic.png" width="480" height="360" alt="Now Playing in the Classic skin">
+  </div>
+  <div class="chips" id="chips" role="group" aria-label="Skins"></div>
+  <ul class="plain">
+    <li>Choose what stands on Home, and in which order.</li>
+    <li>Cover Flow on or off, lists that wrap around, a wheel click and haptic ticks.</li>
+    <li>The wheel on Now Playing: volume or seeking. What the buttons do while the screen is off.</li>
+  </ul>
+</section>
+
+<section class="install" id="install">
+  <p class="eyebrow">Install</p>
+  <h2>On your Y2 in a few minutes.</h2>
+  <p class="lead">Reborn has no installer of its own: it comes with <a href="https://github.com/SchulzCode/Y2Linux">Y2Linux</a>, the system it runs on. Installing replaces the player's software. Your way back to the original software stays open.</p>
+
+  <div class="ways">
+    <article class="way">
+      <h3><span class="step">A</span> With the Innioasis Updater <span class="tag">easiest</span></h3>
+      <p>The community's updater installs Y2Linux for you on Windows, macOS and Linux.</p>
+      <ol>
+        <li>Download <a href="https://innioasis.app/guide.html#download-updater">Innioasis Updater CE</a> and open it.</li>
+        <li>Choose <strong>Y2</strong>, then <strong>Reborn (Y2Linux)</strong> and the latest release.</li>
+        <li>Click <strong>Install / Restore</strong>, switch the Y2 off and connect it when asked.</li>
+        <li>Copy <code>system.img</code> from the Innioasis Y2 firmware package v3.2.0 into the <strong>Firmware</strong> folder on Internal Storage. Wi-Fi and Bluetooth switch on with it.</li>
+      </ol>
+      <p><a href="https://innioasis.app/guides/reborn-y2linux-y2.html">Step-by-step guide for each computer</a></p>
+    </article>
+
+    <article class="way">
+      <h3><span class="step">B</span> With SP Flash Tool</h3>
+      <p>The manual way, for people who know the tool.</p>
+      <ol>
+        <li>Get the first-install zip from the <a href="https://github.com/SchulzCode/Y2Linux/releases/latest">latest release</a> and the Innioasis Y2 firmware package v3.2.0.</li>
+        <li>SP Flash Tool, <strong>Download Only</strong>, with the scatter file from the Y2Linux zip.</li>
+        <li>Connect the switched-off Y2 and wait for the green tick.</li>
+        <li>Copy <code>system.img</code> into the <strong>Firmware</strong> folder, as above.</li>
+      </ol>
+      <p><a href="https://github.com/SchulzCode/Y2Linux/blob/main/docs/INSTALL.md">Full install guide</a></p>
+    </article>
+
+    <article class="way">
+      <h3><span class="step">C</span> Already on Y2Linux</h3>
+      <p>Nothing to download on a computer.</p>
+      <ol>
+        <li>Connect the player to Wi-Fi.</li>
+        <li>Settings → System → Software Update → <strong>Update Now</strong>.</li>
+      </ol>
+      <p>Your music, playlists, settings, Wi-Fi networks and Bluetooth pairings stay.</p>
+    </article>
+  </div>
+</section>
+
+<section class="faq" id="questions">
+  <p class="eyebrow">Questions</p>
+  <h2>Before you install.</h2>
+  <details><summary>Does it replace the original software?</summary><p>Yes. Y2Linux and Reborn take the place of the player's Android software. Going back is possible at any time: the Innioasis Updater offers <strong>Original Software</strong> for the Y2, and the Innioasis firmware package v3.2.0 restores it with SP Flash Tool.</p></details>
+  <details><summary>What happens to my music?</summary><p>Music on the SD card is not touched. The first start sets up the player's Internal Storage anew; a small amount of files on it is kept, a large library is left alone until you have copied it away. Copy the music from Internal Storage to a computer before you install. <a href="https://github.com/SchulzCode/Y2Linux/blob/main/docs/STORAGE.md">How storage works</a></p></details>
+  <details><summary>Why do I need a file from Innioasis?</summary><p>The Wi-Fi and Bluetooth chip needs its maker's firmware, which this project may not hand out. The player takes it from <code>system.img</code> of the Innioasis firmware package once you copy that file into the <strong>Firmware</strong> folder. Music works without it.</p></details>
+  <details><summary>Is it finished?</summary><p>No. It is a public beta that gets updates often. What is known not to work is listed with every <a href="https://github.com/SchulzCode/Y2Linux/releases/latest">release</a>.</p></details>
+  <details><summary>Something is wrong. What now?</summary><p>Send an error report from the player (Settings → System → Error Reports) and <a href="https://github.com/SchulzCode/Y2Reborn/issues">open an issue</a>. <strong>Restore Previous System</strong> in the player's diagnostics takes you back to the version you had before an update.</p></details>
+  <details><summary>Which players does it run on?</summary><p>The Innioasis Y2 only.</p></details>
+</section>
+
+</main>
+
+<footer>
+  <p><a href="https://github.com/SchulzCode/Y2Reborn">Y2Reborn</a> and <a href="https://github.com/SchulzCode/Y2Linux">Y2Linux</a> on GitHub · Reborn is MIT licensed · Open Sans is under the SIL Open Font Licence.</p>
+  <p>Beta software: use at your own risk. Not affiliated with Innioasis, MediaTek, Last.fm, AutoEq or any maker whose product a skin resembles. Pictures come from Reborn's own drawing code with sample music; the two video pictures are captures from a player.</p>
+</footer>
+
+<script src="site.js"></script>
+</body>
+</html>
