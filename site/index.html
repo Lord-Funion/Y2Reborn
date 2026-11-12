@@ -21,11 +21,11 @@
   </a>
   <nav aria-label="Sections">
     <a href="#music">Music</a>
-    <a href="#listen">Listening</a>
     <a href="#video">Videos</a>
     <a href="#skins">Skins</a>
+    <a href="#make">Make a skin</a>
+    <a href="#new">What's new</a>
     <a href="#install">Install</a>
-    <a href="#questions">Questions</a>
   </nav>
   <a class="button small" href="https://github.com/SchulzCode/Y2Linux/releases/latest">Download</a>
 </header>
@@ -180,6 +180,50 @@
     <li>Cover Flow on or off, lists that wrap around, a wheel click and haptic ticks.</li>
     <li>The wheel on Now Playing: volume or seeking. What the buttons do while the screen is off.</li>
   </ul>
+</section>
+
+<section class="feature make" id="make">
+  <div class="copy">
+    <p class="eyebrow">For skin makers</p>
+    <h2>A text file and a few pictures.</h2>
+    <p>A skin is a folder with one file, <code>skin.json</code>, plus any pictures and fonts you like. No programming and no tools: a text editor is enough. The smallest skin is a name and five colours, and many good skins stop there.</p>
+    <ul>
+      <li><strong>Start from a shipped skin.</strong> All seventeen are complete examples; copy one and change it.</li>
+      <li><strong>Go as far as you like</strong>: your own Now Playing, title bars, lists, Home, Cover Flow, fonts and pictures.</li>
+      <li><strong>Try it at once.</strong> Copy the folder into <code>Skins</code> on the player and pick it under Settings → Skin; a skin with a mistake is greyed out and says why.</li>
+      <li><strong>You can't break anything.</strong> A skin only changes the look, and Reborn's own look is always in the list.</li>
+    </ul>
+    <div class="actions">
+      <a class="button" href="https://github.com/SchulzCode/Y2Reborn/blob/main/docs/skins.md">Read the skin guide</a>
+      <a class="button ghost" href="https://github.com/SchulzCode/Y2Reborn/tree/main/docs/skin-example">Three example skins</a>
+    </div>
+    <p class="note">Made one you like? Share the folder, or <a href="https://github.com/SchulzCode/Y2Reborn/issues">open an issue</a> to have it shipped with Reborn. Only include fonts and pictures you may share.</p>
+  </div>
+  <div class="shots make-shots">
+    <pre class="code" aria-label="A complete skin: skin.json"><code>{
+  <b>"format"</b>: 1,
+  <b>"name"</b>: "Ember",
+  <b>"palette"</b>: {
+    "bg":     "#1B1410",
+    "text":   "#FFF4E6",
+    "muted":  "#C9B8A6",
+    "dim":    "#8F7F70",
+    "accent": "#FF9F43"
+  }
+}</code></pre>
+    <figure><img loading="lazy" src="img/guide-colours.png" width="960" height="360" alt="The Ember example: Now Playing and Home in Reborn's layout with warm colours"><figcaption>That file on the player: Ember, colours only</figcaption></figure>
+    <figure><img loading="lazy" src="img/guide-poster.png" width="960" height="720" alt="The Poster example skin: Now Playing, Home, Artists and a radio station"><figcaption>Poster, an example with its own layouts</figcaption></figure>
+  </div>
+</section>
+
+<section class="news" id="new">
+  <p class="eyebrow">What's new</p>
+  <h2>The newest versions, in short.</h2>
+  <p class="lead">Reborn and Y2Linux are updated together. A player on Wi-Fi offers each new version by itself.</p>
+  <div id="releases" class="releases">
+    <p class="note">The list of versions is on the <a href="https://github.com/SchulzCode/Y2Linux/releases">releases page</a>.</p>
+  </div>
+  <p class="note"><a href="https://github.com/SchulzCode/Y2Linux/releases">All versions with full notes and downloads</a></p>
 </section>
 
 <section class="install" id="install">

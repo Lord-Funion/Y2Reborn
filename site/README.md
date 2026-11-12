@@ -9,3 +9,8 @@ build. `.github/workflows/pages.yml` publishes this folder when it changes on `m
   Now Playing (`14-now-playing`) rendered with `--skin skins/<name>`. `img/videos.png` and `img/film.png` are
   captures from a player. Render them again when the UI changes visibly.
 - To look at it locally, open `index.html` in a browser.
+- "What's new" is made in the browser from the release notes of Y2Linux (`site.js`: the part before the
+  `github-only` marker, the sections What's new, Fixed and Changed, each point as its name and first sentence).
+  `releases.json` is a copy for a visitor GitHub does not answer; the workflow renews it at every publish, and
+  `gh api 'repos/SchulzCode/Y2Linux/releases?per_page=8' --jq '[.[] | select(.draft|not) | {name, tag_name,
+  published_at, html_url, body}]' > site/releases.json` renews it by hand.

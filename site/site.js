@@ -77,4 +77,97 @@
     });
     chips.appendChild(chip);
   });
+
+  // What's new: the newest releases of Y2Linux, cut down to what a listener wants to know. The notes
+  // on GitHub carry install steps and file lists between "github-only" markers; those are left out,
+  // and each point is its name and its first sentence.
+  const WANTED = ["what's new", 'fixed', 'changed'];
+  function plain(text) {
+    return text
+      .replace(/\s*\((?:\[[^\]]*\]\([^)]*\)[,;\s]*)+\)/g, '')  // "(#12, Y2Reborn #3)" made of links
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/[*`]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function firstSentence(text) {
+    const cut = text.search(/[.!?](?:\s|$)/);
+    const sentence = cut < 0 ? text : text.slice(0, cut + 1);
+    return sentence.length > 220 ? sentence.slice(0, 217).replace(/\s+\S*$/, '') + '…' : sentence;
+  }
+  function digest(body) {
+    const visible = body.split('<!-- github-only -->')[0];
+    const lines = visible.split(/\r?\n/);
+    const first = (lines.find(function (line) { return line.trim(); }) || '');
+    const about = plain(first.replace(/^\*\*[^*]*\*\*\s*:?\s*/, ''));
+    const sections = [];
+    let current = null;
+    lines.forEach(function (line) {
+      const heading = line.match(/^##\s+(.*)$/);
+      if (heading) {
+        const name = heading[1].trim();
+        current = WANTED.indexOf(name.toLowerCase()) < 0 ? null : { name: name, points: [] };
+        if (current) sections.push(current);
+        return;
+      }
+      const point = line.match(/^-\s+\*\*(.+?)\*\*\s*(.*)$/);
+      if (!current || !point) return;
+      const title = plain(point[1]).replace(/[.:]$/, '');
+      const rest = plain(point[2]).replace(/^[.:]\s*/, '');
+      current.points.push([title, firstSentence(rest)]);
+    });
+    const opening = firstSentence(about);
+    return { about: opening.charAt(0).toUpperCase() + opening.slice(1), sections: sections.filter(function (s) { return s.points.length; }) };
+  }
+  function element(tag, text, className) {
+    const node = document.createElement(tag);
+    if (text) node.textContent = text;
+    if (className) node.className = className;
+    return node;
+  }
+  function showReleases(list) {
+    const box = document.getElementById('releases');
+    const shown = list.filter(function (r) { return r.body && r.name; }).slice(0, 5);
+    if (!shown.length) return false;
+    box.textContent = '';
+    shown.forEach(function (release, index) {
+      const parts = digest(release.body);
+      const card = element('details', '', index ? 'release' : 'release newest');
+      card.open = index === 0;
+      const head = element('summary');
+      head.appendChild(element('h3', release.name.replace(/^Y2Linux\s+/, '')));
+      const date = element('time', new Date(release.published_at).toLocaleDateString('en-GB',
+        { day: 'numeric', month: 'long', year: 'numeric' }));
+      date.dateTime = release.published_at;
+      head.appendChild(date);
+      if (parts.about) head.appendChild(element('p', parts.about, 'about'));
+      card.appendChild(head);
+      parts.sections.forEach(function (section) {
+        card.appendChild(element('h4', section.name));
+        const points = element('ul');
+        section.points.forEach(function (point) {
+          const item = element('li');
+          item.appendChild(element('strong', point[0]));
+          if (point[1]) item.appendChild(document.createTextNode(' · ' + point[1]));
+          points.appendChild(item);
+        });
+        card.appendChild(points);
+      });
+      const more = element('a', 'Full notes and downloads', 'more');
+      more.href = release.html_url;
+      card.appendChild(more);
+      box.appendChild(card);
+    });
+    return true;
+  }
+  function load(url) {
+    return fetch(url).then(function (answer) {
+      if (!answer.ok) throw new Error(answer.status);
+      return answer.json();
+    });
+  }
+  // The copy that came with the site first, then GitHub's current list when it answers.
+  load('releases.json').then(showReleases).catch(function () {}).then(function () {
+    return load('https://api.github.com/repos/SchulzCode/Y2Linux/releases?per_page=8');
+  }).then(showReleases).catch(function () {});
 })();

@@ -144,6 +144,29 @@ figcaption { color: var(--dim); font-size: .82rem; margin-top: .5rem; text-align
 .chips button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 600; }
 .plain { max-width: 620px; margin: 0 auto; text-align: left; }
 
+/* Skin makers */
+.make-shots { grid-template-columns: 1fr; }
+.code { margin: 0; padding: 1.3rem 1.5rem; border-radius: 16px; background: var(--sheet); border: 1px solid var(--rule); overflow-x: auto; font: 400 .88rem/1.7 ui-monospace, "Cascadia Mono", Menlo, monospace; color: var(--muted); }
+.code code { background: none; padding: 0; font: inherit; color: inherit; }
+.code b { color: var(--accent); font-weight: 600; }
+.make .actions { margin-top: 1.6rem; }
+
+/* What's new */
+.releases { margin: 2.5rem 0 1.5rem; display: grid; gap: 1rem; }
+.release { border-radius: var(--radius); background: var(--glass-faint); border: 1px solid var(--rule); padding: 1.5rem 1.7rem; }
+.release.newest { background: var(--sheet); border-color: rgba(110, 160, 255, .45); }
+.release summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1rem; }
+.release summary::-webkit-details-marker { display: none; }
+.release h3 { font-size: 1.25rem; }
+.release time { color: var(--dim); font-size: .88rem; }
+.release .about { flex-basis: 100%; color: var(--muted); margin: .3rem 0 0; }
+.release h4 { margin: 1.4rem 0 .2rem; font-size: .78rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.release ul { list-style: none; margin: 0; padding: 0; }
+.release li { padding: .6rem 0; border-top: 1px solid var(--rule); color: var(--muted); }
+.release li:first-child { border-top: 0; }
+.release li strong { color: var(--text); font-weight: 600; }
+.release .more { display: inline-block; margin-top: 1rem; font-size: .92rem; }
+
 /* Install */
 .ways { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 2.5rem; }
 .way { padding: 1.6rem; border-radius: var(--radius); background: var(--sheet); border: 1px solid var(--rule); }
