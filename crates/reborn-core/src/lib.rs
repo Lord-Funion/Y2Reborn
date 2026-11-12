@@ -5,12 +5,14 @@ pub mod clock;
 mod countries;
 pub mod eq;
 pub mod home;
+mod names;
 pub mod platform;
 pub mod playlist;
 pub mod queue;
 pub mod scrobble;
 pub mod sort;
 mod zones;
+pub use names::{joined_names, split_artists, split_genres};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -461,74 +463,6 @@ pub struct Track {
 
 /// The largest left/right balance in dB (Settings > Sound > Balance).
 pub const MAX_BALANCE: i8 = 10;
-
-/// The names in an artist tag (#38, #40): a multi-value tag comes joined by
-/// ";" ("Calvin Harris;Kelis"), and a guest follows "feat.", "ft." or
-/// "featuring". "&" and "," stay, as in "Simon & Garfunkel". An empty tag
-/// is one unknown artist.
-pub fn split_artists(tag: &str) -> Vec<&str> {
-    const GUEST: [&str; 5] = [" featuring ", " feat. ", " feat ", " ft. ", " ft "];
-    let mut names: Vec<&str> = Vec::new();
-    for mut rest in tag.split(';') {
-        loop {
-            // ASCII markers, so every match starts and ends on a char boundary.
-            let guest = GUEST
-                .iter()
-                .filter_map(|guest| {
-                    rest.as_bytes()
-                        .windows(guest.len())
-                        .position(|w| w.eq_ignore_ascii_case(guest.as_bytes()))
-                        .map(|at| (at, guest.len()))
-                })
-                .min();
-            let (name, next) = match guest {
-                Some((at, len)) => (&rest[..at], Some(&rest[at + len..])),
-                None => (rest, None),
-            };
-            let name = name.trim();
-            if !name.is_empty() && !names.contains(&name) {
-                names.push(name);
-            }
-            match next {
-                Some(next) => rest = next,
-                None => break,
-            }
-        }
-    }
-    if names.is_empty() {
-        names.push(tag.trim());
-    }
-    names
-}
-
-/// The genres in a genre tag (#40): a multi-value tag comes joined by ";",
-/// as artists do. An empty tag is one "No Genre".
-pub fn split_genres(tag: &str) -> Vec<&str> {
-    let mut names: Vec<&str> = Vec::new();
-    for name in tag.split(';').map(str::trim) {
-        if !name.is_empty() && !names.contains(&name) {
-            names.push(name);
-        }
-    }
-    if names.is_empty() {
-        names.push("");
-    }
-    names
-}
-
-/// A tag of names joined by ";" as people read it (#40):
-/// "Lauryn Hill;Mary J. Blige" shows as "Lauryn Hill, Mary J. Blige".
-pub fn joined_names(tag: &str) -> std::borrow::Cow<'_, str> {
-    if !tag.contains(';') {
-        return tag.into();
-    }
-    let names: Vec<&str> = tag
-        .split(';')
-        .map(str::trim)
-        .filter(|name| !name.is_empty())
-        .collect();
-    names.join(", ").into()
-}
 
 /// `Track::source_id` of an internet radio station in the queue.
 pub const RADIO_SOURCE: &str = "radio";
@@ -2879,62 +2813,5 @@ mod queue_window_tests {
         assert_eq!(restored.queue.len(), MAX_QUEUE);
         assert_eq!(restored.current().unwrap().id, 6_000);
         assert_eq!(restored.queue_entry_ids.len(), MAX_QUEUE);
-    }
-}
-
-#[cfg(test)]
-mod artist_split_tests {
-    use super::{joined_names, split_artists, split_genres};
-
-    #[test]
-    fn joined_genres_split_and_joined_names_read_with_commas() {
-        assert_eq!(split_genres("Jazz;R&B"), ["Jazz", "R&B"]);
-        assert_eq!(split_genres(" Jazz ; Soul;Jazz"), ["Jazz", "Soul"]);
-        assert_eq!(split_genres("Rock/Pop"), ["Rock/Pop"]);
-        assert_eq!(split_genres(""), [""], "one No Genre");
-        assert_eq!(split_genres(";"), [""]);
-        assert_eq!(
-            joined_names("Lauryn Hill;Mary J. Blige"),
-            "Lauryn Hill, Mary J. Blige"
-        );
-        assert_eq!(joined_names("A; B ;"), "A, B");
-        assert_eq!(joined_names("Simon & Garfunkel"), "Simon & Garfunkel");
-        assert!(matches!(
-            joined_names("Kelis"),
-            std::borrow::Cow::Borrowed("Kelis")
-        ));
-    }
-
-    #[test]
-    fn joined_tags_and_guests_split_but_band_names_stay() {
-        assert_eq!(
-            split_artists("Calvin Harris;Kelis"),
-            ["Calvin Harris", "Kelis"]
-        );
-        assert_eq!(
-            split_artists("Calvin Harris; Dillon Francis ;Dizzee Rascal"),
-            ["Calvin Harris", "Dillon Francis", "Dizzee Rascal"]
-        );
-        assert_eq!(
-            split_artists("Calvin Harris Feat. Kelis"),
-            ["Calvin Harris", "Kelis"]
-        );
-        assert_eq!(
-            split_artists("Daft Punk ft. Pharrell Williams featuring Nile Rodgers"),
-            ["Daft Punk", "Pharrell Williams", "Nile Rodgers"]
-        );
-        assert_eq!(split_artists("Simon & Garfunkel"), ["Simon & Garfunkel"]);
-        assert_eq!(split_artists("Earth, Wind & Fire"), ["Earth, Wind & Fire"]);
-        assert_eq!(
-            split_artists("Soft Cell"),
-            ["Soft Cell"],
-            "\"ft\" only as a word"
-        );
-        assert_eq!(split_artists("Kelis;Kelis"), ["Kelis"]);
-        assert_eq!(split_artists(""), [""], "one unknown artist");
-        assert_eq!(
-            split_artists("宇多田ヒカル feat. 椎名林檎"),
-            ["宇多田ヒカル", "椎名林檎"]
-        );
     }
 }

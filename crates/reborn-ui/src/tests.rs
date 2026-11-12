@@ -5294,6 +5294,35 @@ fn joined_genres_split_and_joined_artists_read_with_commas() {
     assert!(!rows.iter().any(|r| r.key == "track:1"));
 }
 
+#[test]
+fn a_song_tagged_pop_slash_rock_is_in_pop_and_in_rock() {
+    // Y2Reborn #124: Picard's "Pop/Rock" was a genre of its own.
+    let tagged = |screen| {
+        let mut m = app(screen);
+        for (t, genre) in m.library.tracks.iter_mut().zip(["Pop/Rock", "Pop", "Rock"]) {
+            t.genre = genre.into();
+        }
+        m
+    };
+    let ui = radios();
+    let m = tagged(Screen::Genres);
+    let rows = ui.rows(&m, &m.library.tracks);
+    let pop = rows.iter().find(|r| r.key == "genre:Pop").unwrap();
+    assert!(pop.secondary.ends_with("2 songs"), "{}", pop.secondary);
+    assert!(rows.iter().any(|r| r.key == "genre:Rock"));
+    assert!(!rows.iter().any(|r| r.key.contains('/')));
+    let mut m = tagged(Screen::Tracks);
+    m.navigation.filter = "genre:Rock".into();
+    let rows = ui.rows(&m, &m.library.tracks);
+    assert!(rows.iter().any(|r| r.key == "track:0"));
+    assert!(rows.iter().any(|r| r.key == "track:2"));
+    assert!(!rows.iter().any(|r| r.key == "track:1"));
+    // A place saved before the split still shows its songs.
+    m.navigation.filter = "genre:Pop/Rock".into();
+    let rows = ui.rows(&m, &m.library.tracks);
+    assert!(rows.iter().any(|r| r.key == "track:0"));
+}
+
 /// The search page rebuilt per keystroke on a 20 000-song library
 /// (`cargo test -p reborn-ui --release -- --ignored --nocapture search_page_speed`).
 #[test]
