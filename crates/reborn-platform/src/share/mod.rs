@@ -35,28 +35,28 @@ pub struct Storage {
     pub guarded: bool,
 }
 
-/// The storages that are there now.
+/// The storages that are there now: a mounted file system whose music folder exists (Internal
+/// Storage keeps its music in a folder of its own, the card is music from its top).
 pub fn storages() -> Vec<Storage> {
     let all = [
         (
             "internal",
             "Internal Storage",
+            "/media/internal",
             "/media/internal/music",
             false,
         ),
-        ("sd", "SD Card", "/media/sd", true),
+        ("sd", "SD Card", "/media/sd", "/media/sd", true),
     ];
-    let mounted = |path: &str| {
-        crate::storage::mounts()
-            .iter()
-            .any(|m| m.path == Path::new(path))
-    };
-    let there = all.into_iter().filter(|(_, _, path, _)| mounted(path));
+    let mounts = crate::storage::mounts();
+    let there = all.into_iter().filter(|(_, _, mount, root, _)| {
+        mounts.iter().any(|m| m.path == Path::new(mount)) && Path::new(root).is_dir()
+    });
     there
-        .map(|(key, name, path, guarded)| Storage {
+        .map(|(key, name, _, root, guarded)| Storage {
             key,
             name,
-            root: path.into(),
+            root: root.into(),
             guarded,
         })
         .collect()
