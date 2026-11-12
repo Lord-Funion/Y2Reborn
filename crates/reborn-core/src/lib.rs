@@ -5,6 +5,7 @@ pub mod clock;
 mod countries;
 pub mod eq;
 pub mod home;
+pub use home::{HOME_HIDEABLE, HOME_PINNABLE};
 mod names;
 pub mod platform;
 pub mod playlist;
@@ -472,10 +473,15 @@ impl Track {
     pub fn is_radio(&self) -> bool {
         self.source_id == RADIO_SOURCE
     }
-    /// Shown in the music lists, counts and search: available and not part
-    /// of an audiobook (books have their own place).
+    /// Shown in the music lists, counts and search: available, not part of
+    /// an audiobook and not a film (books and videos have their own places).
     pub fn is_music(&self) -> bool {
-        self.online && !self.book
+        self.online && !self.book && !self.is_video()
+    }
+    /// A film: a file with moving pictures beside its sound. The scan names
+    /// both codecs for one, picture first ("h264/aac"); a song has one codec.
+    pub fn is_video(&self) -> bool {
+        self.codec.contains('/')
     }
     /// The Album Artist tag the file carries (Last.fm gets this), not the
     /// album's the lists group it under (#45).
@@ -835,6 +841,8 @@ pub enum Screen {
     Audiobooks,
     /// One audiobook (`navigation.filter` is its key): buttons and chapters.
     Book,
+    /// The library's films (video files), each opened on Now Playing.
+    Videos,
     SettingsSystem,
     Battery,
     Sleep,
@@ -1182,22 +1190,6 @@ pub struct Settings {
     pub eq_profile_on: bool,
 }
 
-/// The Music lists that can be pinned to Home, in Home's order: (key, label).
-pub const HOME_PINNABLE: [(&str, &str); 5] = [
-    ("artists", "Artists"),
-    ("albums", "Albums"),
-    ("tracks", "Songs"),
-    ("genres", "Genres"),
-    ("folders", "Folders"),
-];
-/// Home's own places that can be taken off Home, in Home's order: (key,
-/// label). Music stands first, the others after the pinned lists.
-pub const HOME_HIDEABLE: [(&str, &str); 4] = [
-    ("music", "Music"),
-    ("playlists", "Playlists"),
-    ("radio", "Radio"),
-    ("search", "Search"),
-];
 /// How Albums and Audiobooks show their covers: Customize > Cover Flow.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]

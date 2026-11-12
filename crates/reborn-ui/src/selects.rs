@@ -284,7 +284,12 @@ impl Ui {
         if tracks.get(index).is_none() {
             return Effect::None;
         }
-        let effect = self.play_effect(m, tracks, index);
+        // A film plays by itself, at once; the queue goes on after it.
+        let effect = if m.screen == Screen::Videos {
+            Effect::PlayNow(index)
+        } else {
+            self.play_effect(m, tracks, index)
+        };
         Self::go(m, Screen::NowPlaying, "");
         effect
     }

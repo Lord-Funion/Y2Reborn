@@ -16,6 +16,7 @@ impl Ui {
             Screen::Playlists | Screen::Playlist => self.playlist_rows(m, tracks),
             Screen::Audiobooks => views_books::book_rows(self, m, tracks),
             Screen::Book => views_books::page_rows(self, m, tracks),
+            Screen::Videos => views_videos::rows(tracks),
             Screen::Diagnostics => diagnostics::root(m),
             Screen::DiagnosticSection => diagnostics::section_rows(m, &m.navigation.filter),
             Screen::ValueDetail => vec![Item::new("Back", "back")],
@@ -104,6 +105,7 @@ impl Ui {
                     | Screen::TimeZone
                     | Screen::Audiobooks
                     | Screen::Book
+                    | Screen::Videos
             )
     }
 

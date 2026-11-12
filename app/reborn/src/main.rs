@@ -16,6 +16,7 @@ mod runtime;
 mod scrobbling;
 mod skins;
 mod sleep_timer;
+mod video;
 mod views;
 mod volume;
 use eq_files::*;

@@ -11,6 +11,9 @@ const LETTER_SCROLL_STEPS: i32 = 3;
 impl Ui {
     pub fn action(&mut self, m: &mut AppModel, tracks: &[Track], action: Action) -> Effect {
         let before = (m.screen, m.navigation.filter.clone());
+        if m.screen == Screen::NowPlaying && m.current().is_some_and(Track::is_video) {
+            self.show_video_controls();
+        }
         let effect = self.action_inner(m, tracks, action);
         // Cover Flow and the album page hand the centre cover to each other.
         if m.settings.album_view == reborn_core::AlbumView::CoverFlow && !self.motion_fixed {
@@ -718,7 +721,7 @@ impl Ui {
             Screen::Search if key.starts_with("artist:") => Self::go(m, Screen::Artist, key),
             Screen::Search if key.starts_with("album:") => Self::go(m, Screen::Album, key),
             Screen::Search => return self.play_track(m, tracks, key),
-            Screen::Artist | Screen::Album | Screen::Tracks | Screen::Folders => {
+            Screen::Artist | Screen::Album | Screen::Tracks | Screen::Folders | Screen::Videos => {
                 if key == "artist_albums" {
                     Self::go(m, Screen::Albums, m.navigation.filter.clone());
                     return Effect::None;

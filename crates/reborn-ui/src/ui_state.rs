@@ -76,7 +76,20 @@ impl Ui {
             self.fast_scroll_until = None;
             changed = true;
         }
+        if self.video_controls_until.is_some_and(|until| now >= until) {
+            self.video_controls_until = None;
+            changed = true;
+        }
         changed
+    }
+
+    /// A film's title and time line are on screen (a button was pressed a moment ago).
+    pub fn video_controls_shown(&self) -> bool {
+        self.video_controls_until.is_some()
+    }
+    /// A button was pressed while a film shows: its title and time line appear for a while.
+    pub(crate) fn show_video_controls(&mut self) {
+        self.video_controls_until = Some(Instant::now() + VIDEO_CONTROLS);
     }
 
     /// Whether something on screen changes with time (a fade, a ring), so the
@@ -94,6 +107,7 @@ impl Ui {
     /// screen sliding in and the playing wave. Spinners stay at the calm rate.
     pub fn gliding(&self) -> bool {
         self.flow.borrow().moving()
+            || self.film_running
             || self.transition_progress().is_some()
             || (self.ui_motion
                 && (self.motion.moving()

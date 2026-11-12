@@ -70,6 +70,11 @@ fn native_screen(
     interactive: bool,
 ) {
     match m.screen {
+        Screen::NowPlaying if m.current().is_some_and(Track::is_video) => {
+            if let Some(film) = m.current() {
+                crate::views_videos::now_playing(c, ui, m, film);
+            }
+        }
         Screen::NowPlaying if m.current().is_some() => {
             views_playing::now_playing(c, ui, m, tracks, has_art, interactive)
         }
@@ -82,7 +87,8 @@ fn native_screen(
         | Screen::Folders
         | Screen::Album
         | Screen::Artist
-        | Screen::Audiobooks => views_library::browse(c, ui, m, tracks, has_art, interactive),
+        | Screen::Audiobooks
+        | Screen::Videos => views_library::browse(c, ui, m, tracks, has_art, interactive),
         Screen::Queue => crate::views_queue::page(c, ui, m, tracks, interactive),
         Screen::Search => crate::views_search::page(c, ui, m, tracks, interactive),
         Screen::Book => crate::views_books::book_page(c, ui, m, tracks, interactive),
@@ -177,6 +183,7 @@ fn layout_keys(m: &AppModel, page: Option<&Page>, empty: bool) -> &'static [&'st
         Screen::SettingsDisplay => keys!("display"),
         Screen::Customize => keys!("customize"),
         Screen::Audiobooks => keys!("audiobooks"),
+        Screen::Videos => keys!("videos"),
         Screen::Book => keys!("book"),
         Screen::SettingsSystem => keys!("service"),
         Screen::Battery => keys!("battery"),
@@ -725,6 +732,7 @@ pub fn screen_title(m: &AppModel) -> String {
         Screen::SettingsDisplay => "Display".into(),
         Screen::Customize => crate::customize::title(&m.navigation.filter).into(),
         Screen::Audiobooks => "Audiobooks".into(),
+        Screen::Videos => "Videos".into(),
         Screen::Book => "Audiobook".into(),
         Screen::SettingsSystem => "Service".into(),
         Screen::Battery => "Battery".into(),

@@ -52,6 +52,7 @@ mod views_radio;
 mod views_search;
 mod views_settings;
 mod views_system;
+pub mod views_videos;
 
 use reborn_core::{
     platform::{ChargingState, LowBattery, UsbTransfer, WifiProblem},
@@ -450,6 +451,12 @@ pub struct Ui {
     last_step: Option<Instant>,
     /// The library's audiobooks, kept until the library changes.
     books: RefCell<Option<views_books::BookCache>>,
+    /// The playing film's picture and subtitle, as the app last uploaded them.
+    pub video: views_videos::VideoPicture,
+    /// A film's title and time line show until this moment (a button was pressed).
+    video_controls_until: Option<Instant>,
+    /// A film's pictures are arriving: the screen is drawn at the panel's rate.
+    pub film_running: bool,
     /// Taps on the version row; the service menu opens after a deliberate run.
     version_taps: u8,
     resident: HashSet<u64>,
@@ -581,6 +588,8 @@ const WHEEL_VOLUME_STEP: i8 = 2;
 const VERSION_TAPS: u8 = 7;
 /// How long the volume line stays, and how long it takes to fade at the end.
 const VOLUME_LINE: Duration = Duration::from_millis(1300);
+/// How long a film's title and time line stay after a button.
+const VIDEO_CONTROLS: Duration = Duration::from_secs(3);
 const VOLUME_FADE: Duration = Duration::from_millis(300);
 /// The Power hold: it starts when the input layer reports the long press and
 /// fills the ring over this long; releasing before the end cancels it.
@@ -631,6 +640,7 @@ fn route(key: &str) -> Option<Screen> {
         "display" => Screen::SettingsDisplay,
         "customize" => Screen::Customize,
         "audiobooks" => Screen::Audiobooks,
+        "videos" => Screen::Videos,
         "home_menu" => Screen::HomeMenu,
         "system" => Screen::SettingsSystem,
         "battery" => Screen::Battery,

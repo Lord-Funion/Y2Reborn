@@ -356,7 +356,7 @@ fn home_menu_switches_pin_and_unpin_from_customize() {
     ui.action(&mut m, &tracks, Action::Select);
     assert_eq!(m.screen, Screen::HomeMenu);
     // Every place Home can show, in Home's order (#52, #55): Music,
-    // Audiobooks (Beta 8.19), the Music lists, Playlists, Radio, Search.
+    // Audiobooks (Beta 8.19), Videos, the Music lists, Playlists, Radio, Search.
     let rows = ui.rows(&m, &tracks);
     let keys: Vec<_> = rows.iter().map(|r| r.key.as_str()).collect();
     assert_eq!(
@@ -364,6 +364,7 @@ fn home_menu_switches_pin_and_unpin_from_customize() {
         [
             "home_show:music",
             "home_audiobooks",
+            "home_show:videos",
             "home_pin:artists",
             "home_pin:albums",
             "home_pin:tracks",
@@ -375,26 +376,27 @@ fn home_menu_switches_pin_and_unpin_from_customize() {
         ]
     );
     assert_eq!(rows[1].kind, crate::RowKind::Toggle(true));
-    assert_eq!(rows[2].kind, crate::RowKind::Toggle(false));
-    assert_eq!(rows[8].kind, crate::RowKind::Toggle(true));
-    m.navigation.focus = 2;
+    assert_eq!(rows[2].kind, crate::RowKind::Toggle(true), "Videos");
+    assert_eq!(rows[3].kind, crate::RowKind::Toggle(false));
+    assert_eq!(rows[9].kind, crate::RowKind::Toggle(true));
+    m.navigation.focus = 3;
     assert_eq!(
         ui.action(&mut m, &tracks, Action::Select),
         Effect::SetHomePin("artists".into(), true)
     );
     m.settings.pin_home("artists", true);
-    assert_eq!(ui.rows(&m, &tracks)[2].kind, crate::RowKind::Toggle(true));
+    assert_eq!(ui.rows(&m, &tracks)[3].kind, crate::RowKind::Toggle(true));
     assert_eq!(
         ui.action(&mut m, &tracks, Action::Select),
         Effect::SetHomePin("artists".into(), false)
     );
-    m.navigation.focus = 8;
+    m.navigation.focus = 9;
     assert_eq!(
         ui.action(&mut m, &tracks, Action::Select),
         Effect::SetHomeShown("radio".into(), false)
     );
     m.settings.show_on_home("radio", false);
-    assert_eq!(ui.rows(&m, &tracks)[8].kind, crate::RowKind::Toggle(false));
+    assert_eq!(ui.rows(&m, &tracks)[9].kind, crate::RowKind::Toggle(false));
     assert_eq!(
         ui.action(&mut m, &tracks, Action::Select),
         Effect::SetHomeShown("radio".into(), true)
@@ -7077,15 +7079,15 @@ fn home_menu_moves_a_place_and_home_follows_its_order() {
         m.navigation.modal.is_none(),
         "no menu: the place is carried"
     );
-    for _ in 0..9 {
+    for _ in 0..10 {
         ui.model_action(&mut m, Action::WheelClockwise(1));
     }
     assert_eq!(
-        keys(&ui, &m)[9],
+        keys(&ui, &m)[10],
         "home_show:music",
         "drawn at its new place"
     );
-    assert_eq!(m.navigation.focus, 9);
+    assert_eq!(m.navigation.focus, 10);
     let Effect::SetHomeOrder(order) = ui.model_action(&mut m, Action::Select) else {
         panic!("Select places it");
     };
@@ -7434,4 +7436,43 @@ fn holding_select_on_a_quick_menu_tile_opens_its_settings() {
     assert_eq!(m.navigation.modal, Some(Modal::QuickMenu));
     open(&mut ui, &mut m, "quick:wifi");
     assert_eq!(ui.model_action(&mut m, Action::Select), Effect::WifiPower);
+}
+
+#[test]
+fn films_have_their_own_place_and_never_stand_among_the_songs() {
+    let mut ui = radios();
+    let mut m = app(Screen::Home);
+    assert!(
+        !ui.rows(&m, &m.library.tracks)
+            .iter()
+            .any(|r| r.key == "videos"),
+        "no films, no Videos on Home"
+    );
+    m.library.tracks[0].codec = "h264/aac".into();
+    m.library.tracks[0].title = "Holiday".into();
+    m.library.tracks[0].duration_ms = 125_000;
+    let tracks = m.library.tracks.clone();
+    assert!(tracks[0].is_video() && !tracks[0].is_music());
+    let home = ui.rows(&m, &tracks);
+    m.navigation.focus = home.iter().position(|r| r.key == "videos").unwrap();
+    ui.action(&mut m, &tracks, Action::Select);
+    assert_eq!(m.screen, Screen::Videos);
+    let rows = ui.rows(&m, &tracks);
+    assert_eq!(rows.len(), 1);
+    assert_eq!(
+        (rows[0].label.as_str(), rows[0].key.as_str()),
+        ("Holiday", "track:0")
+    );
+    assert_eq!(rows[0].secondary, "2 min");
+    // Select plays the film at once and shows it.
+    m.navigation.focus = 0;
+    assert_eq!(
+        ui.action(&mut m, &tracks, Action::Select),
+        Effect::PlayNow(0)
+    );
+    assert_eq!(m.screen, Screen::NowPlaying);
+    // Songs does not list it.
+    let mut songs = app(Screen::Tracks);
+    songs.library.tracks = tracks.clone();
+    assert!(!ui.rows(&songs, &tracks).iter().any(|r| r.key == "track:0"));
 }

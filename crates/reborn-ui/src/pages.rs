@@ -59,12 +59,12 @@ impl Page {
 /// pinned, and Home's own places unless taken off (#52, #55). Now Playing stays first, Settings
 /// last.
 pub(crate) fn home_rows(s: &Settings, tracks: &[Track]) -> Vec<Item> {
-    let has_books = s.audiobooks_on_home && tracks.iter().any(|t| t.book && t.online);
+    let (has_books, has_videos) = s.home_shelves(tracks);
     let mut rows = vec![row("Now Playing", "now_playing", "")];
     rows.extend(
         s.home_places()
             .into_iter()
-            .filter(|(key, _)| s.home_place_shown(key, has_books))
+            .filter(|(key, _)| s.home_place_shown(key, has_books, has_videos))
             .map(|(key, label)| row(label, key, "")),
     );
     rows.push(row("Settings", "settings", ""));

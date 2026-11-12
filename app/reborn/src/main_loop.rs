@@ -835,8 +835,7 @@ impl MainLoop {
         ) {
             self.observation_pending = None;
         }
-        rt.receive_chapters();
-        rt.sleep_timer_tick();
+        rt.background_ticks();
         let mut logo = None;
         if let Some(worker) = &mut rt.thumbs {
             // Upload finished thumbnails (a few per pass, so a burst never
