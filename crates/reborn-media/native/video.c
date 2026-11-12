@@ -52,6 +52,7 @@ typedef struct RbVideo {
   int64_t start_ms;
   uint32_t *sum_y, *sum_u, *sum_v; /* one output row of sums */
   uint16_t *col_y, *col_c;         /* source column -> output column */
+  uint32_t *per_y, *per_c;         /* 65536 / samples summed into each output column of a row */
   uint8_t *chroma;                 /* averaged CbCr at half the output size */
   RbCue *cues;
   int cue_count, cue_next;
@@ -171,7 +172,8 @@ static void load_subtitle_file(RbVideo *v, const char *path) {
 static void free_scaler(RbVideo *v) {
   free(v->sum_y); free(v->sum_u); free(v->sum_v);
   free(v->col_y); free(v->col_c); free(v->chroma);
-  v->sum_y = v->sum_u = v->sum_v = NULL;
+  free(v->per_y); free(v->per_c);
+  v->sum_y = v->sum_u = v->sum_v = v->per_y = v->per_c = NULL;
   v->col_y = v->col_c = NULL;
   v->chroma = NULL;
 }
@@ -211,19 +213,32 @@ static void output_size(RbVideo *v, int max_w, int max_h) {
   if (v->step < 1) v->step = 1;
 }
 
+/* 65536 over the number of source columns (every `step`-th) that land in each output column:
+ * the average is then a multiplication per pixel, not a division (this CPU divides in software). */
+static void column_shares(const uint16_t *col, int w, int step, uint32_t *per, int out) {
+  memset(per, 0, (size_t)out * sizeof(*per));
+  for (int x = 0; x < w; x += step) per[col[x]]++;
+  for (int x = 0; x < out; x++) per[x] = 65536 / (per[x] ? per[x] : 1);
+}
+
 static int make_scaler(RbVideo *v) {
   int w = v->c->width, cw = (w + 1) / 2, ow = v->out_w, ocw = ow / 2;
   free_scaler(v);
+  v->per_y = calloc((size_t)ow, sizeof(*v->per_y));
+  v->per_c = calloc((size_t)ocw, sizeof(*v->per_c));
   v->sum_y = calloc((size_t)ow, sizeof(*v->sum_y));
   v->sum_u = calloc((size_t)ocw, sizeof(*v->sum_u));
   v->sum_v = calloc((size_t)ocw, sizeof(*v->sum_v));
   v->col_y = malloc((size_t)w * sizeof(*v->col_y));
   v->col_c = malloc((size_t)cw * sizeof(*v->col_c));
   v->chroma = malloc((size_t)ocw * (size_t)(v->out_h / 2) * 2);
-  if (!v->sum_y || !v->sum_u || !v->sum_v || !v->col_y || !v->col_c || !v->chroma)
+  if (!v->sum_y || !v->sum_u || !v->sum_v || !v->col_y || !v->col_c || !v->chroma ||
+      !v->per_y || !v->per_c)
     return AVERROR(ENOMEM);
   for (int x = 0; x < w; x++) v->col_y[x] = (uint16_t)((int64_t)x * ow / w);
   for (int x = 0; x < cw; x++) v->col_c[x] = (uint16_t)((int64_t)x * ocw / cw);
+  column_shares(v->col_y, w, v->step, v->per_y, ow);
+  column_shares(v->col_c, cw, v->step, v->per_c, ocw);
   return 0;
 }
 
@@ -413,10 +428,9 @@ static void sum_chroma_row(const RbVideo *v, const Source *s, int y, int cw) {
   }
 }
 
-/* How many source columns (after stepping) land in each output column. */
-static void column_counts(const uint16_t *col, int w, int step, uint16_t *count, int out) {
-  memset(count, 0, (size_t)out * sizeof(*count));
-  for (int x = 0; x < w; x += step) count[col[x]]++;
+/* The average of a column's sum over `rows` lines: sum / (columns * rows) by two multiplications. */
+static inline uint32_t average(uint32_t sum, uint32_t per_columns, uint32_t per_rows) {
+  return (((sum * per_columns + 32768) >> 16) * per_rows + 32768) >> 16;
 }
 
 static inline uint8_t clip(int value) { return value < 0 ? 0 : value > 255 ? 255 : (uint8_t)value; }
@@ -425,10 +439,7 @@ static int convert_420(RbVideo *v, const AVFrame *f, uint8_t *rgba) {
   Source s = {f, f->format == AV_PIX_FMT_DRM_PRIME ? f->linesize[0] / 16 : 0};
   int w = v->c->width, h = v->c->height, cw = (w + 1) / 2, ch = (h + 1) / 2;
   int ow = v->out_w, oh = v->out_h, ocw = ow / 2, och = oh / 2, step = v->step;
-  uint16_t count_y[2048], count_c[1024];
-  if (ow > 2048 || f->width < w || f->height < h) return AVERROR(EINVAL);
-  column_counts(v->col_y, w, step, count_y, ow);
-  column_counts(v->col_c, cw, step, count_c, ocw);
+  if (f->width < w || f->height < h) return AVERROR(EINVAL);
   /* Chroma first: averaged to half the output size. */
   for (int oy = 0; oy < och; oy++) {
     int y0 = (int)((int64_t)oy * ch / och), y1 = (int)((int64_t)(oy + 1) * ch / och), rows = 0;
@@ -437,10 +448,10 @@ static int convert_420(RbVideo *v, const AVFrame *f, uint8_t *rgba) {
     if (y1 <= y0) y1 = y0 + 1;
     for (int y = y0; y < y1; y += step, rows++) sum_chroma_row(v, &s, y, cw);
     uint8_t *line = v->chroma + (size_t)oy * (size_t)ocw * 2;
+    uint32_t per_rows = 65536 / (uint32_t)rows;
     for (int x = 0; x < ocw; x++) {
-      uint32_t n = (uint32_t)rows * (count_c[x] ? count_c[x] : 1);
-      line[2 * x] = (uint8_t)(v->sum_u[x] / n);
-      line[2 * x + 1] = (uint8_t)(v->sum_v[x] / n);
+      line[2 * x] = clip((int)average(v->sum_u[x], v->per_c[x], per_rows));
+      line[2 * x + 1] = clip((int)average(v->sum_v[x], v->per_c[x], per_rows));
     }
   }
   /* BT.709 for high definition, BT.601 below, unless the stream says; studio range unless full. */
@@ -458,10 +469,10 @@ static int convert_420(RbVideo *v, const AVFrame *f, uint8_t *rgba) {
     for (int y = y0; y < y1; y += step, rows++) sum_luma_row(v, &s, y, w);
     const uint8_t *chroma = v->chroma + (size_t)(oy / 2 < och ? oy / 2 : och - 1) * (size_t)ocw * 2;
     uint8_t *out = rgba + (size_t)oy * (size_t)ow * 4;
+    uint32_t per_rows = 65536 / (uint32_t)rows;
     for (int x = 0; x < ow; x++) {
-      uint32_t n = (uint32_t)rows * (count_y[x] ? count_y[x] : 1);
       int cx = x / 2 < ocw ? x / 2 : ocw - 1;
-      int luma_value = ((int)(v->sum_y[x] / n) - y_off) * ky;
+      int luma_value = ((int)average(v->sum_y[x], v->per_y[x], per_rows) - y_off) * ky;
       int u = chroma[2 * cx] - 128, w2 = chroma[2 * cx + 1] - 128;
       out[4 * x] = clip((luma_value + rv * w2 + 32768) >> 16);
       out[4 * x + 1] = clip((luma_value - gu * u - gv * w2 + 32768) >> 16);
