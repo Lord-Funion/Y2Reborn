@@ -50,7 +50,7 @@ const ENTRY_H: f32 = 48.;
 
 fn home(c: &mut Canvas, ui: &Ui, m: &AppModel, rows: &[Item], interactive: bool) {
     let accent = ui.accent();
-    components::status_bar(c, ui, m, "Radio", true);
+    components::status_bar(c, ui, m, &crate::screens::screen_title(m), true);
     let focus = m.navigation.focus.min(rows.len().saturating_sub(1));
     // Rows have two heights; scroll so the focused one ends above the bottom.
     let heights: Vec<f32> = rows

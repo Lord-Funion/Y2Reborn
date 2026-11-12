@@ -1544,6 +1544,48 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ui.radio.favorites = vec!["a".into(), "b".into()];
         m.navigation.focus = 1;
     });
+    // FM: Radio's two kinds, the internet stations' menu below them, and FM's pages.
+    case!("67-radio-with-fm", at(Screen::Radio, ""), |ui, _| {
+        ui.radio.online = true;
+        ui.radio.fm = reborn_ui::FmView::Ready { stations: 4 };
+    });
+    case!(
+        "67b-radio-internet",
+        at(Screen::Radio, reborn_ui::RADIO_INTERNET),
+        |ui, _| {
+            ui.radio.online = true;
+            ui.radio.fm = reborn_ui::FmView::Ready { stations: 4 };
+            ui.radio.favorites = vec!["a".into(), "b".into()];
+        }
+    );
+    case!(
+        "68-fm-stations",
+        at(Screen::RadioStations, "FM Radio"),
+        |ui, m| {
+            ui.radio.fm = reborn_ui::FmView::Ready { stations: 4 };
+            ui.radio.last_request = Some(reborn_core::RadioRequest::Fm);
+            let found = [88_300, 94_300, 100_600, 104_000];
+            let stations = found.map(reborn_platform::fm::station).to_vec();
+            ui.radio.set_stations_in_order(stations);
+            m.navigation.focus = 1;
+        }
+    );
+    case!(
+        "68b-fm-searching",
+        at(Screen::RadioStations, "FM Radio"),
+        |ui, _| {
+            ui.radio.fm = reborn_ui::FmView::Scanning { progress: 40 };
+            ui.radio.last_request = Some(reborn_core::RadioRequest::Fm);
+        }
+    );
+    case!(
+        "68c-fm-nothing-found",
+        at(Screen::RadioStations, "FM Radio"),
+        |ui, _| {
+            ui.radio.fm = reborn_ui::FmView::Ready { stations: 0 };
+            ui.radio.last_request = Some(reborn_core::RadioRequest::Fm);
+        }
+    );
     case!("61-radio-no-wifi", at(Screen::Radio, ""), |ui, _| ui
         .radio
         .online =
