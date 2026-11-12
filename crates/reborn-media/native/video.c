@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: MIT
  *
  * Video for Reborn: a second, picture-only reader of a file whose sound the audio
- * membrane (media.c) plays. FFmpeg demuxes and decodes (H.264 on the Y2's hardware
- * decoder when it takes the stream, else in software); this file turns each picture
- * into a small RGBA image for the 480x360 screen and collects subtitle text.
+ * membrane (media.c) plays. FFmpeg demuxes and decodes (H.264 and MPEG-4 on the Y2's
+ * hardware decoder when it takes the stream, else in software); this file turns each
+ * picture into a small RGBA image for the 480x360 screen and collects subtitle text.
  *
- * A hardware picture arrives in the decoder's block layout (libavcodec/y2vdec_h264.c:
+ * A hardware picture arrives in the decoder's block layout (libavcodec/y2vdec.h:
  * luma in 16x32 blocks, CbCr in 16x16 blocks, format AV_PIX_FMT_DRM_PRIME); software
  * pictures are planar 4:2:0. Both are averaged down in one pass; anything else goes
  * through libswscale.
