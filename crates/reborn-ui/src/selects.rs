@@ -304,9 +304,16 @@ impl Ui {
         if tracks.get(index).is_none() {
             return Effect::None;
         }
-        // A film plays by itself, at once; the queue goes on after it.
+        // A film plays with the Videos list as its collection: Next and
+        // Previous go to the film below and above, not to a song (#128).
         let effect = if m.screen == Screen::Videos {
-            Effect::PlayNow(index)
+            Effect::PlayCollection {
+                selected: index,
+                members: self.filtered_indices(m, tracks),
+                shuffle: ShuffleMode::Off,
+                source: source_label(m),
+                origin: page_origin(m),
+            }
         } else {
             self.play_effect(m, tracks, index)
         };
@@ -350,6 +357,9 @@ impl Ui {
                 return c.search_songs.clone();
             }
             return c.rows.iter().filter_map(catalog::Row::track).collect();
+        }
+        if m.screen == Screen::Videos {
+            return crate::views_videos::films(tracks);
         }
         tracks
             .iter()

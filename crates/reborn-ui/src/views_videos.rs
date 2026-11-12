@@ -21,17 +21,24 @@ pub struct VideoPicture {
     pub subtitle: String,
 }
 
-/// Every film of the library by title, each with its length; Select plays it.
-pub(crate) fn rows(tracks: &[Track]) -> Vec<Item> {
+/// The library's films by title: the Videos list's order, and the order Next and Previous
+/// follow while a film plays (Y2Reborn #128).
+pub(crate) fn films(tracks: &[Track]) -> Vec<usize> {
     let mut films: Vec<(usize, &Track)> = tracks
         .iter()
         .enumerate()
         .filter(|(_, t)| t.online && t.is_video())
         .collect();
     films.sort_by_cached_key(|(_, t)| crate::track_title(t).to_lowercase());
-    films
+    films.into_iter().map(|(i, _)| i).collect()
+}
+
+/// Every film of the library by title, each with its length; Select plays it.
+pub(crate) fn rows(tracks: &[Track]) -> Vec<Item> {
+    films(tracks)
         .into_iter()
-        .map(|(i, t)| {
+        .map(|i| {
+            let t = &tracks[i];
             let mut item = Item::new(crate::track_title(t), format!("track:{i}"))
                 .with_secondary(crate::views_books::length(t.duration_ms));
             item.art = Some(i);

@@ -804,9 +804,13 @@ fn bluetooth(ui: &Ui, m: &AppModel) -> Page {
         Some(problem.clone())
     } else {
         match b.scan {
-            reborn_core::RadioScan::Starting | reborn_core::RadioScan::Scanning => {
-                Some("Searching… Put your headphones in pairing mode.".into())
-            }
+            // A search also leaves the player visible for 2 minutes (y2-radiod), for a car
+            // that pairs from its side (Y2Linux #116).
+            reborn_core::RadioScan::Starting | reborn_core::RadioScan::Scanning => Some(
+                "Searching… Put your headphones in pairing mode. A car can find this player \
+                 as Y2Linux for 2 minutes."
+                    .into(),
+            ),
             reborn_core::RadioScan::Complete { found: 0 } => {
                 Some("No devices found. Put your headphones in pairing mode.".into())
             }

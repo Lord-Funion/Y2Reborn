@@ -7616,12 +7616,22 @@ fn films_have_their_own_place_and_never_stand_among_the_songs() {
         ("Holiday", "track:0")
     );
     assert_eq!(rows[0].secondary, "2 min");
-    // Select plays the film at once and shows it.
-    m.navigation.focus = 0;
-    assert_eq!(
-        ui.action(&mut m, &tracks, Action::Select),
-        Effect::PlayNow(0)
-    );
+    // Select plays the film at once and shows it, with the other films as
+    // its collection in the list's order: Next is the film below (#128).
+    let mut tracks = tracks;
+    tracks[2].codec = "h264/aac".into();
+    tracks[2].title = "Arrival".into();
+    m.library.tracks = tracks.clone();
+    let rows = ui.rows(&m, &tracks);
+    let keys: Vec<&str> = rows.iter().map(|r| r.key.as_str()).collect();
+    assert_eq!(keys, ["track:2", "track:0"]);
+    m.navigation.focus = 1;
+    match ui.action(&mut m, &tracks, Action::Select) {
+        Effect::PlayCollection {
+            selected, members, ..
+        } => assert_eq!((selected, members), (0, vec![2, 0])),
+        other => panic!("a film plays with the Videos list: {other:?}"),
+    }
     assert_eq!(m.screen, Screen::NowPlaying);
     // Songs does not list it.
     let mut songs = app(Screen::Tracks);
