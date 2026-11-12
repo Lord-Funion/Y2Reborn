@@ -75,7 +75,7 @@
   <a class="card" href="#music"><h3>Your library, fast</h3><p>Cover Flow, live search, folders and Up Next.</p></a>
   <a class="card" href="#listen"><h3>Sound you can shape</h3><p>Gapless, an equalizer and profiles for 47 headphones.</p></a>
   <a class="card" href="#wireless"><h3>Bluetooth and Wi-Fi</h3><p>SBC, AAC and LDAC; updates and Last.fm over Wi-Fi.</p></a>
-  <a class="card" href="#more"><h3>Radio and audiobooks</h3><p>Thousands of stations, and books that keep their place.</p></a>
+  <a class="card" href="#more"><h3>Radio and audiobooks</h3><p>Internet stations, FM on Y2s that receive it, and books that keep their place.</p></a>
   <a class="card" href="#video"><h3>Videos <span class="tag">new</span></h3><p>Films on the Y2, decoded by its own video chip.</p></a>
   <a class="card" href="#skins"><h3>Seventeen skins</h3><p>From Classic to Terminal, or make your own.</p></a>
 </section>
@@ -158,11 +158,12 @@
     <p class="eyebrow">Radio and audiobooks</p>
     <h2>More than the songs you own.</h2>
     <p><strong>Internet radio</strong> from radio-browser.info: popular stations, countries, genres, search and favorites, with station logos and the song that is playing.</p>
+    <p><strong>FM radio</strong> <span class="tag">new</span> from the player's own tuner, with wired headphones as the antenna: search the band, pick a station, no internet needed. <strong>Only on Y2s whose hardware receives FM.</strong> The first Y2 revision has the tuner but receives nothing; there one switch hides FM. <a href="https://github.com/SchulzCode/Y2Linux/blob/main/docs/FM-RADIO.md">Which players, and how to set it up</a></p>
     <p><strong>Audiobooks</strong> with chapters, your place in every book, a speed for each book from 0.75 to 2 times, and a sleep timer.</p>
   </div>
   <div class="shots three">
-    <figure><img loading="lazy" src="img/radio.png" width="480" height="360" alt="The Radio page"><figcaption>Radio</figcaption></figure>
-    <figure><img loading="lazy" src="img/radio-playing.png" width="480" height="360" alt="A radio station playing"><figcaption>A station playing</figcaption></figure>
+    <figure><img loading="lazy" src="img/radio.png" width="480" height="360" alt="Radio with its two kinds: FM Radio and Internet Radio"><figcaption>Radio, on a Y2 with FM</figcaption></figure>
+    <figure><img loading="lazy" src="img/fm-stations.png" width="480" height="360" alt="FM stations found by a search, by frequency"><figcaption>FM stations</figcaption></figure>
     <figure><img loading="lazy" src="img/now-playing-book.png" width="480" height="360" alt="An audiobook playing with its chapter"><figcaption>An audiobook</figcaption></figure>
   </div>
 </section>
@@ -318,6 +319,7 @@
   <details><summary>Does it replace the original software?</summary><p>Yes. Y2Linux and Reborn take the place of the player's Android software. Going back is possible at any time: the Innioasis Updater offers <strong>Original Software</strong> for the Y2, and the Innioasis firmware package v3.2.0 restores it with SP Flash Tool.</p></details>
   <details><summary>What happens to my music?</summary><p>Music on the SD card is not touched. The first start sets up the player's Internal Storage anew; a small amount of files on it is kept, a large library is left alone until you have copied it away. Copy the music from Internal Storage to a computer before you install. <a href="https://github.com/SchulzCode/Y2Linux/blob/main/docs/STORAGE.md">How storage works</a></p></details>
   <details><summary>Why do I need a file from Innioasis?</summary><p>The Wi-Fi and Bluetooth chip needs its maker's firmware, which this project may not hand out. The player takes it from <code>system.img</code> of the Innioasis firmware package once you copy that file into the <strong>Firmware</strong> folder. Music works without it.</p></details>
+  <details><summary>Does FM radio work on my Y2?</summary><p>Only if your Y2's hardware receives FM. Later revisions of the Y2 do; the first revision has the tuner chip but picks up no stations, and no software can change that. Try it: Radio → FM Radio → Search for Stations, with wired headphones plugged in. If the search finds nothing, <strong>Hide FM Radio</strong> on that page takes FM out of the menu. FM also needs the same Innioasis <code>system.img</code> as Wi-Fi and Bluetooth; a player set up before FM arrived needs that file copied into the <strong>Firmware</strong> folder once more. <a href="https://github.com/SchulzCode/Y2Linux/blob/main/docs/FM-RADIO.md">FM radio guide</a></p></details>
   <details><summary>Is it finished?</summary><p>No. It is a public beta that gets updates often. What is known not to work is listed with every <a href="https://github.com/SchulzCode/Y2Linux/releases/latest">release</a>.</p></details>
   <details><summary>Something is wrong. What now?</summary><p>Send an error report from the player (Settings → System → Error Reports) and <a href="https://github.com/SchulzCode/Y2Reborn/issues">open an issue</a>. <strong>Restore Previous System</strong> in the player's diagnostics takes you back to the version you had before an update.</p></details>
   <details><summary>Which players does it run on?</summary><p>The Innioasis Y2 only.</p></details>

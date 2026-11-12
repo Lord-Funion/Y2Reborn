@@ -35,6 +35,9 @@ skins. Written in Rust, it decodes with FFmpeg, draws with OpenGL ES on the Y2's
 - **Bluetooth headphones** with SBC, AAC and LDAC, picked automatically; the music follows them when they connect.
 - **Internet radio** from radio-browser.info: popular stations, countries, genres, search, favorites and your own
   `.m3u`/`.pls` lists, with station logos and the song that is playing.
+- **FM radio** from the player's own tuner, on Y2s whose hardware receives FM (the first Y2 revision does not):
+  search the band, wired headphones as the antenna, no internet needed
+  ([guide](https://github.com/SchulzCode/Y2Linux/blob/main/docs/FM-RADIO.md)).
 - **Audiobooks** with chapters, your place in every book, a speed per book (0.75–2×) and a sleep timer
   ([guide](https://github.com/SchulzCode/Y2Linux/blob/main/docs/AUDIOBOOKS.md)).
 - **Last.fm scrobbling**: scan a QR code with your phone to sign in; plays wait on the player while offline
