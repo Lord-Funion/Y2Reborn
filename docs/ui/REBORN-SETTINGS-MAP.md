@@ -56,7 +56,7 @@ Settings
 ├ Customize                  Home Menu › · Browsing › · Wheel & Buttons ›
 │  ├ Home Menu               the places on Home and their order
 │  ├ Browsing                Cover Flow · Sort Albums · Artist's Albums › · Artists List
-│  │                         · Lists Wrap Around ›
+│  │                         · Lists Wrap Around › · FM Radio
 │  └ Wheel & Buttons         Wheel on Now Playing · Wheel Click · Haptics › · Buttons While Screen Off ›
 ├ Library                    Scan for Music · Storage › · Last.fm ›
 └ System                     Software Update › · Time Zone › · Date & Time › · Error Reports ›
@@ -68,6 +68,12 @@ Software Update ends with **Update Notifications** (a toggle, off by default, Y2
 looks at the platform every two minutes while Wi-Fi is up, and when the platform's daily check has found a newer
 version the status bar says "Software update available" once for that version (not on Software Update itself, which
 shows it). The toggle is under every Software Update page that has a choice, not while a check or install runs.
+
+Browsing's **FM Radio** (a switch, on by default) decides whether Radio shows the player's own tuner. With it,
+Radio opens as a choice of **FM Radio** and **Internet Radio** (the internet stations' menu is `Screen::Radio`
+with the filter "Internet Radio"); without it, or on a player with no tuner, Radio is the internet stations'
+menu itself. The first Y2 revision has the tuner but receives nothing: the page of a search that found no
+station offers **Hide FM Radio**, which turns the switch off.
 
 Library's hint line names the audio the last scan left out because Reborn cannot play its type ("43 files can't
 be played here (WMA, DSD), so they aren't in your library.", Y2Reborn #104); without such files there is no line.

@@ -10,10 +10,12 @@ mod names;
 pub mod platform;
 pub mod playlist;
 pub mod queue;
+mod radio;
 pub mod scrobble;
 pub mod sort;
 mod zones;
 pub use names::{joined_names, split_artists, split_genres};
+pub use radio::{RadioRequest, RadioStation};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -514,111 +516,6 @@ impl Track {
     }
 }
 
-/// An internet radio station from the community directory or an owner's
-/// own playlist.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RadioStation {
-    /// radio-browser station UUID; empty for the owner's own playlists.
-    #[serde(default)]
-    pub uuid: String,
-    pub name: String,
-    pub url: String,
-    #[serde(default)]
-    pub country: String,
-    #[serde(default)]
-    pub codec: String,
-    #[serde(default)]
-    pub bitrate: u32,
-    #[serde(default)]
-    pub tags: String,
-    /// The station's logo (an http(s) picture address from the directory).
-    #[serde(default)]
-    pub favicon: String,
-    #[serde(default)]
-    pub homepage: String,
-    /// Languages as the directory names them ("german,english").
-    #[serde(default)]
-    pub language: String,
-    #[serde(default)]
-    pub countrycode: String,
-    /// Directory votes and plays (its popularity).
-    #[serde(default)]
-    pub votes: u32,
-    #[serde(default)]
-    pub clicks: u32,
-}
-impl RadioStation {
-    /// The station's genres from its tags, capitalised, at most `n`.
-    pub fn genres(&self, n: usize) -> Vec<String> {
-        let mut out: Vec<String> = vec![];
-        for tag in self
-            .tags
-            .split(',')
-            .map(str::trim)
-            .filter(|t| !t.is_empty())
-        {
-            let name = capitalise(tag);
-            if !out.iter().any(|o| o.eq_ignore_ascii_case(&name)) {
-                out.push(name);
-            }
-            if out.len() == n {
-                break;
-            }
-        }
-        out
-    }
-    /// "AAC · 128 kbps", "MP3", or empty.
-    pub fn format(&self) -> String {
-        match (self.codec.is_empty(), self.bitrate) {
-            (false, b) if b > 0 => format!("{} · {b} kbps", self.codec),
-            (false, _) => self.codec.clone(),
-            (true, b) if b > 0 => format!("{b} kbps"),
-            _ => String::new(),
-        }
-    }
-    /// Languages, capitalised ("German, English").
-    pub fn languages(&self) -> String {
-        self.language
-            .split(',')
-            .map(str::trim)
-            .filter(|l| !l.is_empty())
-            .take(3)
-            .map(capitalise)
-            .collect::<Vec<_>>()
-            .join(", ")
-    }
-    /// The logo's thumbnail identity (never equal to a cover's: top bit set),
-    /// or `None` without a logo address.
-    pub fn logo_key(&self) -> Option<u64> {
-        (!self.favicon.is_empty()).then(|| logo_key(&self.favicon))
-    }
-    /// One line under the station name: "Germany · MP3 128 kbps · jazz".
-    pub fn summary(&self) -> String {
-        let mut parts = vec![];
-        if !self.country.is_empty() {
-            parts.push(self.country.clone());
-        }
-        match (self.codec.is_empty(), self.bitrate) {
-            (false, b) if b > 0 => parts.push(format!("{} {b} kbps", self.codec)),
-            (false, _) => parts.push(self.codec.clone()),
-            (true, b) if b > 0 => parts.push(format!("{b} kbps")),
-            _ => {}
-        }
-        if let Some(tag) = self.tags.split(',').map(str::trim).find(|t| !t.is_empty()) {
-            parts.push(tag.to_owned());
-        }
-        parts.join(" · ")
-    }
-    /// Identity for favorites: the directory UUID, else the stream URL.
-    pub fn key(&self) -> &str {
-        if self.uuid.is_empty() {
-            &self.url
-        } else {
-            &self.uuid
-        }
-    }
-}
-
 /// A logo's identity: FNV-1a of its address with the top bit set, so it never
 /// meets a cover's thumbnail key. The player names its cache file by it.
 pub fn logo_key(url: &str) -> u64 {
@@ -669,30 +566,6 @@ pub enum PlaylistRequest {
     },
     Duplicate(std::path::PathBuf),
     Delete(std::path::PathBuf),
-}
-
-/// What the Radio screens ask the player for.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RadioRequest {
-    Favorites,
-    Own,
-    Popular,
-    Countries,
-    Genres,
-    Country {
-        code: String,
-        name: String,
-    },
-    Genre(String),
-    Search(String),
-    /// Play the station at this index of the list on screen.
-    Play(usize),
-    ToggleFavorite(usize),
-    /// Add or remove the station playing now.
-    ToggleFavoriteCurrent,
-    /// Play, or add or remove, the station Station Info shows.
-    PlayStation(Box<RadioStation>),
-    ToggleFavoriteStation(Box<RadioStation>),
 }
 
 /// Settings > Last.fm requests. A password lives only in `Login` on its way
@@ -1161,6 +1034,10 @@ pub struct Settings {
     /// (Y2Reborn #97). Off unless the listener turns it on: the player does not nag.
     #[serde(default)]
     pub update_notifications: bool,
+    /// Radio shows FM Radio (the player's own tuner). On unless the listener turns it off: the
+    /// first Y2 revision has the tuner but cannot receive, and there the entry is only in the way.
+    #[serde(default = "default_true")]
+    pub fm_radio: bool,
     /// The version the last such notice named: each version is announced once, not after every
     /// restart or Wi-Fi connection.
     #[serde(default)]
@@ -1545,6 +1422,7 @@ impl Default for Settings {
             lastfm_now_playing: true,
             internal_setup_asked: false,
             update_notifications: false,
+            fm_radio: true,
             update_announced: String::new(),
             hp_level: HpLevel::Low,
             volume_scale: VOLUME_SCALE,

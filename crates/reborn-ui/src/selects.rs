@@ -68,6 +68,25 @@ impl Ui {
             Effect::Radio(request)
         };
         match key {
+            "radio_internet" => {
+                Self::go(m, Screen::Radio, crate::RADIO_INTERNET);
+                Effect::None
+            }
+            "radio_fm" => list(m, self, "FM Radio", RadioRequest::Fm),
+            "radio_fm_scan" => {
+                self.radio.fm = crate::FmView::Scanning { progress: 0 };
+                self.radio.last_request = Some(RadioRequest::Fm);
+                if m.screen != Screen::RadioStations {
+                    Self::go(m, Screen::RadioStations, "FM Radio");
+                }
+                Effect::Radio(RadioRequest::FmScan)
+            }
+            "radio_fm_cancel" => Effect::Radio(RadioRequest::FmCancel),
+            "radio_fm_hide" => {
+                Self::back(m);
+                self.flash("FM Radio is hidden. Settings → Customize → Browsing brings it back.");
+                Effect::Radio(RadioRequest::FmShow(false))
+            }
             "radio_favorites" => list(m, self, "Favorites", RadioRequest::Favorites),
             "radio_own" => list(m, self, "My Stations", RadioRequest::Own),
             "radio_popular" => list(m, self, "Popular", RadioRequest::Popular),
@@ -238,6 +257,7 @@ impl Ui {
             }
             "haptics" => Effect::SetHaptics(m.settings.haptics.next()),
             "wheel_click" => Effect::SetWheelClick(m.settings.wheel_click.next()),
+            "fm_radio" => Effect::Radio(reborn_core::RadioRequest::FmShow(!m.settings.fm_radio)),
             "speaker" => Effect::SetSpeaker(!m.settings.speaker),
             "album_view" => Effect::SetAlbumView(m.settings.album_view.next()),
             "album_order" => Effect::SetAlbumOrder(m.settings.album_order.next()),

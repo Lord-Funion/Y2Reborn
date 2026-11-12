@@ -311,6 +311,27 @@ pub struct LastFmView {
     pub busy: bool,
 }
 
+/// FM radio as the Radio screens show it. Hidden without a tuner and when the listener switched it
+/// off (Settings → Customize → Browsing → FM Radio).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum FmView {
+    #[default]
+    Hidden,
+    /// The tuner's two files from the owner's system.img are missing.
+    NeedsFirmware,
+    /// Tuner ready, no search yet.
+    NotScanned,
+    Scanning {
+        progress: u8,
+    },
+    Ready {
+        stations: usize,
+    },
+}
+
+/// The filter of `Screen::Radio` that shows the internet stations' menu below Radio's two kinds.
+pub const RADIO_INTERNET: &str = "Internet Radio";
+
 /// Internet radio lists as the player last received them.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct RadioView {
@@ -337,8 +358,15 @@ pub struct RadioView {
     /// The list starts with this many stations ranked by popularity (the
     /// directory's order); the rest follow A to Z.
     pub ranked: usize,
+    /// The player's own tuner.
+    pub fm: FmView,
 }
 impl RadioView {
+    /// A list kept in the given order (FM stations by frequency).
+    pub fn set_stations_in_order(&mut self, stations: Vec<reborn_core::RadioStation>) {
+        self.stations = stations;
+        self.ranked = 0;
+    }
     pub fn is_favorite(&self, station: &reborn_core::RadioStation) -> bool {
         self.favorites.iter().any(|k| k == station.key())
     }

@@ -5,6 +5,7 @@ mod books;
 mod dark;
 mod diagnostics;
 mod eq_files;
+mod fm;
 mod graphics_recovery;
 mod main_loop;
 mod meter;

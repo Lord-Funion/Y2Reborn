@@ -698,6 +698,7 @@ pub fn screen_title(m: &AppModel) -> String {
         Screen::TrackInfo => "Song Info".into(),
         Screen::Settings => "Settings".into(),
         Screen::Wifi => "Wi-Fi".into(),
+        Screen::Radio if m.navigation.filter == crate::RADIO_INTERNET => "Internet Radio".into(),
         Screen::Radio => "Radio".into(),
         Screen::RadioStations | Screen::RadioCategories if !m.navigation.filter.is_empty() => {
             m.navigation.filter.clone()
