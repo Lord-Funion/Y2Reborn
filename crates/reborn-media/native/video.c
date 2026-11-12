@@ -53,9 +53,10 @@ typedef struct RbVideo {
   int stream, sub_stream, hardware, draining, held;
   int out_w, out_h, step;
   int64_t start_ms;
-  uint32_t *sum_y, *sum_u, *sum_v; /* one output row of sums */
-  uint16_t *col_y, *col_c;         /* source column -> output column */
-  uint32_t *per_y, *per_c;         /* 65536 / samples summed into each output column of a row */
+  /* For each output column: the two neighbouring columns of the averaged line it is the mean of. */
+  uint16_t *tap_y, *tap_c;
+  uint8_t *wide;                   /* one averaged line at the source's (or half its) width */
+  int half;                        /* columns are added in pairs: the averaged line is half as wide */
   uint16_t *acc_y, *acc_u, *acc_v; /* the source lines of one output row, added up column by column */
   uint8_t *line_y;                 /* one output row of averaged luma */
   uint8_t *chroma;                 /* averaged CbCr at half the output size */
@@ -175,14 +176,13 @@ static void load_subtitle_file(RbVideo *v, const char *path) {
 }
 
 static void free_scaler(RbVideo *v) {
-  free(v->sum_y); free(v->sum_u); free(v->sum_v);
-  free(v->col_y); free(v->col_c); free(v->chroma);
-  free(v->per_y); free(v->per_c);
+  free(v->tap_y); free(v->tap_c); free(v->wide);
+  free(v->chroma);
+  v->tap_y = v->tap_c = NULL;
+  v->wide = NULL;
   free(v->acc_y); free(v->acc_u); free(v->acc_v); free(v->line_y);
   v->acc_y = v->acc_u = v->acc_v = NULL;
   v->line_y = NULL;
-  v->sum_y = v->sum_u = v->sum_v = v->per_y = v->per_c = NULL;
-  v->col_y = v->col_c = NULL;
   v->chroma = NULL;
 }
 
@@ -214,43 +214,45 @@ static void output_size(RbVideo *v, int max_w, int max_h) {
   if (v->out_h < 2) v->out_h = 2;
   if (v->out_w > max_w) v->out_w = max_w & ~1;
   if (v->out_h > max_h) v->out_h = max_h & ~1;
-  /* Every source line counts (they are added sixteen samples at a time); across, about four
-   * samples for three screen pixels are plenty (1280 wide for 480: every second column). */
-  v->step = w * 3 / (v->out_w * 4);
+  /* More source than screen: about four lines for three screen lines are plenty (1280x720 for
+   * 480x270: every second line; 1920x1080: every third). Reading the lines from memory is the
+   * larger half of the work. */
+  v->step = h * 3 / (v->out_h * 4);
   if (v->step < 1) v->step = 1;
 }
 
-/* 65536 over the number of source columns (every `step`-th) that land in each output column:
- * the average is then a multiplication per pixel, not a division (this CPU divides in software). */
-static void column_shares(const uint16_t *col, int w, int step, uint32_t *per, int out) {
-  memset(per, 0, (size_t)out * sizeof(*per));
-  for (int x = 0; x < w; x += step) per[col[x]]++;
-  for (int x = 0; x < out; x++) per[x] = 65536 / (per[x] ? per[x] : 1);
+/* The two columns of a `from`-wide line whose mean is each of `out` output columns: the ones
+ * either side of the output column's centre (the same one twice when nothing is shrunk). */
+static void tap_plan(int from, int out, uint16_t *tap) {
+  for (int x = 0; x < out; x++) {
+    int centre = (int)(((int64_t)(2 * x + 1) * from) / (2 * out));
+    int a = from > out && centre > 0 ? centre - 1 : centre, b = from > out ? centre : a;
+    if (b > from - 1) b = from - 1;
+    if (a > b) a = b;
+    tap[2 * x] = (uint16_t)a;
+    tap[2 * x + 1] = (uint16_t)b;
+  }
 }
 
 static int make_scaler(RbVideo *v) {
   int w = v->c->width, cw = (w + 1) / 2, ow = v->out_w, ocw = ow / 2;
   free_scaler(v);
-  v->per_y = calloc((size_t)ow, sizeof(*v->per_y));
-  v->per_c = calloc((size_t)ocw, sizeof(*v->per_c));
-  /* Whole 16-sample chunks are added at a time: room for the last one's overhang. */
+  /* Shrinking to less than half: columns are added in pairs as the lines are added up. */
+  v->half = w * 2 >= ow * 5;
+  v->tap_y = malloc((size_t)ow * 2 * sizeof(*v->tap_y));
+  v->tap_c = malloc((size_t)ocw * 2 * sizeof(*v->tap_c));
+  /* Whole 16-sample chunks are handled at a time: room for the last one's overhang. */
   v->acc_y = calloc((size_t)w + 32, sizeof(*v->acc_y));
   v->acc_u = calloc((size_t)cw + 32, sizeof(*v->acc_u));
   v->acc_v = calloc((size_t)cw + 32, sizeof(*v->acc_v));
+  v->wide = malloc((size_t)w + 32);
   v->line_y = malloc((size_t)ow + 16);
-  v->sum_y = calloc((size_t)ow, sizeof(*v->sum_y));
-  v->sum_u = calloc((size_t)ocw, sizeof(*v->sum_u));
-  v->sum_v = calloc((size_t)ocw, sizeof(*v->sum_v));
-  v->col_y = malloc((size_t)w * sizeof(*v->col_y));
-  v->col_c = malloc((size_t)cw * sizeof(*v->col_c));
   v->chroma = malloc((size_t)ocw * (size_t)(v->out_h / 2) * 2);
-  if (!v->sum_y || !v->sum_u || !v->sum_v || !v->col_y || !v->col_c || !v->chroma ||
-      !v->per_y || !v->per_c || !v->acc_y || !v->acc_u || !v->acc_v || !v->line_y)
+  if (!v->tap_y || !v->tap_c || !v->chroma || !v->acc_y || !v->acc_u || !v->acc_v || !v->wide ||
+      !v->line_y)
     return AVERROR(ENOMEM);
-  for (int x = 0; x < w; x++) v->col_y[x] = (uint16_t)((int64_t)x * ow / w);
-  for (int x = 0; x < cw; x++) v->col_c[x] = (uint16_t)((int64_t)x * ocw / cw);
-  column_shares(v->col_y, w, v->step, v->per_y, ow);
-  column_shares(v->col_c, cw, v->step, v->per_c, ocw);
+  tap_plan(v->half ? (w + 1) / 2 : w, ow, v->tap_y);
+  tap_plan(v->half ? (cw + 1) / 2 : cw, ocw, v->tap_c);
   return 0;
 }
 
@@ -414,6 +416,29 @@ static inline void add16(uint16_t *acc, const uint8_t *p) {
 #endif
 }
 
+/* acc[0..8) += the eight pairs of p[0..16) */
+static inline void add16_pairs(uint16_t *acc, const uint8_t *p) {
+#if defined(__ARM_NEON)
+  vst1q_u16(acc, vpadalq_u8(vld1q_u16(acc), vld1q_u8(p)));
+#else
+  for (int i = 0; i < 8; i++) acc[i] += p[2 * i] + p[2 * i + 1];
+#endif
+}
+
+/* Sixteen interleaved CbCr bytes as four sums of two neighbours each. */
+static inline void add_pairs_halved(uint16_t *u, uint16_t *w, const uint8_t *p) {
+#if defined(__ARM_NEON)
+  uint8x8x2_t in = vld2_u8(p);
+  vst1_u16(u, vpadal_u8(vld1_u16(u), in.val[0]));
+  vst1_u16(w, vpadal_u8(vld1_u16(w), in.val[1]));
+#else
+  for (int i = 0; i < 4; i++) {
+    u[i] += p[4 * i] + p[4 * i + 2];
+    w[i] += p[4 * i + 1] + p[4 * i + 3];
+  }
+#endif
+}
+
 /* Sixteen interleaved CbCr bytes: u[0..8) += Cb, v[0..8) += Cr. */
 static inline void add_pairs(uint16_t *u, uint16_t *w, const uint8_t *p) {
 #if defined(__ARM_NEON)
@@ -433,50 +458,82 @@ typedef struct {
   int blocks; /* hardware layout: blocks across; 0 for planes */
 } Source;
 
-/* Add luma line `y` to acc_y. The hardware layout stores a line as 16-sample pieces of its blocks;
- * a plane's line is read 16 at a time too (FFmpeg pads its lines, and acc has room). */
+/* Add luma line `y` to acc_y (pairs of columns to one sum when `half`). The hardware layout
+ * stores a line as 16-sample pieces of its blocks; a plane's line is read 16 at a time too (FFmpeg
+ * pads its lines, and acc has room). */
 static void add_luma_line(const RbVideo *v, const Source *s, int y, int w) {
+  int chunks = (w + 15) / 16;
+  const uint8_t *line;
+  size_t pitch;
   if (s->blocks) {
-    const uint8_t *band = s->f->data[0] + (size_t)(y / 32 * s->blocks) * 512 + (size_t)(y % 32) * 16;
-    for (int chunk = 0; chunk * 16 < w; chunk++) add16(v->acc_y + chunk * 16, band + (size_t)chunk * 512);
-    return;
+    line = s->f->data[0] + (size_t)(y / 32 * s->blocks) * 512 + (size_t)(y % 32) * 16;
+    pitch = 512;
+  } else {
+    line = s->f->data[0] + (size_t)y * (size_t)s->f->linesize[0];
+    pitch = 16;
+    /* A plane's last chunk may reach past the line's padding: finish it sample by sample. */
+    if (w % 16) chunks--;
   }
-  const uint8_t *line = s->f->data[0] + (size_t)y * (size_t)s->f->linesize[0];
-  int x = 0;
-  for (; x + 16 <= w; x += 16) add16(v->acc_y + x, line + x);
-  for (; x < w; x++) v->acc_y[x] += line[x];
+  if (v->half)
+    for (int chunk = 0; chunk < chunks; chunk++) add16_pairs(v->acc_y + chunk * 8, line + (size_t)chunk * pitch);
+  else
+    for (int chunk = 0; chunk < chunks; chunk++) add16(v->acc_y + chunk * 16, line + (size_t)chunk * pitch);
+  for (int x = chunks * 16; x < w; x++) v->acc_y[v->half ? x / 2 : x] += line[x];
 }
 
 static void add_chroma_line(const RbVideo *v, const Source *s, int y, int cw) {
   if (s->blocks) {
     const uint8_t *band = s->f->data[1] + (size_t)(y / 16 * s->blocks) * 256 + (size_t)(y % 16) * 16;
-    for (int chunk = 0; chunk * 8 < cw; chunk++)
-      add_pairs(v->acc_u + chunk * 8, v->acc_v + chunk * 8, band + (size_t)chunk * 256);
+    for (int chunk = 0; chunk * 8 < cw; chunk++) {
+      if (v->half)
+        add_pairs_halved(v->acc_u + chunk * 4, v->acc_v + chunk * 4, band + (size_t)chunk * 256);
+      else
+        add_pairs(v->acc_u + chunk * 8, v->acc_v + chunk * 8, band + (size_t)chunk * 256);
+    }
     return;
   }
   const uint8_t *u = s->f->data[1] + (size_t)y * (size_t)s->f->linesize[1];
   const uint8_t *w = s->f->data[2] + (size_t)y * (size_t)s->f->linesize[2];
   int x = 0;
   for (; x + 16 <= cw; x += 16) {
-    add16(v->acc_u + x, u + x);
-    add16(v->acc_v + x, w + x);
+    if (v->half) {
+      add16_pairs(v->acc_u + x / 2, u + x);
+      add16_pairs(v->acc_v + x / 2, w + x);
+    } else {
+      add16(v->acc_u + x, u + x);
+      add16(v->acc_v + x, w + x);
+    }
   }
   for (; x < cw; x++) {
-    v->acc_u[x] += u[x];
-    v->acc_v[x] += w[x];
+    v->acc_u[v->half ? x / 2 : x] += u[x];
+    v->acc_v[v->half ? x / 2 : x] += w[x];
   }
 }
 
-/* The average of a column's sum over `rows` lines: sum / (columns * rows) by two multiplications. */
-static inline uint32_t average(uint32_t sum, uint32_t per_columns, uint32_t per_rows) {
-  uint32_t value = (((sum * per_columns + 32768) >> 16) * per_rows + 32768) >> 16;
-  return value > 255 ? 255 : value;
+/* The sums of `rows` lines (of pairs when `half`) as one line of averages, `n` wide. */
+static void average_line(const uint16_t *acc, int n, uint32_t samples, uint8_t *out) {
+  uint32_t per = 65536 / samples;
+  int x = 0;
+#if defined(__ARM_NEON)
+  if (samples > 1) {
+    uint16x4_t k = vdup_n_u16((uint16_t)per);
+    for (; x + 8 <= n; x += 8) {
+      uint16x8_t a = vld1q_u16(acc + x);
+      uint16x4_t lo = vrshrn_n_u32(vmull_u16(vget_low_u16(a), k), 16);
+      uint16x4_t hi = vrshrn_n_u32(vmull_u16(vget_high_u16(a), k), 16);
+      vst1_u8(out + x, vqmovn_u16(vcombine_u16(lo, hi)));
+    }
+  }
+#endif
+  for (; x < n; x++) {
+    uint32_t value = samples > 1 ? (acc[x] * per + 32768) >> 16 : acc[x];
+    out[x] = value > 255 ? 255 : (uint8_t)value;
+  }
 }
 
-/* Gather every `step`-th column sum into its output column. */
-static inline void gather(const uint16_t *acc, const uint16_t *col, int w, int step, uint32_t *sum, int out) {
-  memset(sum, 0, (size_t)out * sizeof(*sum));
-  for (int x = 0; x < w; x += step) sum[col[x]] += acc[x];
+/* Output columns from an averaged line: each the mean of its two taps. */
+static inline void pick(const uint8_t *line, const uint16_t *tap, uint8_t *out, int n, int stride) {
+  for (int x = 0; x < n; x++) out[x * stride] = (uint8_t)((line[tap[2 * x]] + line[tap[2 * x + 1]] + 1) >> 1);
 }
 
 /* Colour in 1/64ths: BT.709 for high definition, BT.601 below, studio range unless full. */
@@ -530,21 +587,20 @@ static int convert_420(RbVideo *v, const AVFrame *f, uint8_t *rgba) {
   int w = v->c->width, h = v->c->height, cw = (w + 1) / 2, ch = (h + 1) / 2;
   int ow = v->out_w, oh = v->out_h, ocw = ow / 2, och = oh / 2, step = v->step;
   if (f->width < w || f->height < h) return AVERROR(EINVAL);
+  int aw = v->half ? (w + 1) / 2 : w, acw = v->half ? (cw + 1) / 2 : cw;
   /* Chroma first: averaged to half the output size. */
   for (int oy = 0; oy < och; oy++) {
-    int y0 = (int)((int64_t)oy * ch / och), y1 = (int)((int64_t)(oy + 1) * ch / och);
+    int y0 = (int)((int64_t)oy * ch / och), y1 = (int)((int64_t)(oy + 1) * ch / och), rows = 0;
     if (y1 <= y0) y1 = y0 + 1;
-    memset(v->acc_u, 0, (size_t)cw * sizeof(*v->acc_u));
-    memset(v->acc_v, 0, (size_t)cw * sizeof(*v->acc_v));
-    for (int y = y0; y < y1; y++) add_chroma_line(v, &s, y, cw);
-    gather(v->acc_u, v->col_c, cw, step, v->sum_u, ocw);
-    gather(v->acc_v, v->col_c, cw, step, v->sum_v, ocw);
+    memset(v->acc_u, 0, (size_t)(acw + 16) * sizeof(*v->acc_u));
+    memset(v->acc_v, 0, (size_t)(acw + 16) * sizeof(*v->acc_v));
+    for (int y = y0; y < y1; y += step, rows++) add_chroma_line(v, &s, y, cw);
     uint8_t *line = v->chroma + (size_t)oy * (size_t)ocw * 2;
-    uint32_t per_rows = 65536 / (uint32_t)(y1 - y0);
-    for (int x = 0; x < ocw; x++) {
-      line[2 * x] = (uint8_t)average(v->sum_u[x], v->per_c[x], per_rows);
-      line[2 * x + 1] = (uint8_t)average(v->sum_v[x], v->per_c[x], per_rows);
-    }
+    uint32_t samples = (uint32_t)rows << v->half;
+    average_line(v->acc_u, acw, samples, v->wide);
+    pick(v->wide, v->tap_c, line, ocw, 2);
+    average_line(v->acc_v, acw, samples, v->wide);
+    pick(v->wide, v->tap_c, line + 1, ocw, 2);
   }
   int hd = f->colorspace == AVCOL_SPC_BT709 || (f->colorspace == AVCOL_SPC_UNSPECIFIED && h > 576);
   int full = f->color_range == AVCOL_RANGE_JPEG || f->format == AV_PIX_FMT_YUVJ420P;
@@ -552,13 +608,12 @@ static int convert_420(RbVideo *v, const AVFrame *f, uint8_t *rgba) {
                    hd ? (full ? 12 : 14) : (full ? 22 : 25), hd ? (full ? 30 : 34) : (full ? 46 : 52),
                    hd ? (full ? 119 : 135) : (full ? 113 : 129)};
   for (int oy = 0; oy < oh; oy++) {
-    int y0 = (int)((int64_t)oy * h / oh), y1 = (int)((int64_t)(oy + 1) * h / oh);
+    int y0 = (int)((int64_t)oy * h / oh), y1 = (int)((int64_t)(oy + 1) * h / oh), rows = 0;
     if (y1 <= y0) y1 = y0 + 1;
-    memset(v->acc_y, 0, (size_t)w * sizeof(*v->acc_y));
-    for (int y = y0; y < y1; y++) add_luma_line(v, &s, y, w);
-    gather(v->acc_y, v->col_y, w, step, v->sum_y, ow);
-    uint32_t per_rows = 65536 / (uint32_t)(y1 - y0);
-    for (int x = 0; x < ow; x++) v->line_y[x] = (uint8_t)average(v->sum_y[x], v->per_y[x], per_rows);
+    memset(v->acc_y, 0, (size_t)(aw + 16) * sizeof(*v->acc_y));
+    for (int y = y0; y < y1; y += step, rows++) add_luma_line(v, &s, y, w);
+    average_line(v->acc_y, aw, (uint32_t)rows << v->half, v->wide);
+    pick(v->wide, v->tap_y, v->line_y, ow, 1);
     const uint8_t *chroma = v->chroma + (size_t)(oy / 2 < och ? oy / 2 : och - 1) * (size_t)ocw * 2;
     row_to_rgba(v->line_y, chroma, ow, &colour, rgba + (size_t)oy * (size_t)ow * 4);
   }
