@@ -27,6 +27,9 @@ skins. Written in Rust, it decodes with FFmpeg, draws with OpenGL ES on the Y2's
   songs you heard before stay in the list.
 - **Playlists** (`.m3u`/`.m3u8`) made and changed on the player or copied from a computer, and Favorites with a
   heart. Changes are written back into the playlist file.
+- **Wi-Fi Share**: copy music without a cable. Settings → Library → Wi-Fi Share shows a QR code; a phone (an
+  iPhone too), tablet or computer on the same Wi-Fi then has a file browser for Internal Storage and the SD card
+  in its browser ([guide](https://github.com/SchulzCode/Y2Linux/blob/main/docs/WIFI-SHARE.md)).
 
 **Listening**
 - Gapless playback, crossfade up to 12 s, shuffle by song or by album, repeat and a sleep timer.

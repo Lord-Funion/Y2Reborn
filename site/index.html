@@ -143,13 +143,14 @@
     <ul>
       <li><strong>Updates over Wi-Fi</strong>: the player offers a new version and installs it; your music and settings stay.</li>
       <li><strong>Last.fm</strong> scrobbling: scan a code with your phone to sign in; plays wait while you are offline.</li>
+      <li><strong>Wi-Fi Share</strong> <span class="tag">new</span>: the player becomes a small website on your home network. Scan its code with a phone, an iPhone too, or open its address on a computer, and copy music to Internal Storage or the SD card without a cable. <a href="https://github.com/SchulzCode/Y2Linux/blob/main/docs/WIFI-SHARE.md">How it works</a></li>
       <li>Copy music over USB from Windows, macOS and Linux, to Internal Storage or the SD card.</li>
     </ul>
   </div>
   <div class="shots three">
     <figure><img loading="lazy" src="img/output.png" width="480" height="360" alt="Choosing where the sound goes"><figcaption>Sound output</figcaption></figure>
     <figure><img loading="lazy" src="img/update-downloading.png" width="480" height="360" alt="A software update downloading"><figcaption>Software update</figcaption></figure>
-    <figure><img loading="lazy" src="img/lastfm-code.png" width="480" height="360" alt="Signing in to Last.fm with a code"><figcaption>Last.fm sign-in</figcaption></figure>
+    <figure><img loading="lazy" src="img/wifi-share.png" width="480" height="360" alt="Wi-Fi Share on the player: a QR code, an address and a six-digit code"><figcaption>Wi-Fi Share</figcaption></figure>
   </div>
 </section>
 
@@ -319,6 +320,7 @@
   <details><summary>Does it replace the original software?</summary><p>Yes. Y2Linux and Reborn take the place of the player's Android software. Going back is possible at any time: the Innioasis Updater offers <strong>Original Software</strong> for the Y2, and the Innioasis firmware package v3.2.0 restores it with SP Flash Tool.</p></details>
   <details><summary>What happens to my music?</summary><p>Music on the SD card is not touched. The first start sets up the player's Internal Storage anew; a small amount of files on it is kept, a large library is left alone until you have copied it away. Copy the music from Internal Storage to a computer before you install. <a href="https://github.com/SchulzCode/Y2Linux/blob/main/docs/STORAGE.md">How storage works</a></p></details>
   <details><summary>Why do I need a file from Innioasis?</summary><p>The Wi-Fi and Bluetooth chip needs its maker's firmware, which this project may not hand out. The player takes it from <code>system.img</code> of the Innioasis firmware package once you copy that file into the <strong>Firmware</strong> folder. Music works without it.</p></details>
+  <details><summary>Can I copy music from an iPhone or without a cable?</summary><p>Yes, with Wi-Fi Share (Settings → Library → Wi-Fi Share). The player shows a QR code and a six-digit code; any phone, tablet or computer on the same Wi-Fi opens a file browser for Internal Storage and the SD card in its browser. The connection is not encrypted, so use it on a network you trust. A USB cable is faster for a whole library.</p></details>
   <details><summary>Does FM radio work on my Y2?</summary><p>Only if your Y2's hardware receives FM. Later revisions of the Y2 do; the first revision has the tuner chip but picks up no stations, and no software can change that. Try it: Radio → FM Radio → Search for Stations, with wired headphones plugged in. If the search finds nothing, <strong>Hide FM Radio</strong> on that page takes FM out of the menu. FM also needs the same Innioasis <code>system.img</code> as Wi-Fi and Bluetooth; a player set up before FM arrived needs that file copied into the <strong>Firmware</strong> folder once more. <a href="https://github.com/SchulzCode/Y2Linux/blob/main/docs/FM-RADIO.md">FM radio guide</a></p></details>
   <details><summary>Is it finished?</summary><p>No. It is a public beta that gets updates often. What is known not to work is listed with every <a href="https://github.com/SchulzCode/Y2Linux/releases/latest">release</a>.</p></details>
   <details><summary>Something is wrong. What now?</summary><p>Send an error report from the player (Settings → System → Error Reports) and <a href="https://github.com/SchulzCode/Y2Reborn/issues">open an issue</a>. <strong>Restore Previous System</strong> in the player's diagnostics takes you back to the version you had before an update.</p></details>
