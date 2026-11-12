@@ -82,6 +82,9 @@ struct Reader {
     shown: u64,
     dropped: u64,
     hardware: bool,
+    /// Time spent decoding and converting pictures, for the log.
+    decode: Duration,
+    convert: Duration,
 }
 
 impl Reader {
@@ -107,6 +110,8 @@ impl Reader {
                     shown: 0,
                     dropped: 0,
                     hardware: false,
+                    decode: Duration::ZERO,
+                    convert: Duration::ZERO,
                 };
                 reader.run();
             }
@@ -139,6 +144,8 @@ impl Reader {
             "shown": self.shown, "dropped": self.dropped, "hardware": self.hardware,
             "codec": self.video.info.codec, "width": self.video.info.width,
             "height": self.video.info.height, "seconds": started.elapsed().as_secs(),
+            "decode_ms": self.decode.as_millis() as u64,
+            "convert_ms": self.convert.as_millis() as u64,
         });
         match result {
             Ok(()) => self
@@ -152,7 +159,10 @@ impl Reader {
 
     /// Decode one picture and show, hold or drop it. `false`: the reader was told to stop.
     fn picture(&mut self) -> Result<bool, String> {
-        let Some(picture) = self.video.next_picture()? else {
+        let decoding = Instant::now();
+        let next = self.video.next_picture()?;
+        self.decode += decoding.elapsed();
+        let Some(picture) = next else {
             return self.at_the_end();
         };
         self.hardware |= picture.hardware;
@@ -197,7 +207,9 @@ impl Reader {
         let size = width as usize * height as usize * 4;
         let mut rgba = self.link.lock().spare.take().unwrap_or_default();
         rgba.resize(size, 0);
+        let converting = Instant::now();
         self.video.convert(&mut rgba)?;
+        self.convert += converting.elapsed();
         let subtitle = self.video.subtitle(pts);
         self.link.lock().frame = Some(Frame {
             rgba,

@@ -204,8 +204,11 @@ static void output_size(RbVideo *v, int max_w, int max_h) {
   if (v->out_h < 2) v->out_h = 2;
   if (v->out_w > max_w) v->out_w = max_w & ~1;
   if (v->out_h > max_h) v->out_h = max_h & ~1;
-  /* Far more source than screen: every second sample is plenty for the average. */
-  v->step = w >= 3 * v->out_w && h >= 3 * v->out_h ? 2 : 1;
+  /* More source than screen: the average needs about four samples for three screen pixels,
+   * not every one (1280 wide for 480: every second sample and line; 1920: every third). */
+  v->step = w * 3 / (v->out_w * 4);
+  if (h * 3 / (v->out_h * 4) < v->step) v->step = h * 3 / (v->out_h * 4);
+  if (v->step < 1) v->step = 1;
 }
 
 static int make_scaler(RbVideo *v) {
@@ -383,7 +386,8 @@ static void sum_luma_row(const RbVideo *v, const Source *s, int y, int w) {
     const uint8_t *p = luma(s, y, chunk);
     const uint16_t *col = v->col_y + chunk * 16;
     int n = w - chunk * 16 < 16 ? w - chunk * 16 : 16;
-    for (int x = 0; x < n; x += step) v->sum_y[col[x]] += p[x];
+    /* Every `step`-th column of the picture, whichever chunk it falls in. */
+    for (int x = (step - chunk * 16 % step) % step; x < n; x += step) v->sum_y[col[x]] += p[x];
   }
 }
 
@@ -394,7 +398,7 @@ static void sum_chroma_row(const RbVideo *v, const Source *s, int y, int cw) {
       const uint8_t *p = s->f->data[1] + ((size_t)(y / 16 * s->blocks + chunk) * 16 + (size_t)(y % 16)) * 16;
       const uint16_t *col = v->col_c + chunk * 8;
       int n = cw - chunk * 8 < 8 ? cw - chunk * 8 : 8;
-      for (int x = 0; x < n; x += step) {
+      for (int x = (step - chunk * 8 % step) % step; x < n; x += step) {
         v->sum_u[col[x]] += p[2 * x];
         v->sum_v[col[x]] += p[2 * x + 1];
       }
