@@ -132,6 +132,23 @@ figure { margin: 0; }
 figure img, .skin-stage img { width: 100%; border-radius: 16px; border: 1px solid var(--glass); box-shadow: 0 24px 50px -24px rgba(0, 0, 0, .9); }
 figcaption { color: var(--dim); font-size: .82rem; margin-top: .5rem; text-align: center; }
 
+/* Numbers and small things */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 2.5rem 0 3rem; border-radius: var(--radius); border: 1px solid var(--rule); background: var(--sheet); overflow: hidden; }
+.stat { padding: 1.6rem 1.7rem; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); margin: 0 -1px -1px 0; }
+.stat strong { display: block; font-size: clamp(1.9rem, 3.6vw, 2.7rem); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; font-variant-numeric: tabular-nums; background: linear-gradient(90deg, var(--text) 30%, var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.stat span { display: block; margin-top: .5rem; color: var(--muted); font-size: .92rem; max-width: 22em; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.tile { padding: 1.4rem 1.5rem; border-radius: var(--radius); background: var(--glass-faint); border: 1px solid var(--rule); }
+.tile svg { width: 26px; height: 26px; fill: none; stroke: var(--accent); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; margin-bottom: .9rem; display: block; }
+.tile p { color: var(--muted); font-size: .95rem; margin: .45rem 0 0; }
+.tile strong { color: var(--text); font-weight: 600; }
+
+/* Open and private */
+.open { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; border-top: 1px solid var(--rule); padding-top: 3.5rem !important; padding-bottom: 3.5rem !important; }
+.pillar h3 { padding-left: .9rem; border-left: 3px solid var(--accent); }
+.pillar p { color: var(--muted); font-size: .95rem; margin: .8rem 0 0; }
+.pillar strong { color: var(--text); font-weight: 600; }
+
 /* Skins */
 .skins { text-align: center; }
 .skins .lead { margin: 0 auto 2.5rem; }
@@ -196,12 +213,13 @@ footer p { max-width: 760px; margin: 0 auto .8em; }
   .bar .button { margin-left: auto; }
   .hero, .feature { grid-template-columns: 1fr; }
   .feature.flip .copy { order: 0; }
-  .cards, .ways { grid-template-columns: 1fr 1fr; }
+  .cards, .ways, .tiles, .stats { grid-template-columns: 1fr 1fr; }
+  .open { grid-template-columns: 1fr; gap: 1.8rem; }
   .hero-text { text-align: left; }
 }
 @media (max-width: 560px) {
   body { font-size: 16px; }
-  .cards, .ways { grid-template-columns: 1fr; }
+  .cards, .ways, .tiles, .stats { grid-template-columns: 1fr; }
   .shots.three { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
