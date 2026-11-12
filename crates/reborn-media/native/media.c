@@ -1131,7 +1131,8 @@ static int open_stream(RbMedia *m, int fd) {
   m->f->max_streams = 4;
   AVDictionary *options = NULL;
   av_dict_set(&options, "protocol_whitelist", "file", 0);
-  av_dict_set(&options, "format_whitelist", "mp3,aac,ogg,flac", 0);
+  /* wav: the FM tuner's capture arrives as a WAV stream (reborn_platform::fm). */
+  av_dict_set(&options, "format_whitelist", "mp3,aac,ogg,flac,wav", 0);
   uint64_t start = micros();
   int ret = avformat_open_input(&m->f, "", NULL, &options);
   m->open_us = micros() - start;
