@@ -181,6 +181,7 @@ impl Runtime {
     /// Once a tick: a finished search, the Radio row, and (true) the Stereo/Mono line of an FM
     /// station that is playing, which has no song titles to look for.
     pub(crate) fn fm_tick(&mut self) -> bool {
+        self.share_tick();
         let finished = FM.with_borrow_mut(|state| {
             let answer = state.search.as_ref().map(Receiver::try_recv);
             match answer {

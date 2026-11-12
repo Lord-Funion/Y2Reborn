@@ -329,6 +329,21 @@ pub enum FmView {
     },
 }
 
+/// The filter of `Screen::SettingsLibrary` that is the Wi-Fi Share page.
+pub const SHARE: &str = "share";
+
+/// Settings → Library → Wi-Fi Share as the player knows it: empty while it is not running.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ShareView {
+    /// What a browser opens (`http://192.168.1.23`), and the code it asks for.
+    pub address: String,
+    pub code: String,
+    /// Files received since sharing started, and whether one is arriving now.
+    pub received: u64,
+    pub busy: bool,
+    pub error: Option<String>,
+}
+
 /// The filter of `Screen::Radio` that shows the internet stations' menu below Radio's two kinds.
 pub const RADIO_INTERNET: &str = "Internet Radio";
 
@@ -438,6 +453,7 @@ pub struct Ui {
     pub bluetooth: BluetoothView,
     pub radio: RadioView,
     pub lastfm: LastFmView,
+    pub share: ShareView,
     pub pairing: Option<String>,
     pub pairing_focus: usize,
     /// The Brightness card follows the wheel until Select or Back.

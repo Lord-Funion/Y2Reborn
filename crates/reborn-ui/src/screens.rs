@@ -119,6 +119,10 @@ fn native_screen(
         Screen::Radio | Screen::RadioStations | Screen::RadioCategories | Screen::RadioInfo => {
             crate::views_radio::screen(c, ui, m, tracks, interactive)
         }
+        // Wi-Fi Share's address and code: a page with a QR code, like the Last.fm sign-in.
+        Screen::SettingsLibrary if !ui.share.address.is_empty() => {
+            views_settings::screen(c, ui, m, tracks, interactive)
+        }
         _ => views_system::page(c, ui, m, tracks, interactive),
     }
 }
@@ -246,6 +250,10 @@ pub(crate) fn skin_layout<'s>(
     // The Last.fm sign-in code is Reborn's own drawing in every skin: a
     // generic page layout would show its text without the code.
     if m.screen == Screen::LastFm && ui.lastfm.approval.is_some() {
+        return None;
+    }
+    // So is Wi-Fi Share's address with its code.
+    if m.screen == Screen::SettingsLibrary && !ui.share.address.is_empty() {
         return None;
     }
     let page = skin_page(ui, m, tracks);
@@ -729,6 +737,7 @@ pub fn screen_title(m: &AppModel) -> String {
         Screen::TimeZone => crate::time_zone::title(m).unwrap_or("Time Zone").into(),
         Screen::DateTime => "Date & Time".into(),
         Screen::HomeMenu => "Home Menu".into(),
+        Screen::SettingsLibrary if m.navigation.filter == crate::SHARE => "Wi-Fi Share".into(),
         Screen::SettingsLibrary => "Library".into(),
         Screen::SettingsDisplay => "Display".into(),
         Screen::Customize => crate::customize::title(&m.navigation.filter).into(),

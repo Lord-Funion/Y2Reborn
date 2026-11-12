@@ -58,7 +58,7 @@ Settings
 │  ├ Browsing                Cover Flow · Sort Albums · Artist's Albums › · Artists List
 │  │                         · Lists Wrap Around › · FM Radio
 │  └ Wheel & Buttons         Wheel on Now Playing · Wheel Click · Haptics › · Buttons While Screen Off ›
-├ Library                    Scan for Music · Storage › · Last.fm ›
+├ Library                    Scan for Music · Storage › · Wi-Fi Share › · Last.fm ›
 └ System                     Software Update › · Time Zone › · Date & Time › · Error Reports ›
                              · Reset & Maintenance › · About ›
    (About › Version, tapped seven times: the service menu — codecs, Battery, Sleep, Diagnostics)
@@ -74,6 +74,10 @@ Radio opens as a choice of **FM Radio** and **Internet Radio** (the internet sta
 with the filter "Internet Radio"); without it, or on a player with no tuner, Radio is the internet stations'
 menu itself. The first Y2 revision has the tuner but receives nothing: the page of a search that found no
 station offers **Hide FM Radio**, which turns the switch off.
+
+Library's **Wi-Fi Share** is a page of `Screen::SettingsLibrary` (filter "share"): the address of the player's
+file browser as a QR code and in letters, and the six-digit code it asks for. Sharing runs exactly while that
+page is on screen; **Stop Sharing** is Back ([plan](REBORN-WIFI-SHARE.md)).
 
 Library's hint line names the audio the last scan left out because Reborn cannot play its type ("43 files can't
 be played here (WMA, DSD), so they aren't in your library.", Y2Reborn #104); without such files there is no line.

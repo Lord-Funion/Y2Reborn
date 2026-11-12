@@ -257,6 +257,14 @@ impl Ui {
             }
             "haptics" => Effect::SetHaptics(m.settings.haptics.next()),
             "wheel_click" => Effect::SetWheelClick(m.settings.wheel_click.next()),
+            "wifi_share" => {
+                Self::go(m, Screen::SettingsLibrary, crate::SHARE);
+                Effect::None
+            }
+            "share_stop" => {
+                Self::back(m);
+                Effect::None
+            }
             "fm_radio" => Effect::Radio(reborn_core::RadioRequest::FmShow(!m.settings.fm_radio)),
             "speaker" => Effect::SetSpeaker(!m.settings.speaker),
             "album_view" => Effect::SetAlbumView(m.settings.album_view.next()),

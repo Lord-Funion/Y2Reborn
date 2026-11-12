@@ -3,6 +3,7 @@
 //! A page is an optional hero message (empty, off, error or progress state),
 //! a few static facts, and the interactive rows the wheel moves through.
 //! Engineering detail is never placed here; it belongs to `diagnostics`.
+mod library;
 mod radio;
 use crate::{
     components::output_label, BluetoothDeviceView, Item, NetworkView, RowKind, Ui, WifiStatus,
@@ -206,7 +207,7 @@ pub fn page(ui: &Ui, m: &AppModel, tracks: &[Track]) -> Page {
             row("Crossfade", "crossfade", crate::crossfade_label(m.settings.crossfade_ms))
                 .with_kind(RowKind::Chevron),
         ]),
-        Screen::SettingsLibrary => library(ui, m, tracks),
+        Screen::SettingsLibrary => library::page(ui, m, tracks),
         Screen::SettingsDisplay => {
             let mut rows = vec![];
             if m.platform.brightness_available {
@@ -870,32 +871,6 @@ fn pc_transfer(m: &AppModel) -> Page {
 
 /// Settings > Library: your music, where it is kept, and where your listening goes (owner,
 /// 9.2.10: Scan for Music sat in Storage, Last.fm at the top).
-fn library(ui: &Ui, m: &AppModel, tracks: &[Track]) -> Page {
-    // Short enough for the value column; the root row counts the songs too.
-    let scan = if m.library.scanning {
-        "Scanning…".to_owned()
-    } else if m.library.error.is_some() {
-        "Last scan interrupted".to_owned()
-    } else {
-        crate::components::count(ui.library_counts(m, tracks)[2], "song", "songs")
-    };
-    let storage = free_text(&m.platform.snapshot.storage.internal)
-        .map(|t| t.split(" free").next().unwrap_or("").to_owned() + " free")
-        .unwrap_or_default();
-    let last = m.library.last_scan.as_ref().filter(|_| !m.library.scanning);
-    Page {
-        status: last.and_then(crate::components::left_out_note),
-        ..Page::rows(vec![
-            disabled(
-                row("Scan for Music", "scan_library", scan),
-                !m.library.scanning,
-            ),
-            row("Storage", "storage", storage).with_kind(RowKind::Chevron),
-            row("Last.fm", "lastfm", lastfm_summary(ui, m)).with_kind(RowKind::Chevron),
-        ])
-    }
-}
-
 /// Last.fm's row: the account, the log file, or Off.
 fn lastfm_summary(ui: &Ui, m: &AppModel) -> String {
     match &ui.lastfm.user {

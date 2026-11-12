@@ -3633,6 +3633,43 @@ fn fm(khz: u32) -> reborn_core::RadioStation {
 }
 
 #[test]
+fn wifi_share_is_a_page_of_library_that_stops_with_back() {
+    let mut ui = radios();
+    let mut m = app(Screen::SettingsLibrary);
+    let keys = |ui: &Ui, m: &AppModel| -> Vec<String> {
+        let rows = ui.rows(m, &m.library.tracks);
+        rows.into_iter().map(|r| r.key).collect()
+    };
+    assert_eq!(
+        keys(&ui, &m),
+        ["scan_library", "storage", "wifi_share", "lastfm"]
+    );
+    assert_eq!(select_key(&mut ui, &mut m, "wifi_share"), Effect::None);
+    assert_eq!(
+        (m.screen, m.navigation.filter.as_str()),
+        (Screen::SettingsLibrary, crate::SHARE)
+    );
+    assert_eq!(crate::screens::screen_title(&m), "Wi-Fi Share");
+    // Without Wi-Fi the page leads there; with it, it waits for the server, then shows the address.
+    ui.wifi.status = WifiStatus::Disconnected;
+    assert_eq!(keys(&ui, &m), ["radio_wifi"]);
+    ui.wifi.status = WifiStatus::Connected("Home".into());
+    assert!(keys(&ui, &m).is_empty());
+    ui.share.address = "http://192.168.1.23".into();
+    ui.share.code = "482913".into();
+    ui.share.received = 2;
+    let page = crate::pages::page(&ui, &m, &m.library.tracks.clone());
+    assert_eq!(page.hero.expect("address").title, "http://192.168.1.23");
+    assert_eq!(page.rows[0].secondary, "2 files received");
+    // Stop Sharing is Back: the runtime stops the server when the page is left.
+    assert_eq!(select_key(&mut ui, &mut m, "share_stop"), Effect::None);
+    assert_eq!(
+        (m.screen, m.navigation.filter.as_str()),
+        (Screen::SettingsLibrary, "")
+    );
+}
+
+#[test]
 fn radio_offers_fm_and_internet_where_the_player_has_fm() {
     use crate::FmView;
     let mut ui = radios();
@@ -4731,8 +4768,8 @@ fn lastfm_settings_follow_the_account_and_the_sign_in() {
     assert_eq!(row(&ui, &m).secondary, "Off");
     m.settings.scrobble_log = true;
     assert_eq!(row(&ui, &m).secondary, "Log file");
-    // Library: Scan for Music, Storage and Last.fm.
-    assert_eq!(ui.rows(&m, &m.library.tracks).len(), 3);
+    // Library: Scan for Music, Storage, Wi-Fi Share and Last.fm.
+    assert_eq!(ui.rows(&m, &m.library.tracks).len(), 4);
     assert_eq!(select_key(&mut ui, &mut m, "lastfm"), Effect::None);
     assert_eq!(m.screen, Screen::LastFm);
     // A build without the app key: the log still works.

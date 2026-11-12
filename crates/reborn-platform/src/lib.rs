@@ -17,6 +17,7 @@ pub mod power;
 pub mod radio;
 mod radiod;
 pub mod scrobble;
+pub mod share;
 pub mod storage;
 pub mod wifi;
 pub mod workload;

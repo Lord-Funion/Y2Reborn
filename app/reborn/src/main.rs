@@ -15,6 +15,7 @@ mod playback;
 mod playlists;
 mod runtime;
 mod scrobbling;
+mod share;
 mod skins;
 mod sleep_timer;
 mod video;

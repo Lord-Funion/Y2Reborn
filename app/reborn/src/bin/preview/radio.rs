@@ -1,4 +1,5 @@
-//! Radio fixtures of the preview renderer: the internet stations of its lists and the FM pages.
+//! Radio and Wi-Fi Share fixtures of the preview renderer: the internet stations of its lists, the
+//! FM pages and the share page.
 use super::Setup;
 use reborn_core::{AppModel, Screen};
 
@@ -76,8 +77,15 @@ fn case(
     (name, model, Box::new(setup))
 }
 
-/// Radio's two kinds, the internet stations' menu below them, and FM's pages.
+/// Radio's two kinds, the internet stations' menu below them, FM's pages, and the Wi-Fi Share
+/// pages after them.
 pub fn fm_cases(at: fn(Screen, &str) -> AppModel) -> Vec<(&'static str, AppModel, Setup)> {
+    let mut cases = fm_pages(at);
+    cases.extend(share_cases(at));
+    cases
+}
+
+fn fm_pages(at: fn(Screen, &str) -> AppModel) -> Vec<(&'static str, AppModel, Setup)> {
     use reborn_core::RadioRequest::Fm;
     use reborn_ui::FmView;
     let fm = "FM Radio";
@@ -119,5 +127,23 @@ pub fn fm_cases(at: fn(Screen, &str) -> AppModel) -> Vec<(&'static str, AppModel
                 ui.radio.last_request = Some(Fm);
             },
         ),
+    ]
+}
+
+/// Settings → Library with its Wi-Fi Share row, and the share page running and without Wi-Fi.
+fn share_cases(at: fn(Screen, &str) -> AppModel) -> Vec<(&'static str, AppModel, Setup)> {
+    let page = || at(Screen::SettingsLibrary, reborn_ui::SHARE);
+    vec![
+        case("69-library", at(Screen::SettingsLibrary, ""), |_, m| {
+            m.navigation.focus = 2;
+        }),
+        case("69b-wifi-share", page(), |ui, _| {
+            ui.share.address = "http://192.168.1.23".into();
+            ui.share.code = "482913".into();
+            ui.share.received = 12;
+        }),
+        case("69c-wifi-share-no-wifi", page(), |ui, _| {
+            ui.wifi.status = reborn_ui::WifiStatus::Disconnected;
+        }),
     ]
 }
