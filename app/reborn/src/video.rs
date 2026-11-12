@@ -44,6 +44,8 @@ struct Shared {
     reported: Option<Instant>,
     playing: bool,
     stop: bool,
+    /// The film could not be opened.
+    failed: bool,
     frame: Option<Frame>,
     /// A picture buffer the main loop is done with, to be filled again.
     spare: Option<Vec<u8>>,
@@ -75,8 +77,6 @@ struct Reader {
     video: Video,
     link: Arc<Link>,
     log: Observer,
-    /// Kept so the file stays the one that was chosen while it is read.
-    _pin: Arc<PinnedTrack>,
     /// After a seek: decode without showing until the sound's position is reached.
     catching_up: bool,
     shown: u64,
@@ -85,6 +85,40 @@ struct Reader {
 }
 
 impl Reader {
+    /// Open the film and read it until told to stop. Opening reads the file's headers and wakes
+    /// the decoder, so it happens here, not in the main loop.
+    fn open_and_run(pin: PinnedTrack, stem: String, link: Arc<Link>, log: Observer) {
+        match Video::open(pin.path(), SCREEN.0, SCREEN.1, true) {
+            Ok(mut video) => {
+                // Subtitles beside the film ("Film.srt" for "Film.mkv"), when it has none inside.
+                for ending in ["srt", "ass", "ssa", "vtt"] {
+                    if video.info.subtitles {
+                        break;
+                    }
+                    if let Ok(file) = pin.open_sidecar(&format!("{stem}.{ending}")) {
+                        video.subtitles_from(file.path());
+                    }
+                }
+                let reader = Reader {
+                    video,
+                    link,
+                    log,
+                    catching_up: false,
+                    shown: 0,
+                    dropped: 0,
+                    hardware: false,
+                };
+                reader.run();
+            }
+            Err(e) => {
+                log.emit(Level::Warn, "video", "open_failed", &e, None, json!({}));
+                link.lock().failed = true;
+            }
+        }
+        // The file stays the chosen one while it is read.
+        drop(pin);
+    }
+
     fn run(mut self) {
         let started = Instant::now();
         let mut result = Ok(());
@@ -271,25 +305,9 @@ impl Player {
             && self.failed != Some(id)
     }
 
-    /// Show the film `id` from `position_ms`.
-    fn start(&mut self, id: i64, pin: PinnedTrack, position_ms: u64, log: &Observer) {
+    /// Show the film `id` (its file name without the ending is `stem`) from `position_ms`.
+    fn start(&mut self, id: i64, pin: PinnedTrack, stem: String, position_ms: u64, log: &Observer) {
         self.stop();
-        let pin = Arc::new(pin);
-        let video = match Video::open(pin.path(), SCREEN.0, SCREEN.1, true) {
-            Ok(video) => video,
-            Err(e) => {
-                log.emit(
-                    Level::Warn,
-                    "video",
-                    "open_failed",
-                    &e,
-                    None,
-                    json!({"track": id}),
-                );
-                self.failed = Some(id);
-                return;
-            }
-        };
         self.failed = None;
         let link = Arc::new(Link {
             shared: Mutex::new(Shared {
@@ -298,29 +316,24 @@ impl Player {
             }),
             changed: Condvar::new(),
         });
-        let reader = Reader {
-            video,
-            link: link.clone(),
-            log: log.clone(),
-            _pin: pin,
-            catching_up: false,
-            shown: 0,
-            dropped: 0,
-            hardware: false,
-        };
-        match std::thread::Builder::new()
+        let (reader_link, reader_log) = (link.clone(), log.clone());
+        let spawned = std::thread::Builder::new()
             .name("video".into())
-            .spawn(move || reader.run())
-        {
+            .spawn(move || Reader::open_and_run(pin, stem, reader_link, reader_log));
+        match spawned {
             Ok(thread) => self.running = Some((id, link, thread)),
-            Err(e) => log.emit(
-                Level::Warn,
-                "video",
-                "thread_failed",
-                &e.to_string(),
-                None,
-                json!({}),
-            ),
+            Err(e) => {
+                let error = e.to_string();
+                log.emit(
+                    Level::Warn,
+                    "video",
+                    "thread_failed",
+                    &error,
+                    None,
+                    json!({}),
+                );
+                self.failed = Some(id);
+            }
         }
     }
 
@@ -359,9 +372,17 @@ impl Player {
     }
 
     /// The newest picture since the last call, and the buffer of the one before to fill again.
-    fn take(&self, spare: Option<Vec<u8>>) -> Option<Frame> {
-        let (_, link, _) = self.running.as_ref()?;
+    fn take(&mut self, spare: Option<Vec<u8>>) -> Option<Frame> {
+        let (id, link, _) = self.running.as_ref()?;
         let mut s = link.lock();
+        if s.failed {
+            // Not tried again until another film plays.
+            let id = *id;
+            drop(s);
+            self.stop();
+            self.failed = Some(id);
+            return None;
+        }
         if spare.is_some() && s.spare.is_none() {
             s.spare = spare;
         }
@@ -429,12 +450,17 @@ impl Runtime {
             return;
         };
         if player.wants(id) {
-            let pin = self
-                .model
-                .current()
-                .map(|t| pin_track(t, &self.model.settings.music_directory));
-            match pin {
-                Some(Ok(pin)) => player.start(id, pin, self.model.position_ms, &self.log),
+            let film = self.model.current().map(|t| {
+                let stem = t.path.file_stem().unwrap_or_default().to_string_lossy();
+                (
+                    pin_track(t, &self.model.settings.music_directory),
+                    stem.into_owned(),
+                )
+            });
+            match film {
+                Some((Ok(pin), stem)) => {
+                    player.start(id, pin, stem, self.model.position_ms, &self.log)
+                }
                 _ => player.failed = Some(id),
             }
         }

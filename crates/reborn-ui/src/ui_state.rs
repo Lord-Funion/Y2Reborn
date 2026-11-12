@@ -98,7 +98,7 @@ impl Ui {
         self.volume_until.is_some()
             || self.power_hold.is_some()
             || self.spinning
-            || self.gliding()
+            || self.in_motion()
             || glyph_cache::pending()
     }
 
@@ -106,8 +106,14 @@ impl Ui {
     /// the cover's flight, and (Beta 7.2) every eased value on its way, a
     /// screen sliding in and the playing wave. Spinners stay at the calm rate.
     pub fn gliding(&self) -> bool {
+        // A film's pictures come at their own times: the loop looks for one at the panel's
+        // rate, but only a new picture is a reason to draw (`in_motion` leaves films out).
+        self.film_running || self.in_motion()
+    }
+
+    /// Something eased or gliding is on its way and needs the next frame drawn.
+    fn in_motion(&self) -> bool {
         self.flow.borrow().moving()
-            || self.film_running
             || self.transition_progress().is_some()
             || (self.ui_motion
                 && (self.motion.moving()

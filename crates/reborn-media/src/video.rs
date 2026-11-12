@@ -41,6 +41,7 @@ type Seek = unsafe extern "C" fn(*mut c_void, i64) -> c_int;
 type Hurry = unsafe extern "C" fn(*mut c_void, c_int);
 type Subtitle = unsafe extern "C" fn(*mut c_void, i64, *mut c_char, c_int) -> c_int;
 type Close = unsafe extern "C" fn(*mut c_void);
+type Subtitles = unsafe extern "C" fn(*mut c_void, *const c_char) -> c_int;
 type Thumbnail = unsafe extern "C" fn(*const c_char, *mut u8, c_int) -> c_int;
 
 struct Api {
@@ -50,6 +51,7 @@ struct Api {
     seek: Seek,
     hurry: Hurry,
     subtitle: Subtitle,
+    subtitles: Subtitles,
     close: Close,
     thumbnail: Thumbnail,
 }
@@ -68,6 +70,7 @@ fn api() -> Result<&'static Api, String> {
                 seek: symbol(handle, b"rb_video_seek\0")?,
                 hurry: symbol(handle, b"rb_video_hurry\0")?,
                 subtitle: symbol(handle, b"rb_video_subtitle\0")?,
+                subtitles: symbol(handle, b"rb_video_subtitles\0")?,
                 close: symbol(handle, b"rb_video_close\0")?,
                 thumbnail: symbol(handle, b"rb_video_thumbnail\0")?,
             })
@@ -208,6 +211,18 @@ impl Video {
     pub fn hurry(&mut self, on: bool) {
         // SAFETY: the reader is live and exclusively borrowed.
         unsafe { (self.api.hurry)(self.raw.as_ptr(), c_int::from(on)) }
+    }
+
+    /// Read the subtitle file `path` (SubRip, ASS, WebVTT) for a film without a text track of its
+    /// own; `true` when it gave lines.
+    pub fn subtitles_from(&mut self, path: &Path) -> bool {
+        let Ok(name) = c_path(path) else {
+            return false;
+        };
+        // SAFETY: the reader is live and exclusively borrowed; the path is NUL-terminated.
+        let lines = unsafe { (self.api.subtitles)(self.raw.as_ptr(), name.as_ptr()) };
+        self.info.subtitles |= lines > 0;
+        lines > 0
     }
 
     /// The subtitle text shown at `ms` (lines separated by '\n'), empty for none.

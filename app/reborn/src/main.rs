@@ -642,7 +642,13 @@ fn main_loop_interval(
     since_frame: Duration,
 ) -> Duration {
     if (dirty || gliding) && !screen_off {
-        frame_gap(gliding).saturating_sub(since_frame)
+        let wait = frame_gap(gliding).saturating_sub(since_frame);
+        // A film between two pictures: nothing to draw yet, look again shortly (never spin).
+        if !dirty && wait.is_zero() {
+            Duration::from_millis(5)
+        } else {
+            wait
+        }
     } else if playing {
         Duration::from_millis(50)
     } else if screen_off {

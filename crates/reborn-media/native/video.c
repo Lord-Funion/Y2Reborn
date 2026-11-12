@@ -127,7 +127,34 @@ static void add_cue(RbVideo *v, AVCodecContext *decoder, AVPacket *p, AVRational
   if (cue->text[0]) v->cue_count++;
 }
 
-/* A subtitle file beside the video ("film.srt", "film.ass", "film.vtt" for "film.mkv"): read whole. */
+/* Read the subtitle file `name` (SubRip, ASS, WebVTT) whole, for a film without a text track of
+ * its own. Returns the number of lines it gave. */
+int rb_video_subtitles(RbVideo *v, const char *name) {
+  AVFormatContext *f = NULL;
+  AVCodecContext *c = NULL;
+  int before = v->cue_count;
+  if (v->sub_stream >= 0 || avformat_open_input(&f, name, NULL, NULL) < 0) return 0;
+  if (avformat_find_stream_info(f, NULL) >= 0 && f->nb_streams &&
+      text_subtitle(f->streams[0]->codecpar->codec_id)) {
+    const AVCodec *codec = avcodec_find_decoder(f->streams[0]->codecpar->codec_id);
+    c = codec ? avcodec_alloc_context3(codec) : NULL;
+    if (c && avcodec_parameters_to_context(c, f->streams[0]->codecpar) >= 0 &&
+        avcodec_open2(c, codec, NULL) >= 0) {
+      int64_t offset = v->start_ms;
+      v->start_ms = 0; /* a file's own times count from the start of the film */
+      while (av_read_frame(f, v->p) >= 0) {
+        add_cue(v, c, v->p, f->streams[0]->time_base);
+        av_packet_unref(v->p);
+      }
+      v->start_ms = offset;
+    }
+  }
+  avcodec_free_context(&c);
+  avformat_close_input(&f);
+  return v->cue_count - before;
+}
+
+/* A subtitle file beside the video ("film.srt", "film.ass", "film.vtt" for "film.mkv"). */
 static void load_subtitle_file(RbVideo *v, const char *path) {
   static const char *const endings[] = {".srt", ".ass", ".ssa", ".vtt"};
   const char *dot = strrchr(path, '.'), *slash = strrchr(path, '/');
@@ -135,28 +162,9 @@ static void load_subtitle_file(RbVideo *v, const char *path) {
   char name[4096];
   if (stem + 8 > sizeof(name)) return;
   for (unsigned i = 0; i < sizeof(endings) / sizeof(*endings) && !v->cue_count; i++) {
-    AVFormatContext *f = NULL;
-    AVCodecContext *c = NULL;
     memcpy(name, path, stem);
     strcpy(name + stem, endings[i]);
-    if (avformat_open_input(&f, name, NULL, NULL) < 0) continue;
-    if (avformat_find_stream_info(f, NULL) >= 0 && f->nb_streams &&
-        text_subtitle(f->streams[0]->codecpar->codec_id)) {
-      const AVCodec *codec = avcodec_find_decoder(f->streams[0]->codecpar->codec_id);
-      c = codec ? avcodec_alloc_context3(codec) : NULL;
-      if (c && avcodec_parameters_to_context(c, f->streams[0]->codecpar) >= 0 &&
-          avcodec_open2(c, codec, NULL) >= 0) {
-        int64_t offset = v->start_ms;
-        v->start_ms = 0; /* a file's own times count from the start of the film */
-        while (av_read_frame(f, v->p) >= 0) {
-          add_cue(v, c, v->p, f->streams[0]->time_base);
-          av_packet_unref(v->p);
-        }
-        v->start_ms = offset;
-      }
-    }
-    avcodec_free_context(&c);
-    avformat_close_input(&f);
+    rb_video_subtitles(v, name);
   }
 }
 
