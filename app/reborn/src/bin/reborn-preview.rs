@@ -11,7 +11,7 @@ use reborn_ui::{BluetoothDeviceView, BluetoothView, NetworkView, Ui, WifiStatus,
 use serde_json::{json, Value};
 use std::{fs, path::PathBuf};
 
-#[path = "preview_radio.rs"]
+#[path = "preview/radio.rs"]
 mod preview_radio;
 #[path = "../skins.rs"]
 mod skins;
