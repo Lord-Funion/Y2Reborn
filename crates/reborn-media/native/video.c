@@ -12,6 +12,9 @@
  */
 #define _POSIX_C_SOURCE 200809L
 #define _FILE_OFFSET_BITS 64
+/* The picture loops run for every pixel of every picture: built for speed, whatever the size
+ * setting of the rest of the membrane. */
+#pragma GCC optimize("O2")
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/imgutils.h>
@@ -53,6 +56,7 @@ typedef struct RbVideo {
   uint32_t *sum_y, *sum_u, *sum_v; /* one output row of sums */
   uint16_t *col_y, *col_c;         /* source column -> output column */
   uint32_t *per_y, *per_c;         /* 65536 / samples summed into each output column of a row */
+  uint8_t *first_y, *first_c;      /* first sampled column within each 16-sample (8-pair) chunk */
   uint8_t *chroma;                 /* averaged CbCr at half the output size */
   RbCue *cues;
   int cue_count, cue_next;
@@ -173,6 +177,8 @@ static void free_scaler(RbVideo *v) {
   free(v->sum_y); free(v->sum_u); free(v->sum_v);
   free(v->col_y); free(v->col_c); free(v->chroma);
   free(v->per_y); free(v->per_c);
+  free(v->first_y); free(v->first_c);
+  v->first_y = v->first_c = NULL;
   v->sum_y = v->sum_u = v->sum_v = v->per_y = v->per_c = NULL;
   v->col_y = v->col_c = NULL;
   v->chroma = NULL;
@@ -226,6 +232,9 @@ static int make_scaler(RbVideo *v) {
   free_scaler(v);
   v->per_y = calloc((size_t)ow, sizeof(*v->per_y));
   v->per_c = calloc((size_t)ocw, sizeof(*v->per_c));
+  int chunks = w / 16 + 1;
+  v->first_y = malloc((size_t)chunks);
+  v->first_c = malloc((size_t)chunks);
   v->sum_y = calloc((size_t)ow, sizeof(*v->sum_y));
   v->sum_u = calloc((size_t)ocw, sizeof(*v->sum_u));
   v->sum_v = calloc((size_t)ocw, sizeof(*v->sum_v));
@@ -233,8 +242,13 @@ static int make_scaler(RbVideo *v) {
   v->col_c = malloc((size_t)cw * sizeof(*v->col_c));
   v->chroma = malloc((size_t)ocw * (size_t)(v->out_h / 2) * 2);
   if (!v->sum_y || !v->sum_u || !v->sum_v || !v->col_y || !v->col_c || !v->chroma ||
-      !v->per_y || !v->per_c)
+      !v->per_y || !v->per_c || !v->first_y || !v->first_c)
     return AVERROR(ENOMEM);
+  /* Every `step`-th column of the picture is sampled, whichever chunk it falls in. */
+  for (int chunk = 0; chunk < chunks; chunk++) {
+    v->first_y[chunk] = (uint8_t)((v->step - chunk * 16 % v->step) % v->step);
+    v->first_c[chunk] = (uint8_t)((v->step - chunk * 8 % v->step) % v->step);
+  }
   for (int x = 0; x < w; x++) v->col_y[x] = (uint16_t)((int64_t)x * ow / w);
   for (int x = 0; x < cw; x++) v->col_c[x] = (uint16_t)((int64_t)x * ocw / cw);
   column_shares(v->col_y, w, v->step, v->per_y, ow);
@@ -401,8 +415,7 @@ static void sum_luma_row(const RbVideo *v, const Source *s, int y, int w) {
     const uint8_t *p = luma(s, y, chunk);
     const uint16_t *col = v->col_y + chunk * 16;
     int n = w - chunk * 16 < 16 ? w - chunk * 16 : 16;
-    /* Every `step`-th column of the picture, whichever chunk it falls in. */
-    for (int x = (step - chunk * 16 % step) % step; x < n; x += step) v->sum_y[col[x]] += p[x];
+    for (int x = v->first_y[chunk]; x < n; x += step) v->sum_y[col[x]] += p[x];
   }
 }
 
@@ -413,7 +426,7 @@ static void sum_chroma_row(const RbVideo *v, const Source *s, int y, int cw) {
       const uint8_t *p = s->f->data[1] + ((size_t)(y / 16 * s->blocks + chunk) * 16 + (size_t)(y % 16)) * 16;
       const uint16_t *col = v->col_c + chunk * 8;
       int n = cw - chunk * 8 < 8 ? cw - chunk * 8 : 8;
-      for (int x = (step - chunk * 8 % step) % step; x < n; x += step) {
+      for (int x = v->first_c[chunk]; x < n; x += step) {
         v->sum_u[col[x]] += p[2 * x];
         v->sum_v[col[x]] += p[2 * x + 1];
       }
