@@ -2,6 +2,7 @@
 
 pub mod art;
 mod boot;
+mod buttons_page;
 mod canvas;
 mod catalog;
 pub mod charge;
@@ -42,6 +43,7 @@ mod time_zone;
 mod ui_state;
 mod up_next;
 mod views_books;
+mod views_buttons;
 mod views_coverflow;
 mod views_library;
 mod views_playing;
@@ -495,6 +497,8 @@ pub struct Ui {
     last_step: Option<Instant>,
     /// The library's audiobooks, kept until the library changes.
     books: RefCell<Option<views_books::BookCache>>,
+    /// Customize > Buttons: the draft, the trial after Save, a refused save's reason.
+    buttons: buttons_page::ButtonsUi,
     /// The Audiobooks rows, kept until the library, a book's progress, the chapters known or the
     /// playing book change (Y2Reborn #27: rebuilt several times a frame they made the list crawl).
     book_rows: RefCell<Option<views_books::BookRowsCache>>,
@@ -762,6 +766,7 @@ fn confirm_action(name: &str) -> Option<ConfirmAction> {
 pub(crate) fn confirm_is_danger(action: ConfirmAction) -> bool {
     !matches!(action, ConfirmAction::Platform(task)
         if !matches!(task, PlatformTask::InternalStorageSetup | PlatformTask::SdRepair))
+        && action != ConfirmAction::KeepButtons
 }
 
 fn confirm_label(action: ConfirmAction) -> &'static str {
@@ -784,6 +789,7 @@ fn confirm_label(action: ConfirmAction) -> &'static str {
         ConfirmAction::Platform(PlatformTask::ReportNewId) => "New ID",
         ConfirmAction::ReportsQuestion => "Send Reports",
         ConfirmAction::LoudVolume => "Raise Volume",
+        ConfirmAction::KeepButtons => "Keep",
         ConfirmAction::Platform(_) => "Run",
     }
 }
@@ -856,6 +862,10 @@ fn confirm_copy(action: ConfirmAction) -> (&'static str, &'static str) {
             "Help Improve Y2Linux?",
             "If something goes wrong, the player can send a report over Wi-Fi: logs and technical details, never your music, names or accounts. Change it in About & Updates.",
         ),
+        ConfirmAction::KeepButtons => (
+            "Keep These Buttons?",
+            "Choose Keep with the new buttons. Otherwise the old ones come back in 15 seconds.",
+        ),
         ConfirmAction::LoudVolume => (
             "Raise the Volume?",
             "Listening at high volume for a long time can damage your hearing. This is asked again after 20 hours of loud listening.",
@@ -867,7 +877,7 @@ fn confirm_copy(action: ConfirmAction) -> (&'static str, &'static str) {
     }
 }
 
-fn next_repeat(mode: RepeatMode) -> RepeatMode {
+pub(crate) fn next_repeat(mode: RepeatMode) -> RepeatMode {
     match mode {
         RepeatMode::Off => RepeatMode::All,
         RepeatMode::All => RepeatMode::Track,
@@ -1115,7 +1125,7 @@ pub(crate) fn speed_label(speed: f32) -> String {
     s.trim_end_matches('0').trim_end_matches('.').to_owned()
 }
 
-fn repeat_label(mode: RepeatMode) -> &'static str {
+pub(crate) fn repeat_label(mode: RepeatMode) -> &'static str {
     match mode {
         RepeatMode::Off => "Off",
         RepeatMode::Track => "One",

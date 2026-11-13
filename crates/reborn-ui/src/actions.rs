@@ -10,6 +10,12 @@ const LETTER_SCROLL_STEPS: i32 = 3;
 
 impl Ui {
     pub fn action(&mut self, m: &mut AppModel, tracks: &[Track], action: Action) -> Effect {
+        if let Action::Command(command) = action {
+            return self.run_command(m, tracks, command);
+        }
+        if self.face_pick(m, action) {
+            return Effect::None;
+        }
         let before = (m.screen, m.navigation.filter.clone());
         if m.screen == Screen::NowPlaying && m.current().is_some_and(Track::is_video) {
             self.show_video_controls();
@@ -257,15 +263,31 @@ impl Ui {
     pub(crate) fn wheel(&mut self, m: &mut AppModel, tracks: &[Track], suggested: i32) -> Effect {
         let direction = suggested.signum();
         if m.navigation.modal.is_none() && m.screen == Screen::NowPlaying && m.current().is_some() {
-            // Customize > Now Playing Wheel (#34): Seek moves through the song
-            // as holding Previous/Next does, small steps first. A station has
-            // no place to move to: its wheel stays the volume.
-            let seek = m.settings.now_playing_wheel == reborn_core::NowPlayingWheel::Seek
-                && !m.current().is_some_and(Track::is_radio);
-            return if seek {
-                Effect::Seek(i64::from(direction))
+            // The layout's Now Playing wheel (Customize > Buttons; #34): seeking moves through
+            // the song as holding Previous/Next does, small steps first. A station has no place
+            // to move to: its wheel stays the volume. (The router does the same for the wheel.)
+            use reborn_core::buttons::{Command, Control, Gesture, Layer};
+            let control = if direction > 0 {
+                Control::WheelForward
             } else {
-                Effect::AdjustVolume(WHEEL_VOLUME_STEP * direction as i8)
+                Control::WheelBack
+            };
+            let command =
+                m.settings
+                    .buttons
+                    .layout()
+                    .resolve(Layer::NowPlaying, control, Gesture::Press);
+            let station = m.current().is_some_and(Track::is_radio);
+            return match command {
+                Command::SeekForward | Command::SeekBack if !station => {
+                    Effect::Seek(i64::from(direction))
+                }
+                Command::Nothing | Command::ScrollForward | Command::ScrollBack => Effect::None,
+                Command::VolumeUp
+                | Command::VolumeDown
+                | Command::SeekForward
+                | Command::SeekBack => Effect::AdjustVolume(WHEEL_VOLUME_STEP * direction as i8),
+                other => self.run_command(m, tracks, other),
             };
         }
         // The country list (≈240) and Audiobooks (Y2Reborn #27: 200 books took minutes) scroll as
@@ -669,7 +691,7 @@ impl Ui {
         }
         if let Some((screen, filter)) = pages::sub_page(key) {
             Self::go(m, screen, filter);
-            m.navigation.focus = crate::customize::picker_focus(m, key);
+            m.navigation.focus = crate::customize::picker_focus(self, m, key);
             return Effect::None;
         }
         if let Some(screen) = route(key) {

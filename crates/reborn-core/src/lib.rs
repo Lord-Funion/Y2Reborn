@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 pub mod albums;
+pub use buttons::{NowPlayingWheel, ScreenOffButtons};
 pub mod books;
+pub mod buttons;
 pub mod clock;
 mod countries;
 pub mod eq;
@@ -630,6 +632,8 @@ pub enum Action {
     PowerHold,
     /// Power was released (or the press cancelled) after `PowerHold`.
     PowerHoldCancel,
+    /// A button layout's command that has no action of its own (Customize > Buttons).
+    Command(buttons::Command),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -818,6 +822,8 @@ pub enum ConfirmAction {
     ReportsQuestion,
     /// Wired volume above the safe level (hearing warning).
     LoudVolume,
+    /// A new button layout: kept only when chosen with its own buttons.
+    KeepButtons,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -974,6 +980,9 @@ pub struct Settings {
     /// What the wheel and its buttons do while the screen is off (Beta 8.18).
     #[serde(default)]
     pub screen_off_buttons: ScreenOffButtons,
+    /// The button layouts and the one in use (Customize > Buttons, Beta 9.3.29).
+    #[serde(default)]
+    pub buttons: buttons::ButtonSettings,
     /// A tick of the vibration motor on each button press (#28).
     #[serde(default)]
     pub haptics: Haptics,
@@ -1116,30 +1125,6 @@ impl AlbumOrder {
         }
     }
 }
-/// What the wheel does on Now Playing: Customize > Now Playing Wheel. The
-/// volume buttons always change the volume.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum NowPlayingWheel {
-    #[default]
-    Volume,
-    /// It moves through the song as holding Previous/Next does.
-    Seek,
-}
-impl NowPlayingWheel {
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Volume => "Volume",
-            Self::Seek => "Seek",
-        }
-    }
-    pub fn next(self) -> Self {
-        match self {
-            Self::Volume => Self::Seek,
-            Self::Seek => Self::Volume,
-        }
-    }
-}
 /// What Shuffle mixes (Settings > Playback, Now Playing; as the iPod's
 /// Shuffle Off, Songs and Albums): every song, or whole albums in random
 /// order, each album in its own order (Beta 8.39).
@@ -1269,36 +1254,6 @@ impl WrapAround {
         }
     }
 }
-/// What the wheel, its centre and its four buttons do while the screen is
-/// off. Power, the volume keys and headphone controls always work.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum ScreenOffButtons {
-    /// Nothing: safe in a pocket.
-    Locked,
-    /// Play/Pause, Previous and Next (held: seek); the wheel and centre rest.
-    #[default]
-    Buttons,
-    /// Also the wheel (volume) and the centre (play/pause), like Now Playing.
-    WheelAndButtons,
-}
-impl ScreenOffButtons {
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Locked => "Locked",
-            Self::Buttons => "Buttons",
-            Self::WheelAndButtons => "Wheel + Buttons",
-        }
-    }
-    /// The next choice, as one press on its row steps through them.
-    pub fn next(self) -> Self {
-        match self {
-            Self::Locked => Self::Buttons,
-            Self::Buttons => Self::WheelAndButtons,
-            Self::WheelAndButtons => Self::Locked,
-        }
-    }
-}
 /// The vibration motor's tick on the wheel and buttons (#28). Off until
 /// chosen: an update does not start buzzing on its own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -1404,6 +1359,7 @@ impl Default for Settings {
             artists_list: ArtistsList::All,
             wrap_around: WrapAround::Menus,
             screen_off_buttons: ScreenOffButtons::Buttons,
+            buttons: Default::default(),
             haptics: Haptics::Off,
             wheel_click: WheelClick::Off,
             speaker: true,
@@ -1768,10 +1724,9 @@ pub enum Effect {
     SetAlbumView(AlbumView),
     SetAlbumOrder(AlbumOrder),
     SetArtistAlbums(ArtistAlbums),
-    SetNowPlayingWheel(NowPlayingWheel),
+    SetButtons(Box<buttons::ButtonSettings>),
     SetArtistsList(ArtistsList),
     SetWrapAround(WrapAround),
-    SetScreenOffButtons(ScreenOffButtons),
     SetHaptics(Haptics),
     SetWheelClick(WheelClick),
     SetSpeaker(bool),
@@ -2107,6 +2062,8 @@ impl AppModel {
             }
             Err(_) => serde_json::from_slice::<Self>(&bytes)?,
         };
+        let (wheel, dark) = (m.settings.now_playing_wheel, m.settings.screen_off_buttons);
+        m.settings.buttons.migrate(wheel, dark);
         if m.settings.codec_revision < CODEC_REVISION {
             if m.settings.codec_preference == CodecPreference::Sbc {
                 m.settings.codec_preference = CodecPreference::Auto;

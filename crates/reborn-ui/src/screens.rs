@@ -252,8 +252,10 @@ pub(crate) fn skin_layout<'s>(
     if m.screen == Screen::LastFm && ui.lastfm.approval.is_some() {
         return None;
     }
-    // So is Wi-Fi Share's address with its code.
-    if m.screen == Screen::SettingsLibrary && !ui.share.address.is_empty() {
+    // So is Wi-Fi Share's address with its code, and the drawing of the player's buttons.
+    if (m.screen == Screen::SettingsLibrary && !ui.share.address.is_empty())
+        || crate::buttons_page::face(m).is_some()
+    {
         return None;
     }
     let page = skin_page(ui, m, tracks);

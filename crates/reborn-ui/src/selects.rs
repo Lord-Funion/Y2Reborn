@@ -252,9 +252,7 @@ impl Ui {
             k if k.starts_with("set:") => crate::customize::chosen(m, k)?,
             "wrap_around" => Effect::SetWrapAround(m.settings.wrap_around.next()),
             "home_audiobooks" => Effect::SetAudiobooksOnHome(!m.settings.audiobooks_on_home),
-            "screen_off_buttons" => {
-                Effect::SetScreenOffButtons(m.settings.screen_off_buttons.next())
-            }
+            k if k.starts_with("btn_") => self.button_select(m, k)?,
             "haptics" => Effect::SetHaptics(m.settings.haptics.next()),
             "wheel_click" => Effect::SetWheelClick(m.settings.wheel_click.next()),
             "wifi_share" => {
@@ -270,7 +268,6 @@ impl Ui {
             "album_view" => Effect::SetAlbumView(m.settings.album_view.next()),
             "album_order" => Effect::SetAlbumOrder(m.settings.album_order.next()),
             "artists_list" => Effect::SetArtistsList(m.settings.artists_list.next()),
-            "now_playing_wheel" => Effect::SetNowPlayingWheel(m.settings.now_playing_wheel.next()),
             "crossfade" => Effect::SetCrossfade(match m.settings.crossfade_ms {
                 0 => 3_000,
                 3_000 => 6_000,

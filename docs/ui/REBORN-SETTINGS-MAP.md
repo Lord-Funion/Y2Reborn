@@ -16,8 +16,8 @@
 3. **Does the page still fit one screen?** At most six rows on a page (the root holds eight). If a page
    would get a seventh, group related rows into a sub-page of their own with a name that says what is
    inside, rather than letting the page scroll.
-4. **Name it by what it does, show its value.** The row's label says what changes ("Buttons While Screen
-   Off", not "When Screen Off"); its value on the right says what it is now ("Play Buttons", not "On").
+4. **Name it by what it does, show its value.** The row's label says what changes ("Hold Time", not
+   "Timing"); its value on the right says what it is now ("Normal", "2 buttons changed", not "On").
 5. **Use the matching control.** On/off: a switch. Two named choices: Select steps them, the value shows
    which. Three or more: a picker page with a check mark on the current choice. A level or a time: a picker
    or a card with a slider.
@@ -53,11 +53,13 @@ Settings
 │  └ Output                  Headphone Jack / Bluetooth devices · Speaker · Headphone Level › · DAC Filter ›
 ├ Display                    Brightness card · Screen Off After ›
 ├ Skin                       the skins
-├ Customize                  Home Menu › · Browsing › · Wheel & Buttons ›
+├ Customize                  Home Menu › · Browsing › · Buttons ›
 │  ├ Home Menu               the places on Home and their order
 │  ├ Browsing                Cover Flow · Sort Albums · Artist's Albums › · Artists List
 │  │                         · Lists Wrap Around › · FM Radio
-│  └ Wheel & Buttons         Wheel on Now Playing · Wheel Click · Haptics › · Buttons While Screen Off ›
+│  └ Buttons                 Layout › · In Menus › · On Now Playing › · Screen Off › · Save/Discard
+│                            (or Delete This Layout) · Hold Time › · Wheel Click · Haptics ›
+│                            (each layer: the player drawn, a button's page, its command picker)
 ├ Library                    Scan for Music · Storage › · Wi-Fi Share › · Last.fm ›
 └ System                     Software Update › · Time Zone › · Date & Time › · Error Reports ›
                              · Reset & Maintenance › · About ›

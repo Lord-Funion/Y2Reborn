@@ -1663,7 +1663,7 @@ fn settings_has_eight_places_and_customize_three_pages_with_pickers() {
     select_key(&mut ui, &mut m, "customize");
     assert_eq!(
         keys(&ui, &m),
-        ["home_menu", "customize:browsing", "customize:wheel"]
+        ["home_menu", "customize:browsing", "customize:buttons"]
     );
     assert!(hint(&ui, &m).starts_with("Which places Home shows"));
 
@@ -1721,19 +1721,22 @@ fn settings_has_eight_places_and_customize_three_pages_with_pickers() {
         (Screen::Customize, "")
     );
 
-    select_key(&mut ui, &mut m, "customize:wheel");
+    select_key(&mut ui, &mut m, "customize:buttons");
     assert_eq!(
         labels(&ui, &m),
         [
-            "Wheel on Now Playing",
+            "Layout",
+            "In Menus",
+            "On Now Playing",
+            "Screen Off",
+            "Hold Time",
             "Wheel Click",
-            "Haptics",
-            "Buttons While Screen Off"
+            "Haptics"
         ]
     );
     assert_eq!(
-        select_key(&mut ui, &mut m, "now_playing_wheel"),
-        Effect::SetNowPlayingWheel(reborn_core::NowPlayingWheel::Seek)
+        row(&ui, &m, "customize:buttons:layouts").secondary,
+        "Reborn Default"
     );
     // #67, #77: a switch, Off by default.
     assert_eq!(row(&ui, &m, "wheel_click").kind, RowKind::Toggle(false));
@@ -1748,16 +1751,306 @@ fn settings_has_eight_places_and_customize_three_pages_with_pickers() {
         select_key(&mut ui, &mut m, "set:haptics:1"),
         Effect::SetHaptics(reborn_core::Haptics::Light)
     );
+    // A session saved on the older Wheel & Buttons page opens Buttons.
+    m.navigation.filter = "wheel".into();
+    assert_eq!(labels(&ui, &m)[0], "Layout");
+}
+
+fn labels(ui: &Ui, m: &AppModel) -> Vec<String> {
+    ui.rows(m, &m.library.tracks)
+        .into_iter()
+        .map(|r| r.label)
+        .collect()
+}
+fn row(ui: &Ui, m: &AppModel, key: &str) -> Item {
+    ui.rows(m, &m.library.tracks)
+        .into_iter()
+        .find(|r| r.key == key)
+        .unwrap_or_else(|| panic!("no row {key}"))
+}
+fn hint(ui: &Ui, m: &AppModel) -> String {
+    pages::page(ui, m, &m.library.tracks)
+        .status
+        .unwrap_or_default()
+}
+
+/// Customize > Buttons (Beta 9.3.29): a button changed on its face page stays a draft until Save;
+/// Save checks it, walks the menus with it and puts it on trial; Keep keeps it, Undo (or the
+/// clock) brings back the layout before.
+#[test]
+fn a_changed_button_is_saved_on_trial_and_kept_or_undone() {
+    use reborn_core::buttons::{ButtonSettings, Command, Control, Gesture, Layer};
+    let mut ui = radios();
+    let mut m = app(Screen::Customize);
+    m.navigation.filter = "buttons".into();
+    select_key(&mut ui, &mut m, "customize:buttons:menus");
+    assert_eq!(
+        labels(&ui, &m).len(),
+        9,
+        "one row per button and wheel direction"
+    );
+    assert!(
+        ui.button_context(&m).protected,
+        "the button pages answer as Reborn Default"
+    );
+    // Pressing Next on the face picks Next instead of skipping a song.
+    assert_eq!(ui.model_action(&mut m, Action::NextTrack), Effect::None);
+    assert_eq!(m.navigation.focus, 1);
+    let drawn = drawn_text(&ui.draw(&m, &m.library.tracks.clone(), false));
+    assert!(
+        drawn.contains("Select to change") && drawn.contains("Fast Forward"),
+        "{drawn}"
+    );
+    // Next, press → Shuffle On/Off.
+    select_key(&mut ui, &mut m, "customize:buttons:menus:next");
+    assert_eq!(labels(&ui, &m), ["Press", "Hold"]);
+    select_key(&mut ui, &mut m, "customize:buttons:menus:next:press");
+    assert_eq!(
+        row(&ui, &m, "btn_set:menus:next:press:next").kind,
+        RowKind::Check(true)
+    );
+    assert_eq!(
+        select_key(&mut ui, &mut m, "btn_set:menus:next:press:shuffle"),
+        Effect::None
+    );
+    assert_eq!(
+        m.navigation.filter, "buttons:menus:next",
+        "back on the button's page"
+    );
+    assert!(labels(&ui, &m).contains(&"Back to Reborn Default".to_string()));
+    ui.model_action(&mut m, Action::Back);
     ui.model_action(&mut m, Action::Back);
     assert_eq!(
-        row(&ui, &m, "choose:screen_off_buttons").secondary,
-        "Play Buttons"
+        row(&ui, &m, "customize:buttons:layouts").secondary,
+        "Reborn Default · Edited"
     );
-    select_key(&mut ui, &mut m, "choose:screen_off_buttons");
-    assert_eq!(m.navigation.focus, 1);
     assert_eq!(
-        select_key(&mut ui, &mut m, "set:screen_off_buttons:0"),
-        Effect::SetScreenOffButtons(reborn_core::ScreenOffButtons::Locked)
+        row(&ui, &m, "customize:buttons:menus").secondary,
+        "1 button changed"
+    );
+    // Nothing applies before Save.
+    assert_eq!(m.settings.buttons, ButtonSettings::default());
+    let Effect::SetButtons(saved) = select_key(&mut ui, &mut m, "btn_save") else {
+        panic!("Save stores the layout");
+    };
+    assert_eq!(
+        m.navigation.modal,
+        Some(Modal::Confirm(reborn_core::ConfirmAction::KeepButtons))
+    );
+    assert_eq!(saved.active_name(), "My Buttons");
+    assert_eq!(
+        saved
+            .layout()
+            .resolve(Layer::Menus, Control::Next, Gesture::Press),
+        Command::Shuffle
+    );
+    m.settings.buttons = *saved.clone();
+    assert!(
+        !ui.button_context(&m).protected,
+        "the sheet answers with the new buttons"
+    );
+    let sheet: Vec<String> = ui
+        .modal_rows_public(&m, &[])
+        .into_iter()
+        .map(|r| r.label)
+        .collect();
+    assert_eq!(sheet, ["Undo", "Keep"]);
+    // Undo: the layout before.
+    m.navigation.modal_focus = 0;
+    let Effect::SetButtons(back) = ui.model_action(&mut m, Action::Select) else {
+        panic!("Undo restores");
+    };
+    assert_eq!(*back, ButtonSettings::default());
+    m.settings.buttons = *back;
+    // Again, and Keep.
+    select_key(&mut ui, &mut m, "customize:buttons:menus");
+    select_key(&mut ui, &mut m, "customize:buttons:menus:next");
+    select_key(&mut ui, &mut m, "customize:buttons:menus:next:press");
+    select_key(&mut ui, &mut m, "btn_set:menus:next:press:shuffle");
+    ui.model_action(&mut m, Action::Back);
+    ui.model_action(&mut m, Action::Back);
+    let Effect::SetButtons(saved) = select_key(&mut ui, &mut m, "btn_save") else {
+        panic!("saved");
+    };
+    m.settings.buttons = *saved;
+    m.navigation.modal_focus = 1;
+    assert_eq!(ui.model_action(&mut m, Action::Select), Effect::None);
+    assert!(m.navigation.modal.is_none());
+    assert!(ui
+        .buttons_trial_expired(&mut m, Instant::now() + Duration::from_secs(60))
+        .is_none());
+    // A third save left alone: the clock brings the layout before back.
+    select_key(&mut ui, &mut m, "customize:buttons:screen_off");
+    select_key(&mut ui, &mut m, "customize:buttons:screen_off:select");
+    select_key(&mut ui, &mut m, "customize:buttons:screen_off:select:press");
+    // The dark offers only what is safe in a pocket.
+    assert!(!labels(&ui, &m).contains(&"Open Settings".to_string()));
+    select_key(
+        &mut ui,
+        &mut m,
+        "btn_set:screen_off:select:press:play_pause",
+    );
+    ui.model_action(&mut m, Action::Back);
+    ui.model_action(&mut m, Action::Back);
+    let before = m.settings.buttons.clone();
+    let Effect::SetButtons(saved) = select_key(&mut ui, &mut m, "btn_save") else {
+        panic!("saved");
+    };
+    assert_eq!(
+        saved.own.len(),
+        1,
+        "the own layout in use was updated, not copied"
+    );
+    m.settings.buttons = *saved;
+    assert!(
+        ui.buttons_trial_expired(&mut m, Instant::now()).is_none(),
+        "not yet"
+    );
+    let restored = ui.buttons_trial_expired(&mut m, Instant::now() + crate::buttons_page::TRIAL);
+    assert_eq!(restored, Some(before));
+    assert!(m.navigation.modal.is_none());
+}
+
+#[test]
+fn a_layout_that_locks_people_out_is_not_saved() {
+    let mut ui = radios();
+    let mut m = app(Screen::Customize);
+    m.navigation.filter = "buttons".into();
+    // Back loses both its press and its hold: nothing would go back in the menus.
+    for gesture in ["press", "hold"] {
+        select_key(&mut ui, &mut m, "customize:buttons:menus");
+        select_key(&mut ui, &mut m, "customize:buttons:menus:back");
+        select_key(
+            &mut ui,
+            &mut m,
+            &format!("customize:buttons:menus:back:{gesture}"),
+        );
+        select_key(
+            &mut ui,
+            &mut m,
+            &format!("btn_set:menus:back:{gesture}:nothing"),
+        );
+        ui.model_action(&mut m, Action::Back);
+        ui.model_action(&mut m, Action::Back);
+    }
+    assert_eq!(select_key(&mut ui, &mut m, "btn_save"), Effect::None);
+    assert!(m.navigation.modal.is_none());
+    assert!(
+        hint(&ui, &m).contains("Nothing goes back"),
+        "{}",
+        hint(&ui, &m)
+    );
+    // Discard: the draft is gone.
+    select_key(&mut ui, &mut m, "btn_discard");
+    assert!(!labels(&ui, &m).contains(&"Save Changes".to_string()));
+}
+
+#[test]
+fn the_save_walk_reaches_buttons_and_home_with_any_usable_layout() {
+    use reborn_core::buttons::{built_in, Command, Control, Gesture, Layer, Layout};
+    for (id, _, _, layout) in built_in() {
+        assert_eq!(crate::buttons_page::walk(&layout), Ok(()), "{id}");
+    }
+    // Navigation moved to other buttons entirely: the wheel is the volume, the four buttons
+    // scroll, select and go back.
+    let mut moved = Layout::default();
+    let changes = [
+        (Control::WheelForward, Command::VolumeUp),
+        (Control::WheelBack, Command::VolumeDown),
+        (Control::Next, Command::ScrollForward),
+        (Control::Previous, Command::ScrollBack),
+        (Control::Select, Command::PlayPause),
+        (Control::PlayPause, Command::Select),
+    ];
+    for (control, command) in changes {
+        moved.set(Layer::Menus, control, Gesture::Press, Some(command));
+    }
+    assert_eq!(moved.check(), Ok(()));
+    assert_eq!(crate::buttons_page::walk(&moved), Ok(()));
+}
+
+#[test]
+fn the_quick_menu_and_the_start_up_escape_bring_back_reborn_default() {
+    use reborn_core::buttons::{Command, REBORN_DEFAULT};
+    let mut ui = radios();
+    let mut m = app(Screen::Home);
+    m.settings.buttons.active = "pocket".into();
+    m.navigation.modal = Some(Modal::QuickMenu);
+    assert!(
+        ui.button_context(&m).protected,
+        "the Quick Menu answers as Reborn Default"
+    );
+    let rows = ui.quick_menu_rows(&m);
+    let at = rows
+        .iter()
+        .position(|r| r.key == "quick:buttons")
+        .expect("a Buttons tile");
+    assert_eq!(rows[at].secondary, "Pocket");
+    m.navigation.modal_focus = at;
+    let Effect::SetButtons(back) = ui.model_action(&mut m, Action::Select) else {
+        panic!("Reborn Default");
+    };
+    assert_eq!(back.active, REBORN_DEFAULT);
+    m.settings.buttons = *back;
+    assert!(!ui
+        .quick_menu_rows(&m)
+        .iter()
+        .any(|r| r.key == "quick:buttons"));
+    // Back held at start: the router asks for Reborn Default, also in the dark.
+    m.settings.buttons.active = "pocket".into();
+    m.navigation.modal = None;
+    m.screen_off = true;
+    let Effect::SetButtons(back) = ui.model_action(&mut m, Action::Command(Command::RebornDefault))
+    else {
+        panic!("Reborn Default");
+    };
+    assert_eq!(back.active, REBORN_DEFAULT);
+}
+
+#[test]
+fn layout_commands_act_and_the_now_playing_wheel_follows_the_layout() {
+    use reborn_core::buttons::{Command, Control, Gesture, Layer};
+    let mut ui = radios();
+    let mut m = app(Screen::Home);
+    assert_eq!(
+        ui.model_action(&mut m, Action::Command(Command::OpenSettings)),
+        Effect::None
+    );
+    assert_eq!(m.screen, Screen::Settings);
+    assert_eq!(
+        ui.model_action(&mut m, Action::Command(Command::Shuffle)),
+        Effect::SetShuffle(reborn_core::ShuffleMode::Songs)
+    );
+    assert_eq!(
+        ui.model_action(&mut m, Action::Command(Command::SleepTimer)),
+        Effect::SetSleepTimer(reborn_core::SleepChoice::Minutes(15))
+    );
+    // In the dark only what is safe in a pocket acts.
+    m.screen_off = true;
+    assert_eq!(
+        ui.model_action(&mut m, Action::Command(Command::OpenMusic)),
+        Effect::None
+    );
+    assert_eq!(m.screen, Screen::Settings);
+    m.screen_off = false;
+    // Now Playing: the wheel is what the layout says (an injected wheel action too).
+    let mut np = app(Screen::NowPlaying);
+    assert_eq!(ui.button_context(&np).layer, Layer::NowPlaying);
+    assert_eq!(
+        ui.model_action(&mut np, Action::WheelClockwise(1)),
+        Effect::AdjustVolume(2)
+    );
+    let mut layout = np.settings.buttons.layout();
+    layout.set(
+        Layer::NowPlaying,
+        Control::WheelForward,
+        Gesture::Press,
+        Some(Command::SeekForward),
+    );
+    np.settings.buttons.save(layout);
+    assert_eq!(
+        ui.model_action(&mut np, Action::WheelClockwise(1)),
+        Effect::Seek(1)
     );
 }
 
@@ -6130,7 +6423,7 @@ fn the_now_playing_wheel_seeks_when_customize_says_so() {
         ui.model_action(&mut m, Action::WheelClockwise(1)),
         Effect::AdjustVolume(_)
     ));
-    m.settings.now_playing_wheel = reborn_core::NowPlayingWheel::Seek;
+    m.settings.buttons.active = "wheel_seeks".into();
     // As holding Previous/Next: one step a detent, the player sizes it.
     assert_eq!(
         ui.model_action(&mut m, Action::WheelClockwise(3)),

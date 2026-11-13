@@ -283,8 +283,8 @@ impl Runtime {
                 self.model.settings.artist_albums = order;
                 self.checkpoint();
             }
-            Effect::SetNowPlayingWheel(wheel) => {
-                self.model.settings.now_playing_wheel = wheel;
+            Effect::SetButtons(buttons) => {
+                self.model.settings.buttons = *buttons;
                 self.checkpoint();
             }
             Effect::SetArtistsList(list) => {
@@ -308,10 +308,6 @@ impl Runtime {
                 if let Some(book) = self.book_by_key(&key) {
                     self.request_chapters(&book);
                 }
-            }
-            Effect::SetScreenOffButtons(mode) => {
-                self.model.settings.screen_off_buttons = mode;
-                self.checkpoint();
             }
             Effect::SetHaptics(strength) => {
                 self.model.settings.haptics = strength;

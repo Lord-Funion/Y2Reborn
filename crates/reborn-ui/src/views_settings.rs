@@ -46,6 +46,9 @@ pub fn screen(c: &mut Canvas, ui: &Ui, m: &AppModel, tracks: &[Track], interacti
         Screen::SettingsLibrary if !ui.share.address.is_empty() => {
             share_code(c, ui, &page, focus, interactive)
         }
+        Screen::Customize if crate::buttons_page::face(m).is_some() => {
+            crate::views_buttons::face(c, ui, m, &page, focus, interactive)
+        }
         _ => group_page(c, ui, m, &page, focus, interactive, 38.),
     }
 }

@@ -227,7 +227,7 @@ pub fn page(ui: &Ui, m: &AppModel, tracks: &[Track]) -> Page {
             );
             Page::rows(rows)
         }
-        Screen::Customize => crate::customize::page(m),
+        Screen::Customize => crate::customize::page(ui, m),
         Screen::TimeZone => Page::rows(crate::time_zone::rows(ui, m)),
         Screen::DateTime => {
             let mut page = Page::rows(crate::date_time::rows(ui, m));

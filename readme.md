@@ -50,8 +50,9 @@ skins. Written in Rust, it decodes with FFmpeg, draws with OpenGL ES on the Y2's
 - **Seventeen skins** (Classic, Nano Glass, Walkman, Terminal, Winamp, Paper, Big Type, Cassette, Neon Night, Zune,
   Bunny Bow, Luna XP and five Mini colours), and more by copying a skin folder into `Skins` on the player
   ([how to make one](docs/skins.md)).
-- Customize: Cover Flow on or off, how albums are sorted, lists that wrap around, the wheel on Now Playing (volume or
-  seeking), a wheel click, haptic ticks and what the buttons do while the screen is off.
+- Customize: Cover Flow on or off, how albums are sorted, lists that wrap around, a wheel click, haptic ticks, and
+  Buttons: give any button, hold or turn of the wheel any command, in the menus, on Now Playing and with the screen
+  off, saved as layouts with Reborn Default always there to go back to.
 - A status bar with the clock, Wi-Fi, Bluetooth, a computer connection and the battery, and short messages when
   something happens.
 

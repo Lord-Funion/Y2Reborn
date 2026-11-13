@@ -2,6 +2,7 @@
 mod artwork;
 mod background;
 mod books;
+mod buttons;
 mod dark;
 mod diagnostics;
 mod eq_files;
@@ -909,7 +910,9 @@ const HEADPHONES_LOST: &str = "Headphones unplugged. Playback paused.";
 /// #28: one haptic tick on a lit screen (not the press that wakes it) per
 /// button press and per seek step of a held Previous/Next (`seeked`: this
 /// event's actions moved the song); none for wheel steps, also not the
-/// Now Playing wheel's seek.
+/// Now Playing wheel's seek. In the dark (Customize > Buttons) a button that
+/// did something ticks once when it acted, as the only sign it worked; the
+/// volume and Power, which are heard or lit, do not.
 fn input_ticks(
     lit: bool,
     input: reborn_core::NormalizedInput,
@@ -917,11 +920,28 @@ fn input_ticks(
     seeked: bool,
 ) -> bool {
     use reborn_core::{Action, NormalizedInput};
-    lit && (matches!(input, NormalizedInput::Press(_))
-        || (seeked
-            && actions
-                .iter()
-                .any(|a| matches!(a, Action::SeekForward | Action::SeekBackward))))
+    let dark_act =
+        !lit && matches!(
+            input,
+            NormalizedInput::Release(_) | NormalizedInput::LongPress(_)
+        ) && actions.iter().any(|a| {
+            !matches!(
+                a,
+                Action::VolumeUp
+                    | Action::VolumeDown
+                    | Action::ScreenWake
+                    | Action::PowerHold
+                    | Action::PowerHoldCancel
+                    | Action::PowerShort
+            )
+        });
+    dark_act
+        || lit
+            && (matches!(input, NormalizedInput::Press(_))
+                || (seeked
+                    && actions
+                        .iter()
+                        .any(|a| matches!(a, Action::SeekForward | Action::SeekBackward))))
 }
 
 /// #67: a click per wheel step on a lit screen, while the music plays or not

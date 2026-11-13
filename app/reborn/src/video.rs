@@ -441,6 +441,7 @@ impl Runtime {
     pub(crate) fn background_ticks(&mut self) {
         self.receive_chapters();
         self.sleep_timer_tick();
+        self.buttons_trial_tick();
         self.video_tick();
     }
 

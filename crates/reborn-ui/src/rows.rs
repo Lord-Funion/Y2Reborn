@@ -517,6 +517,9 @@ impl Ui {
                     // A real answer either way, so the question is not asked again.
                     rows[0] = Item::new("No Thanks", "decline");
                 }
+                if action == ConfirmAction::KeepButtons {
+                    rows[0] = Item::new("Undo", "cancel");
+                }
                 if let ConfirmAction::Platform(task) = action {
                     let u = &m.platform.snapshot.update;
                     let idle = m.platform.busy.is_none();

@@ -11,6 +11,8 @@ use reborn_ui::{BluetoothDeviceView, BluetoothView, NetworkView, Ui, WifiStatus,
 use serde_json::{json, Value};
 use std::{fs, path::PathBuf};
 
+#[path = "preview/buttons.rs"]
+mod preview_buttons;
 #[path = "preview/radio.rs"]
 mod preview_radio;
 #[path = "../skins.rs"]
@@ -1814,7 +1816,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         at(Screen::Customize, ""),
         |_, m| {
             m.settings.wrap_around = reborn_core::WrapAround::Everywhere;
-            m.settings.screen_off_buttons = reborn_core::ScreenOffButtons::WheelAndButtons;
             m.navigation.focus = 1;
         }
     );
@@ -1826,14 +1827,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             m.navigation.focus = 1;
         }
     );
-    case!("51g-customize-wheel", at(Screen::Customize, "wheel"));
-    case!(
-        "51h-customize-picker",
-        at(Screen::Customize, "choose:screen_off_buttons"),
-        |_, m| {
-            m.navigation.focus = 1;
-        }
-    );
+    cases.extend(preview_buttons::cases(at));
     case!("51i-system", at(Screen::Update, ""));
     case!("51j-library", at(Screen::SettingsLibrary, ""));
     // The last rows of a long settings page: the list scrolls as Artists does.
