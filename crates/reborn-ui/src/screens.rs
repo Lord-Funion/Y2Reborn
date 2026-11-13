@@ -255,6 +255,7 @@ pub(crate) fn skin_layout<'s>(
     // So is Wi-Fi Share's address with its code, and the drawing of the player's buttons.
     if (m.screen == Screen::SettingsLibrary && !ui.share.address.is_empty())
         || crate::buttons_page::face(m).is_some()
+        || film_playing(m)
     {
         return None;
     }
@@ -264,6 +265,12 @@ pub(crate) fn skin_layout<'s>(
         .iter()
         .find_map(|k| skin.layout(k).map(|l| (*k, l)))
         .map(|(k, l)| (k, l, page))
+}
+
+/// A film on Now Playing: the picture on black, the same in every skin (Y2Reborn #131: a skin's
+/// Now Playing layout has no picture, and its palette would tint the film).
+fn film_playing(m: &AppModel) -> bool {
+    m.screen == Screen::NowPlaying && m.current().is_some_and(Track::is_video)
 }
 
 fn skinned(ui: &Ui, skin: &Skin, m: &AppModel, tracks: &[Track], has_art: bool) -> Vec<Quad> {
@@ -312,7 +319,9 @@ fn skinned(ui: &Ui, skin: &Skin, m: &AppModel, tracks: &[Track], has_art: bool) 
         }
         None => {
             native_screen(&mut c, ui, m, tracks, has_art, interactive);
-            skin::remap(&mut c, start, &skin.palette, ui.cover_accent());
+            if !film_playing(m) {
+                skin::remap(&mut c, start, &skin.palette, ui.cover_accent());
+            }
         }
     }
     skinned_overlays(&mut c, ui, skin, m, tracks);
