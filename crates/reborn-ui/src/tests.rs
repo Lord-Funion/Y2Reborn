@@ -6791,6 +6791,7 @@ fn a_folder_lists_its_folders_then_its_songs_by_file_name() {
     assert_eq!(
         labels,
         [
+            "Shuffle",
             "Alpha",
             "Clubland 28",
             "zeta",
@@ -6799,17 +6800,22 @@ fn a_folder_lists_its_folders_then_its_songs_by_file_name() {
         ]
     );
     assert_eq!(
-        rows[1].secondary, "3 songs",
+        rows[2].secondary, "3 songs",
         "counted when the folder opened"
     );
-    assert_eq!(rows[4].secondary, "Darren Styles");
+    assert_eq!(rows[5].secondary, "Darren Styles");
     // The compilation by its numbered files, numbers as numbers.
     select_key(&mut ui, &mut m, "folder:/data/music/Hardcore/Clubland 28");
     let rows = ui.rows(&m, &tracks);
     let labels: Vec<&str> = rows.iter().map(|r| r.label.as_str()).collect();
     assert_eq!(
         labels,
-        ["01 - Zoe - One", "2 - Bea - Two", "10 - Xan - Ten"]
+        [
+            "Shuffle",
+            "01 - Zoe - One",
+            "2 - Bea - Two",
+            "10 - Xan - Ten"
+        ]
     );
     // A song plays the folder in that order: Next is the row below.
     let (one, two, ten) = (
@@ -6845,10 +6851,19 @@ fn a_folder_lists_its_folders_then_its_songs_by_file_name() {
 fn playing_a_folder_follows_folders_order_and_offers_shuffle_albums() {
     let (mut ui, mut m) = folder_app("folder:/data/music");
     let tracks = m.library.tracks.clone();
-    assert_eq!(ui.rows(&m, &tracks)[0].label, "Hardcore");
+    assert_eq!(ui.rows(&m, &tracks)[1].label, "Hardcore");
     // A storage is named for what it is, not its mount folder.
     assert_eq!(crate::screens::screen_title(&m), "Internal Storage");
-    m.navigation.focus = 0;
+    // Its Shuffle row mixes everything in its folders.
+    let Effect::PlayCollection {
+        members, shuffle, ..
+    } = select_key(&mut ui, &mut m, "shuffle:collection")
+    else {
+        panic!("the folder shuffles");
+    };
+    assert_eq!((shuffle, members.len()), (ShuffleMode::Songs, 7));
+    let (mut ui, mut m) = folder_app("folder:/data/music");
+    m.navigation.focus = 1;
     let menu = menu_labels(&mut ui, &mut m);
     assert_eq!(menu[..3], ["Play", "Shuffle", "Shuffle Albums"]);
     let Effect::PlayCollection {
@@ -6875,7 +6890,7 @@ fn playing_a_folder_follows_folders_order_and_offers_shuffle_albums() {
         ]
     );
     let (mut ui, mut m) = folder_app("folder:/data/music");
-    m.navigation.focus = 0;
+    m.navigation.focus = 1;
     assert!(matches!(
         menu_select(&mut ui, &mut m, "group_shuffle_albums"),
         Effect::PlayCollection {
@@ -7213,7 +7228,7 @@ fn an_album_with_and_without_album_artist_is_listed_once() {
         [
             ("Discovery".into(), "Daft Punk".into()),
             ("Homework".into(), "Daft Punk".into()),
-            ("Now 50".into(), "Artist One".into()),
+            ("Now 50".into(), "Various Artists".into()),
         ]
     );
     // The artist page lists each of its albums once (#46).

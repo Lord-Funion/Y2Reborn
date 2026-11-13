@@ -332,7 +332,13 @@ impl Ui {
         tracks: &[Track],
         shuffle: ShuffleMode,
     ) -> Effect {
-        let members = self.filtered_indices(m, tracks);
+        // A folder's Shuffle takes the songs in its folders too, in the order Folders shows them.
+        let members = match m.navigation.filter.clone() {
+            folder if m.screen == Screen::Folders && folder.starts_with("folder:") => {
+                self.group_members(m, tracks, &folder)
+            }
+            _ => self.filtered_indices(m, tracks),
+        };
         let Some(&index) = members.first() else {
             return Effect::None;
         };

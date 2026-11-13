@@ -33,7 +33,7 @@ skins. Written in Rust, it decodes with FFmpeg, draws with OpenGL ES on the Y2's
 
 **Listening**
 - Gapless playback, crossfade up to 12 s, shuffle by song or by album, repeat and a sleep timer.
-- A five-band equalizer with presets, headphone profiles for 47 headphones and IEMs (AutoEq) plus your own AutoEq
+- A five-band equalizer with presets, headphone profiles for 48 headphones and IEMs (AutoEq) plus your own AutoEq
   `ParametricEQ.txt` files, Normalize Volume (ReplayGain), balance, headphone level and DAC filter.
 - **Bluetooth headphones** with SBC, AAC and LDAC, picked automatically; the music follows them when they connect.
 - **Internet radio** from radio-browser.info: popular stations, countries, genres, search, favorites and your own
