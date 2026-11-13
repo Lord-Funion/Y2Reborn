@@ -208,6 +208,24 @@ Haptics), per the settings map rule. Rows: **Layout** (preset picker), **Screen 
 | Storage | `Settings::buttons` in the session | Not a separate `buttons.json`: the session is what Reset Settings and Restore Previous System already handle; additive, so an older Reborn ignores it. A stored binding Reborn does not know leaves that button as in Reborn Default |
 | Router | `reborn-platform/src/input.rs` `ActionRouter` | A button answers in the layer and layout it went down in; a press acts at the release unless the button has no hold and its command repeats (volume), then at once and on every repeat; holds act at the hold and repeat when their command repeats. Power and the keyboard keep their own code. All 45 earlier router tests pass unchanged with Reborn Default. `InputManager` reports holds and repeats for every button and takes the hold time; Power keeps 650 ms |
 | Pages | `reborn-ui/src/buttons_page.rs`, `views_buttons.rs` | Customize > Buttons (layout, In Menus, On Now Playing, Screen Off, Save/Discard or Delete, Hold Time, Wheel Click, Haptics); face pages draw the player with a gliding glow and a sliding card; Previous, Next, Play/Pause and volume pick themselves on a face page |
-| Safety | as section 3 | Start-up escape: **Back held 5 s within the first minute after Reborn starts** (a held key at start sends no event, so "hold while starting" was not possible without an ioctl). The Quick Menu row is "Reborn Default Buttons", shown while another layout is in use. The Keep sheet has no live countdown; Back on it (or no answer) reverts after 15 s |
+| Safety | as section 3 | Start-up escape: **Back held 5 s within the first minute after Reborn starts** (a held key at start sends no event, so "hold while starting" was not possible without an ioctl). The Quick Menu gets a **Buttons** tile (**Use Default**) while another layout is in use; the bottom row then has four tiles (Sleep Timer, Buttons, Restart, Power Off). The Keep sheet has no live countdown; Back on it (or no answer) reverts after 15 s |
 | Dark feedback | `app/reborn/src/main.rs` `input_ticks` | One haptic tick when a button acted in the dark (not volume, not Power, not repeats), if Haptics is on. No double tick for "nothing mapped" |
 | Not built | — | Double press (it delays every single press of that button), export/import of presets, "Try Buttons", buttons while asleep (phase 4) |
+
+### Device test (owner's player, test builds 257 and 258, 2026-11-13)
+
+Input injected as evdev records into the real input devices, so the new router ran (rebornctl actions bypass it):
+
+- The two older settings were at their defaults: migration chose Reborn Default (`migrated: true`).
+- Wheel and Select reached Customize > Buttons; Next pressed on the In Menus face picked Next (queue unmoved).
+- Next press → Shuffle On/Off, Save: the Keep sheet came with the new layout active; left alone, the old layout was
+  back after 15 s and stored. Done again and Keep chosen with the physical Select: "own:0" stored; on Customize
+  the physical Next toggled Shuffle instead of skipping.
+- Screen Off: Centre → Shuffle; in the dark the Centre toggled Shuffle with the screen staying off; Back did
+  nothing; Power woke the screen.
+- Power held (injected on the PMIC keys) opened the Quick Menu; on 257 the Buttons row was drawn over Power Off
+  (fixed in 258: its own tile); on 258 the tile's Select brought back Reborn Default.
+- Not testable by injection: holds of the five front buttons (the polled GPIO driver reports the release within
+  20 ms), hence the Back start-up escape and front-button holds are host-tested only. The haptic tick in the dark
+  was not felt (nobody at the player).
+- Afterwards: Reborn Default, the test layout deleted, Shuffle off again.
