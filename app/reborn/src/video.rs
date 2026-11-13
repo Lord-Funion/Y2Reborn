@@ -43,6 +43,8 @@ struct Shared {
     position_ms: i64,
     reported: Option<Instant>,
     playing: bool,
+    /// Counts the times the sound was moved (a seek, a pause or a play).
+    moves: u64,
     stop: bool,
     /// The film could not be opened.
     failed: bool,
@@ -72,6 +74,12 @@ impl Link {
     }
 }
 
+/// Whether the reader seeks to the sound: it is further away than `FAR_MS` and the reader is not
+/// catching up from a seek, or the sound was moved again since that seek.
+fn follow_move(late_ms: i64, catching_up: bool, moved_since: bool) -> bool {
+    late_ms.abs() > FAR_MS && (!catching_up || moved_since)
+}
+
 /// The reader thread of one film.
 struct Reader {
     video: Video,
@@ -79,6 +87,8 @@ struct Reader {
     log: Observer,
     /// After a seek: decode without showing until the sound's position is reached.
     catching_up: bool,
+    /// `Shared::moves` when the reader last seeked: a move after it is a new seek to follow.
+    seeked_for: u64,
     shown: u64,
     dropped: u64,
     hardware: bool,
@@ -107,6 +117,7 @@ impl Reader {
                     link,
                     log,
                     catching_up: false,
+                    seeked_for: 0,
                     shown: 0,
                     dropped: 0,
                     hardware: false,
@@ -128,10 +139,14 @@ impl Reader {
         let started = Instant::now();
         let mut result = Ok(());
         // A film opened in its middle starts at the key picture before the position.
-        let start = self.link.lock().clock();
+        let (start, moves) = {
+            let s = self.link.lock();
+            (s.clock(), s.moves)
+        };
         if start > FAR_MS {
             result = self.video.seek(start as u64);
             self.catching_up = true;
+            self.seeked_for = moves;
         }
         while result.is_ok() {
             match self.picture() {
@@ -168,18 +183,22 @@ impl Reader {
         self.hardware |= picture.hardware;
         let pts = picture.pts_ms;
         loop {
-            let (stop, clock, playing) = {
+            let (stop, clock, playing, moves) = {
                 let s = self.link.lock();
-                (s.stop, s.clock(), s.playing)
+                (s.stop, s.clock(), s.playing, s.moves)
             };
             if stop {
                 return Ok(false);
             }
             let late = clock - pts;
-            if late.abs() > FAR_MS && !self.catching_up {
+            // Catching up, the key picture may lie far before the sound; a move since that seek
+            // (Y2Reborn #129: back again while catching up) is followed, or the picture held still
+            // until the sound came back to it.
+            if follow_move(late, self.catching_up, moves != self.seeked_for) {
                 // The sound was moved: go on from the key picture before it.
                 self.video.seek(clock.max(0) as u64)?;
                 self.catching_up = true;
+                self.seeked_for = moves;
                 return Ok(true);
             }
             if late > LATE_MS && (playing || self.catching_up) {
@@ -237,6 +256,7 @@ impl Reader {
             return Ok(false);
         }
         let back = s.clock().max(0) as u64;
+        self.seeked_for = s.moves;
         drop(s);
         self.video.seek(back)?;
         self.catching_up = true;
@@ -377,6 +397,7 @@ impl Player {
         };
         s.reported = Some(Instant::now());
         s.playing = playing;
+        s.moves += u64::from(moved);
         drop(s);
         if moved {
             link.changed.notify_all();
@@ -517,6 +538,22 @@ mod tests {
         s.playing = true;
         s.reported = Some(Instant::now() - Duration::from_millis(250));
         assert!((5240..5400).contains(&s.clock()), "{}", s.clock());
+    }
+
+    #[test]
+    fn a_seek_while_catching_up_is_followed() {
+        assert!(follow_move(-60_000, false, false), "moved back: seek");
+        assert!(
+            !follow_move(8_000, true, false),
+            "catching up from a key picture 8 s before the sound: decode on"
+        );
+        // Y2Reborn #129: forward, then back while still catching up; the picture stood still.
+        assert!(follow_move(-60_000, true, true), "moved again: seek again");
+        assert!(
+            !follow_move(-60_000, true, false),
+            "no new move: no seek loop"
+        );
+        assert!(!follow_move(400, false, true), "near the sound: no seek");
     }
 
     #[test]

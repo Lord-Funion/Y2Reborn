@@ -495,6 +495,9 @@ pub struct Ui {
     last_step: Option<Instant>,
     /// The library's audiobooks, kept until the library changes.
     books: RefCell<Option<views_books::BookCache>>,
+    /// The Audiobooks rows, kept until the library, a book's progress, the chapters known or the
+    /// playing book change (Y2Reborn #27: rebuilt several times a frame they made the list crawl).
+    book_rows: RefCell<Option<views_books::BookRowsCache>>,
     /// The playing film's picture and subtitle, as the app last uploaded them.
     pub video: views_videos::VideoPicture,
     /// A film's title and time line show until this moment (a button was pressed).

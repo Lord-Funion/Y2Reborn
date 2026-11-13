@@ -633,6 +633,49 @@ fn the_book_list_and_page_follow_progress_and_start_books() {
     );
 }
 
+/// Y2Reborn #27: the Audiobooks rows are kept between frames; the playing book's place still
+/// moves with the sound, and a long list scrolls fast like the library's.
+#[test]
+fn the_book_list_is_kept_and_the_playing_book_follows_the_sound() {
+    use reborn_core::books::{books, Listening};
+    let mut ui = radios();
+    let mut m = app(Screen::Audiobooks);
+    with_book(&mut m);
+    let tracks = m.library.tracks.clone();
+    let book = books(&tracks).remove(0);
+    let first = ui.rows(&m, &tracks);
+    assert_eq!(ui.rows(&m, &tracks), first, "the same rows again");
+    assert_eq!(ui.row_count(&m, &tracks), 1);
+    // Playing part two: the row follows the position without a new library or progress.
+    m.replace_queue(book.parts.iter().map(|&i| tracks[i].clone()).collect(), 1)
+        .unwrap();
+    m.book = Some(Listening::new(&book, &tracks, 1.0));
+    m.position_ms = 15_000;
+    let quarter = ui.rows(&m, &tracks)[0].secondary.clone();
+    m.position_ms = 45_000;
+    let three_quarters = ui.rows(&m, &tracks)[0].secondary.clone();
+    assert_eq!(quarter, "Chapter 2 of 3 · 41 %");
+    assert_eq!(three_quarters, "Chapter 2 of 3 · 58 %");
+    // A fast turn moves several books at once.
+    m.book = None;
+    for n in 0..40u32 {
+        let mut t = tracks[tracks.len() - 1].clone();
+        t.id = 1000 + i64::from(n);
+        t.album = format!("Book {n:02}");
+        t.path = format!("/data/music/Hörbücher/Book {n:02}/01.mp3").into();
+        m.library.tracks.push(t);
+    }
+    let tracks = m.library.tracks.clone();
+    m.navigation.focus = 0;
+    ui.model_action(&mut m, Action::WheelClockwise(8));
+    assert!(
+        m.navigation.focus > 1,
+        "accelerated: {}",
+        m.navigation.focus
+    );
+    assert_eq!(ui.row_count(&m, &tracks), 41);
+}
+
 #[test]
 fn now_playing_shows_the_chapter_the_book_and_what_is_left() {
     use reborn_core::books::{books, Listening};

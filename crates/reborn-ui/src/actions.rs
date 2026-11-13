@@ -268,9 +268,11 @@ impl Ui {
                 Effect::AdjustVolume(WHEEL_VOLUME_STEP * direction as i8)
             };
         }
-        // The country list (≈240) scrolls as fast as a long library list.
+        // The country list (≈240) and Audiobooks (Y2Reborn #27: 200 books took minutes) scroll as
+        // fast as a long library list.
         let accelerate = m.navigation.modal.is_none()
-            && (Self::is_catalog(m.screen) || m.screen == Screen::TimeZone)
+            && (Self::is_catalog(m.screen)
+                || matches!(m.screen, Screen::TimeZone | Screen::Audiobooks))
             && self.row_count(m, tracks) >= ACCELERATED_LIST_MINIMUM;
         let now = Instant::now();
         // #30: while the letter shows, each detent goes to the next or the
