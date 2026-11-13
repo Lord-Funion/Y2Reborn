@@ -81,8 +81,7 @@ impl Ui {
         // A layout of one's own: one Select back to Reborn Default (the Quick Menu itself always
         // answers as Reborn Default, and Power, which opens it, is in no layout).
         if m.settings.buttons.active != reborn_core::buttons::REBORN_DEFAULT {
-            let name = m.settings.buttons.active_name();
-            rows.push(Item::new("Reborn Default Buttons", "quick:buttons").with_secondary(name));
+            rows.push(Item::new("Buttons", "quick:buttons").with_secondary("Use Default"));
         }
         // Not while the platform works (an update, a repair): it owns the restart.
         for (label, key) in [

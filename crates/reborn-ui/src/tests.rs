@@ -1985,7 +1985,10 @@ fn the_quick_menu_and_the_start_up_escape_bring_back_reborn_default() {
         .iter()
         .position(|r| r.key == "quick:buttons")
         .expect("a Buttons tile");
-    assert_eq!(rows[at].secondary, "Pocket");
+    assert_eq!(
+        (rows[at].label.as_str(), rows[at].secondary.as_str()),
+        ("Buttons", "Use Default")
+    );
     m.navigation.modal_focus = at;
     let Effect::SetButtons(back) = ui.model_action(&mut m, Action::Select) else {
         panic!("Reborn Default");
