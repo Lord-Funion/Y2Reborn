@@ -90,3 +90,36 @@ providers are outside this change. Reopen Lyrics to reread an edited sidecar.
 
 See the [usage and format guide](../lyrics.md) for controls, exact parsing
 limits and reproduction commands.
+
+## Upstream integration, 2026-11-14
+
+Merged upstream `be78d4abe5c44f98a842fbe2e2bc3fad458ce3a5` into the contribution.
+The conflict resolution preserves the new core exports and Videos route,
+video-control activation and native video rendering alongside Lyrics. Upstream
+button mapping and its early command routing remain intact.
+
+The combined tree passed formatting, locked/offline all-target Clippy with
+`-D warnings`, and the full locked/offline workspace: **855 passed, 0 failed,
+11 existing ignored tests**. This includes the lyrics, video and button tests.
+The same native Linux VM and toolchain described above were used. Byte hashes
+confirmed 2,467 Rust source/root dependency files matched the contribution tree.
+
+The official platform gate again printed `GATE OK` in byte-baseline mode:
+1,058 cases matched clean Y2Linux `61b65d47` on the same host. Separate checks
+reported no lost/retyped record fields against `d26d82b876b8` and passed all
+483 Reborn platform contract cases. The shared ratchet passed with five
+improvements and no raised limits. The default semantic golden suite is still
+outside the passing-results claim.
+
+The initial integration check found four upstream Clippy errors. Behavior-
+preserving cleanups remove an identity string conversion, pass the QR button's
+already-computed selection as one argument, and initialize two test fields in
+their struct literals. One full test attempt also hit the existing audio S32
+test's asynchronous temporary-directory cleanup race (`DirectoryNotEmpty`);
+its isolated rerun and the complete workspace rerun passed without an audio
+source change.
+
+The current documentation checker reports two existing Reborn catalog
+omissions (the upstream Wi-Fi Share and Button Mapper guides) and 193 problems
+in unchanged Y2Linux documentation. The lyrics guide/report links remain valid.
+Physical Y2 qualification remains outstanding as described above.

@@ -57,6 +57,8 @@ pub enum Screen {
     Audiobooks,
     /// One audiobook (`navigation.filter` is its key): buttons and chapters.
     Book,
+    /// The library's films (video files), each opened on Now Playing.
+    Videos,
     SettingsSystem,
     Battery,
     Sleep,
